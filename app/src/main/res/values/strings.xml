@@ -3,4 +3,11 @@
 
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="welcomeText">Kosketa ruutua aloittaaksesi ›</string>
+    <string name="arrowDown">Nuoli alas</string>
+    <string name="showIdCard">Näytä ID-kortti</string>
+    <string name="logo">Etra logo</string>
+    <string name="userGreeting">Tervetuloa\nMatti Meikäläinen</string>
+    <string name="menu">Valikko</string>
+    <string name="profileName">Matti Meikäläinen</string>
 </resources>
