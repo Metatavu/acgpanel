@@ -15,6 +15,12 @@ class IdentifyActivity : KioskActivity() {
         setContentView(R.layout.activity_identify)
     }
 
+    fun browse(@Suppress("UNUSED_PARAMETER") view: View) {
+        val intent = Intent(this, ProductBrowserActivity::class.java)
+        finish();
+        startActivity(intent)
+    }
+
     fun identify(@Suppress("UNUSED_PARAMETER") view: View) {
         if (locked) {
             return;
@@ -25,7 +31,7 @@ class IdentifyActivity : KioskActivity() {
         greeting.visibility = View.VISIBLE;
         greeting.animate()
             .alpha(1f)
-            .setDuration(1000)
+            .setDuration(300)
             .setListener(null)
 
         Handler().postDelayed({
@@ -33,7 +39,7 @@ class IdentifyActivity : KioskActivity() {
             finish();
             locked = false;
             startActivity(intent)
-        }, 2000)
+        }, 700)
     }
 
     override val unlockButton: View

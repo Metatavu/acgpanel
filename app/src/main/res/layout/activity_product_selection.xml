@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/dual_panel"
+    tools:context=".ProductSelectionActivity">
+
+    <TextView
+        android:id="@+id/amount_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="660dp"
+        android:layout_marginTop="40dp"
+        android:text="Anna määrä"
+        android:textSize="60dp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- TODO align to end if we move cursor to end on touch -->
+    <EditText
+        android:id="@+id/amount_input"
+        android:layout_width="280dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="30dp"
+        android:textSize="60dp"
+        android:textStyle="bold"
+        android:paddingLeft="20dp"
+        android:background="@drawable/etra_border"
+        android:inputType="number"
+        app:layout_constraintLeft_toLeftOf="@id/amount_label"
+        app:layout_constraintTop_toBottomOf="@id/amount_label"
+        />
+
+    <TextView
+        android:id="@+id/amount_units"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:text="kpl"
+        android:textSize="60dp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toRightOf="@id/amount_input"
+        app:layout_constraintTop_toTopOf="@id/amount_input" />
+
+    <TextView
+        android:id="@+id/expenditure_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="60dp"
+        android:text="Kustannuspaikka"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toLeftOf="@id/amount_input"
+        app:layout_constraintTop_toBottomOf="@id/amount_input" />
+
+    <TextView
+        android:id="@+id/expenditure_input"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/transparent_border"
+        android:text="EPS200"
+        android:textSize="30dp"
+        android:paddingLeft="10dp"
+        app:layout_constraintRight_toRightOf="@id/amount_units"
+        app:layout_constraintLeft_toLeftOf="@id/expenditure_label"
+        app:layout_constraintTop_toBottomOf="@id/expenditure_label"
+        />
+
+    <TextView
+        android:id="@+id/reference_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Lisäviite"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toLeftOf="@id/expenditure_input"
+        app:layout_constraintTop_toBottomOf="@id/expenditure_input" />
+
+    <TextView
+        android:id="@+id/reference_input"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/transparent_border"
+        android:text="Matti Meikäläinen"
+        android:textSize="30dp"
+        android:paddingLeft="10dp"
+        app:layout_constraintRight_toRightOf="@id/amount_units"
+        app:layout_constraintLeft_toLeftOf="@id/reference_label"
+        app:layout_constraintTop_toBottomOf="@id/reference_label"
+        />
+
+    <Button
+        android:id="@+id/ok_button"
+        android:onClick="proceed"
+        android:layout_width="160dp"
+        android:layout_height="80dp"
+        android:layout_marginRight="40dp"
+        android:layout_marginBottom="40dp"
+        android:background="@color/colorPrimaryDark"
+        android:textSize="40dp"
+        android:textColor="@android:color/white"
+        android:text="@string/ok"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <ImageView
+        android:id="@+id/product_picture"
+        android:layout_width="520dp"
+        android:layout_height="300dp"
+        android:background="@drawable/image_placeholder"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="40dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <Button
+        android:id="@+id/info_button"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/info_icon"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="40dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <TextView
+        android:id="@+id/product_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1502\nBahco 429 kirvesmiehen vasara"
+        android:textSize="28dp"
+        android:textStyle="bold"
+        android:layout_marginTop="20dp"
+        app:layout_constraintLeft_toLeftOf="@id/product_picture"
+        app:layout_constraintTop_toBottomOf="@id/product_picture" />
+
+    <TextView
+        android:id="@+id/product_description"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tekninen nimi"
+        android:textSize="22dp"
+        android:textStyle="bold"
+        android:layout_marginTop="20dp"
+        app:layout_constraintLeft_toLeftOf="@id/product_picture"
+        app:layout_constraintTop_toBottomOf="@id/product_name" />
+
+    <Button
+        android:id="@+id/cancel_button"
+        android:onClick="cancel"
+        android:layout_width="160dp"
+        android:layout_height="60dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginBottom="40dp"
+        android:background="@color/colorPrimary"
+        android:textSize="30dp"
+        android:textColor="@android:color/white"
+        android:text="@string/cancel"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <Button
+        android:id="@+id/unlock_button"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</android.support.constraint.ConstraintLayout>

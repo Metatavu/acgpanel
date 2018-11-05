@@ -1,59 +1,38 @@
 package fi.metatavu.acgpanel
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Bundle
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
-import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.PagerSnapHelper
 import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.Button
+import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_product_browser.*
 import java.util.Collections.nCopies
 
 class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
-    private val colorActive = -0x1
-    private val colorInactive = 0x66FFFFFF
-
-    /**
-     * Height of the space the indicator takes up at the bottom of the view.
-     */
-    private val mIndicatorHeight = (DP * 16).toInt()
-
-    /**
-     * Indicator stroke width.
-     */
-    private val mIndicatorStrokeWidth = DP * 2
-
-    /**
-     * Indicator width.
-     */
-    private val mIndicatorItemLength = DP * 16
-    /**
-     * Padding between indicators.
-     */
-    private val mIndicatorItemPadding = DP * 4
-
-    /**
-     * Some more natural animation interpolation
-     */
-    private val mInterpolator = AccelerateDecelerateInterpolator()
-
-    private val mPaint = Paint()
+    private val color = Color.rgb(0x00, 0x64, 0xa1)
+    private val indicatorHeight = (DP * 48).toInt()
+    private val itemSpacing = DP * 32
+    private val itemRadius = DP * 6
+    private val activeItemRadius = DP * 12
+    private val paint = Paint()
+    private var activePosition: Int = 0
 
     init {
-        mPaint.setStrokeCap(Paint.Cap.ROUND)
-        mPaint.setStrokeWidth(mIndicatorStrokeWidth)
-        mPaint.setStyle(Paint.Style.STROKE)
-        mPaint.setAntiAlias(true)
+        paint.style = Paint.Style.FILL
+        paint.isAntiAlias = true
     }
 
     override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
@@ -61,79 +40,34 @@ class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
         val itemCount = parent.adapter!!.itemCount
         // center horizontally, calculate width and subtract half from center
-        val totalLength = mIndicatorItemLength * itemCount
-        val paddingBetweenItems = Math.max(0, itemCount - 1) * mIndicatorItemPadding
-        val indicatorTotalWidth = totalLength + paddingBetweenItems
-        val indicatorStartX = (parent.width - indicatorTotalWidth) / 2f
+        val totalLength = itemSpacing * itemCount
+        val indicatorStartX = (parent.width - totalLength) / 2f
         // center vertically in the allotted space
-        val indicatorPosY = parent.height - mIndicatorHeight / 2f
-        drawInactiveIndicators(c, indicatorStartX, indicatorPosY, itemCount)
+        val indicatorPosY = parent.height - indicatorHeight / 2f
         // find active page (which should be highlighted)
-        val layoutManager = parent.layoutManager as GridLayoutManager?
-        val activePosition = layoutManager!!.findFirstVisibleItemPosition()
-        if (activePosition == RecyclerView.NO_POSITION) {
-            return
+        val layoutManager = parent.layoutManager as LinearLayoutManager
+        val position = layoutManager.findFirstCompletelyVisibleItemPosition()
+        if (position != RecyclerView.NO_POSITION) {
+            activePosition = position
         }
-        // find offset of active page (if the user is scrolling)
-        val activeChild = layoutManager!!.findViewByPosition(activePosition)
-        val left = activeChild!!.getLeft()
-        val width = activeChild!!.getWidth()
-        // on swipe the active item will be positioned from [-width, 0]
-        // interpolate offset for smooth animation
-        val progress = mInterpolator.getInterpolation(left * -1 / width.toFloat())
-        drawHighlights(c, indicatorStartX, indicatorPosY, activePosition, progress, itemCount)
+        drawIndicators(c, indicatorStartX, indicatorPosY, activePosition, itemCount)
     }
 
-    private fun drawInactiveIndicators(
+    private fun drawIndicators(
         c: Canvas,
         indicatorStartX: Float,
         indicatorPosY: Float,
+        currentItem: Int,
         itemCount: Int
     ) {
-        mPaint.setColor(colorInactive)
-
-        // width of item indicator including padding
-        val itemWidth = mIndicatorItemLength + mIndicatorItemPadding
+        paint.color = color
 
         var start = indicatorStartX
         for (i in 0 until itemCount) {
             // draw the line for every item
-            c.drawLine(start, indicatorPosY, start + mIndicatorItemLength, indicatorPosY, mPaint)
-            start += itemWidth
-        }
-    }
-
-    private fun drawHighlights(
-        c: Canvas, indicatorStartX: Float, indicatorPosY: Float,
-        highlightPosition: Int, progress: Float, itemCount: Int
-    ) {
-        mPaint.setColor(colorActive)
-        // width of item indicator including padding
-        val itemWidth = mIndicatorItemLength + mIndicatorItemPadding
-        if (progress == 0f) {
-            // no swipe, draw a normal indicator
-            val highlightStart = indicatorStartX + itemWidth * highlightPosition
-            c.drawLine(
-                highlightStart, indicatorPosY,
-                highlightStart + mIndicatorItemLength, indicatorPosY, mPaint
-            )
-        } else {
-            var highlightStart = indicatorStartX + itemWidth * highlightPosition
-            // calculate partial highlight
-            val partialLength = mIndicatorItemLength * progress
-            // draw the cut off highlight
-            c.drawLine(
-                highlightStart + partialLength, indicatorPosY,
-                highlightStart + mIndicatorItemLength, indicatorPosY, mPaint
-            )
-            // draw the highlight overlapping to the next item as well
-            if (highlightPosition < itemCount - 1) {
-                highlightStart += itemWidth
-                c.drawLine(
-                    highlightStart, indicatorPosY,
-                    highlightStart + partialLength, indicatorPosY, mPaint
-                )
-            }
+            val radius = if (currentItem == i) activeItemRadius else itemRadius
+            c.drawCircle(start + itemSpacing/2, indicatorPosY, radius, paint)
+            start += itemSpacing
         }
     }
 
@@ -144,7 +78,7 @@ class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
         state: RecyclerView.State
     ) {
         super.getItemOffsets(outRect, view, parent, state)
-        outRect.bottom = mIndicatorHeight
+        outRect.bottom = indicatorHeight
     }
 
     companion object {
@@ -154,31 +88,104 @@ class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
 data class Product(val name: String = "")
 
-fun productView(context: Context, product: Product): View {
-    return View.inflate(context, R.layout.view_product, null)!!
+data class ProductPage(val products: List<Product> = listOf(
+    Product("Tuote 1"),
+    Product("Tuote 2"),
+    Product("Tuote 3"),
+    Product("Tuote 4"),
+    Product("Tuote 5"),
+    Product("Tuote 6")
+))
+
+internal fun productPageView(context: Context): View {
+    return View.inflate(context, R.layout.view_product_page, null)!!
 }
 
-class ProductViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
 
+    fun populate(item: ProductPage, onProductClick: (Product) -> Unit) {
+        with (itemView) {
+            for (i in 0..5) {
+                if (i < item.products.size) {
+                    val product = item.products[i]
+                    findViewById<View>(parentViewIds[i]).visibility = View.VISIBLE
+                    findViewById<TextView>(textViewIds[i]).text = product.name
+                    findViewById<Button>(buttonIds[i]).setOnClickListener {
+                        onProductClick(product)
+                    }
+                } else {
+                    findViewById<View>(parentViewIds[i]).visibility = View.INVISIBLE
+                }
+            }
+        }
+    }
+
+    companion object {
+
+        private val parentViewIds = arrayOf(
+            R.id.product0,
+            R.id.product1,
+            R.id.product2,
+            R.id.product3,
+            R.id.product4,
+            R.id.product5
+        )
+
+        private val textViewIds = arrayOf(
+            R.id.product0_text,
+            R.id.product1_text,
+            R.id.product2_text,
+            R.id.product3_text,
+            R.id.product4_text,
+            R.id.product5_text
+        )
+
+        private val buttonIds = arrayOf(
+            R.id.product0_button,
+            R.id.product1_button,
+            R.id.product2_button,
+            R.id.product3_button,
+            R.id.product4_button,
+            R.id.product5_button
+        )
+
+    }
 }
 
-class ProductItemCallback : DiffUtil.ItemCallback<Product>() {
-    override fun areContentsTheSame(a: Product, b: Product): Boolean {
+class ProductPageItemCallback : DiffUtil.ItemCallback<ProductPage>() {
+
+    override fun areContentsTheSame(a: ProductPage, b: ProductPage): Boolean {
         return a == b
     }
 
-    override fun areItemsTheSame(a: Product, b: Product): Boolean {
+    override fun areItemsTheSame(a: ProductPage, b: ProductPage): Boolean {
         return a == b
     }
+
 }
 
-class ProductAdapter : ListAdapter<Product, ProductViewHolder>(ProductItemCallback()) {
-    override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): ProductViewHolder {
-        return ProductViewHolder(productView(viewGroup.context, getItem(index)))
+class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(ProductPageItemCallback()) {
+
+    private var productClickListener : ((Product) -> Unit)? = null
+
+    fun setProductClickListener(listener: (Product) -> Unit) {
+        productClickListener = listener
     }
 
-    override fun onBindViewHolder(holder: ProductViewHolder, index: Int) {
+    override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): ProductPageViewHolder {
+        return ProductPageViewHolder(viewGroup.context)
     }
+
+    override fun onBindViewHolder(holder: ProductPageViewHolder, index: Int) {
+        val item = getItem(index)
+        val listener = productClickListener
+        if (listener != null) {
+            holder.populate(item, listener)
+        } else {
+            holder.populate(item) {}
+        }
+    }
+
 }
 
 class ProductBrowserActivity : KioskActivity() {
@@ -186,15 +193,51 @@ class ProductBrowserActivity : KioskActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_browser)
-        val adapter = ProductAdapter()
+        val adapter = ProductPageAdapter()
+        adapter.setProductClickListener {
+            val intent = Intent(this, ProductSelectionActivity::class.java)
+            startActivity(intent)
+        }
         products_view.adapter = adapter;
-        adapter.submitList(nCopies(20, Product()))
+        adapter.submitList(nCopies(5, ProductPage()))
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(products_view)
         products_view.addItemDecoration(LinePagerIndicatorDecoration())
     }
 
+    private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {
+        val itemWidth = layoutManager.getChildAt(0)!!.width
+        var distance: Int
+        if (edge) {
+            val difference = products_view.width - itemWidth
+            distance = itemWidth - difference/2
+        } else {
+            distance = itemWidth
+        }
+        products_view.stopScroll()
+        products_view.smoothScrollBy(direction * distance, 0)
+    }
+
+    fun menu(@Suppress("UNUSED_PARAMETER") target: View) {
+        val intent = Intent(this, MenuActivity::class.java)
+        finish()
+        startActivity(intent)
+    }
+
+    fun nextPage(@Suppress("UNUSED_PARAMETER") target: View) {
+        val layoutManager = products_view.layoutManager as LinearLayoutManager
+        val itemNumber = layoutManager.findFirstCompletelyVisibleItemPosition()
+        scrollPage(layoutManager, itemNumber == 0, 1)
+    }
+
+    fun previousPage(@Suppress("UNUSED_PARAMETER") target: View) {
+        val layoutManager = products_view.layoutManager as LinearLayoutManager
+        val itemNumber = layoutManager.findFirstCompletelyVisibleItemPosition()
+        scrollPage(layoutManager, itemNumber == layoutManager.itemCount - 1, -1)
+    }
+
     override val unlockButton: View
         get() = unlock_button;
+
 }
 

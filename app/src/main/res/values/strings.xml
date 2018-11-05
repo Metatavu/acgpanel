@@ -1,8 +1,6 @@
 <resources>
     <string name="app_name">ACGPanel</string>
 
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="welcomeText">Kosketa ruutua aloittaaksesi ›</string>
     <string name="arrowDown">Nuoli alas</string>
     <string name="showIdCard">Näytä ID-kortti</string>
@@ -10,4 +8,12 @@
     <string name="userGreeting">Tervetuloa\nMatti Meikäläinen</string>
     <string name="menu">Valikko</string>
     <string name="profileName">Matti Meikäläinen</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Peruuta</string>
+    <string name="unlockCode">Syötä huoltokoodi</string>
+    <string name="browse_products">Valitse tuotteet</string>
+    <string name="orders">Tilaukset</string>
+    <string name="support">Apu 24/7</string>
+    <string name="layout">Kartta</string>
+    <string name="notImplemented">Toimintoa ei ole vielä toteutettu</string>
 </resources>
