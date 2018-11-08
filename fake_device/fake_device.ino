@@ -6,10 +6,37 @@
   if (!validator) { break; }
 
 #define MAX_OLD_MESSAGES 100
+#define RETRY_TIME 1500
+#define MESSAGE_WAIT_TIME 500
+
+#define START_OF_MESSAGE '!'
+#define START_OF_MESSAGE_STR "!"
+#define END_OF_MESSAGE '\n'
+#define END_OF_MESSAGE_STR "\n"
+#define SEPARATOR ';'
+#define SEPARATOR_STR ";"
 
 int numOldMessages = 0;
-int lastSentMessageNumber = 0;
+int lastMessageNumber = 0;
 bool acknowledged = false;
+
+int lastSentMessageNumber = 0;
+unsigned long lastSentMessageTime = 0;
+
+void setLastMessageNumber(int messagenumber) {
+  lastMessageNumber = messagenumber;
+  EEPROM.put(0, lastMessageNumber);
+}
+
+bool isBefore(int messagenumber1, int messagenumber2) {
+  if (messagenumber2 < 0x4000) {
+    return (messagenumber1 < messagenumber2) ||
+           (messagenumber1 >= (messagenumber2 + 0x4000));
+  } else {
+    return (messagenumber1 < messagenumber2) &&
+           (messagenumber1 >= (messagenumber2 - 0x4000));
+  }
+}
 
 void writeWithChecksum(String part, int *checksum) {
   for (int i=0; i<part.length(); i++) {
@@ -25,15 +52,15 @@ void sendMessage(int type, int number, String payload) {
   String payload_length_str(payload.length());
 
   int checksum = 0;
-  writeWithChecksum("\x02", &checksum);
+  writeWithChecksum(START_OF_MESSAGE_STR, &checksum);
   writeWithChecksum(type_str, &checksum);
-  writeWithChecksum(";", &checksum);
+  writeWithChecksum(SEPARATOR_STR, &checksum);
   writeWithChecksum(number_str, &checksum);
-  writeWithChecksum(";", &checksum);
+  writeWithChecksum(SEPARATOR_STR, &checksum);
   writeWithChecksum(payload_length_str, &checksum);
-  writeWithChecksum(";", &checksum);
+  writeWithChecksum(SEPARATOR_STR, &checksum);
   writeWithChecksum(payload, &checksum);
-  writeWithChecksum(";", &checksum);
+  writeWithChecksum(SEPARATOR_STR, &checksum);
 
   Serial.print(checksum);
   Serial.print(";\n");
@@ -42,17 +69,34 @@ void sendMessage(int type, int number, String payload) {
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
-  // TODO only for debugging
-  EEPROM.write(0, 0);
-  EEPROM.write(1, 0);
+  EEPROM.get(0, lastMessageNumber);
 }
 
 void loop() {
+  unsigned long start = millis();
+
+  // Phase 1: Send a message if necessary
+
+  // When millis() reset, lastMessageNumber will have negative overflow,
+  // so its value will be very large. The message is resent and nothing
+  // bad happens
+  if (!acknowledged && start - lastSentMessageTime > RETRY_TIME) {
+    lastSentMessageNumber = (lastMessageNumber + 1) & 0x7FFF;
+    lastSentMessageTime = start;
+    sendMessage(4, lastSentMessageNumber, "04006d0ba0");
+  }
+
   int byte;
   int checksum = 0;
 
+  // Phase 2: Read in an incoming message
+
   // start of message
-  while ((byte = Serial.read()) != '\x02');
+  while ((byte = Serial.read()) != START_OF_MESSAGE) {
+    if (millis() - start > MESSAGE_WAIT_TIME) {
+      return;
+    }
+  }
   checksum ^= byte;
 
   // message type
@@ -65,7 +109,7 @@ void loop() {
     messagetype += byte - '0';
   }
   checksum ^= byte;
-  if (byte != ';') return;
+  if (byte != SEPARATOR) return;
 
   // message number
   int messagenumber = 0;
@@ -77,7 +121,7 @@ void loop() {
     messagenumber += byte - '0';
   }
   checksum ^= byte;
-  if (byte != ';') return;
+  if (byte != SEPARATOR) return;
 
   // message length
   int length = 0;
@@ -89,7 +133,7 @@ void loop() {
     length += byte - '0';
   }
   checksum ^= byte;
-  if (byte != ';') return;
+  if (byte != SEPARATOR) return;
 
   // message payload
   int payload = 0;
@@ -106,7 +150,7 @@ void loop() {
   }
   while ((byte = Serial.read()) == -1);
   checksum ^= byte;
-  if (byte != ';') return;
+  if (byte != SEPARATOR) return;
 
   // checksum
   int refChecksum = 0;
@@ -116,28 +160,30 @@ void loop() {
     refChecksum *= 10;
     refChecksum += byte - '0';
   }
-  if (checksum != refChecksum || byte != ';') return;
+  if (checksum != refChecksum || byte != SEPARATOR) return;
 
   // end of message
   while ((byte = Serial.read()) == -1);
-  if (byte != 0x0A) return;
+  if (byte != END_OF_MESSAGE) return;
 
-  int prevMessagenumber = EEPROM.read(0) << 8 + EEPROM.read(1);
-  if (messagenumber < prevMessagenumber && numOldMessages++ < MAX_OLD_MESSAGES) {
+  if (isBefore(messagenumber, lastMessageNumber) && numOldMessages++ < MAX_OLD_MESSAGES) {
     return;
   }
   numOldMessages = 0;
 
   // now we have a proper message
-  int nextMessagenumber = (messagenumber + 1) & 0xFFFF;
-  EEPROM.write(0, (nextMessagenumber & 0xFF00) >> 8);
-  EEPROM.write(1, nextMessagenumber & 0xFF);
+  setLastMessageNumber(messagenumber);
 
-  // every received message needs to be acknowledged
-  String acknowledgementPayload(messagenumber);
-  sendMessage(0, nextMessagenumber, acknowledgementPayload);
+  // Phase 3: Process the incoming message
 
-  if (messagetype == 0 && payload >= lastSentMessageNumber) {
+  // every received message except acknowledgement messages needs to be acknowledged
+  if (messagetype != 0) {
+    String acknowledgementPayload(messagenumber);
+    setLastMessageNumber((lastMessageNumber + 1) & 0x7FFF);
+    sendMessage(0, lastMessageNumber, acknowledgementPayload);
+  }
+
+  if (messagetype == 0 && !isBefore(payload, lastSentMessageNumber)) {
     acknowledged = true;
   } else if (messagetype == 1) {
     // open a locker door

@@ -14,7 +14,9 @@ class DefaultActivity : KioskActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
-    }
+        val intent = Intent(this, McuCommunicationService::class.java)
+        startService(intent)
+   }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
         val intent = Intent(this, IdentifyActivity::class.java)
