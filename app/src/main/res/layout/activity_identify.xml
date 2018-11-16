@@ -65,7 +65,7 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:background="@android:color/transparent"
-        android:onClick="identify"
+        android:onClick="onIdentify"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />

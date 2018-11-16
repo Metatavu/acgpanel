@@ -13,6 +13,8 @@ class ProductSelectionActivity : KioskActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_selection)
+        root.requestFocus()
+        amount_input.showSoftInputOnFocus = false
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {

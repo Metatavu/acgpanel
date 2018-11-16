@@ -1,28 +1,35 @@
 package fi.metatavu.acgpanel
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.PagerSnapHelper
 import android.support.v7.widget.RecyclerView
+import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_product_browser.*
 import java.util.Collections.nCopies
+import kotlin.math.log
 
 class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
-    private val color = Color.rgb(0x00, 0x64, 0xa1)
+    private val color = Color.rgb(0xFF, 0xFF, 0xFF) // Color.rgb(0x00, 0x64, 0xa1)
     private val indicatorHeight = (DP * 48).toInt()
     private val itemSpacing = DP * 32
     private val itemRadius = DP * 6
@@ -188,7 +195,12 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
 
 }
 
+private const val SESSION_TIMEOUT_MS = 5*60*1000L
+
 class ProductBrowserActivity : KioskActivity() {
+
+    private val logoutTimerCallback: Runnable = Runnable { finish() }
+    private val logoutTimerHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,6 +215,13 @@ class ProductBrowserActivity : KioskActivity() {
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(products_view)
         products_view.addItemDecoration(LinePagerIndicatorDecoration())
+        logoutTimerHandler.postDelayed(logoutTimerCallback, SESSION_TIMEOUT_MS)
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        logoutTimerHandler.removeCallbacks(logoutTimerCallback)
+        logoutTimerHandler.postDelayed(logoutTimerCallback, SESSION_TIMEOUT_MS)
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {
@@ -234,6 +253,19 @@ class ProductBrowserActivity : KioskActivity() {
         val layoutManager = products_view.layoutManager as LinearLayoutManager
         val itemNumber = layoutManager.findFirstCompletelyVisibleItemPosition()
         scrollPage(layoutManager, itemNumber == layoutManager.itemCount - 1, -1)
+    }
+
+    fun showProfileDialog(@Suppress("UNUSED_PARAMETER") target: View) {
+        val dialog = ProfileDialog(this)
+        dialog.setLogoutListener {
+            finish()
+        }
+        dialog.show()
+    }
+
+    override fun onDestroy() {
+        logoutTimerHandler.removeCallbacks(logoutTimerCallback)
+        super.onDestroy()
     }
 
     override val unlockButton: View

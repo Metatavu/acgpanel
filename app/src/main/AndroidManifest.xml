@@ -42,8 +42,14 @@
                 />
         </activity>
         <activity android:name=".IdentifyActivity" />
-        <activity android:name=".ProductBrowserActivity" />
-        <activity android:name=".ProductSelectionActivity" />
+        <activity
+            android:name=".ProductBrowserActivity"
+            android:windowSoftInputMode="stateHidden"
+            />
+        <activity
+            android:name=".ProductSelectionActivity"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            />
         <activity android:name=".MenuActivity" />
 
         <service

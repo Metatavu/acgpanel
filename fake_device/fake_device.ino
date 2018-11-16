@@ -5,9 +5,9 @@
   if (var < 0x21) { return; } \
   if (!validator) { break; }
 
-#define MAX_OLD_MESSAGES 100
-#define RETRY_TIME 1500
-#define MESSAGE_WAIT_TIME 500
+#define MAX_OLD_MESSAGES 10
+#define RETRY_TIME 1000
+#define MESSAGE_WAIT_TIME 200
 
 #define START_OF_MESSAGE '!'
 #define START_OF_MESSAGE_STR "!"
@@ -15,6 +15,10 @@
 #define END_OF_MESSAGE_STR "\n"
 #define SEPARATOR ';'
 #define SEPARATOR_STR ";"
+
+#define MESSAGE_TYPE_ACK 0
+#define MESSAGE_TYPE_OPEN_LOCK 1
+#define MESSAGE_TYPE_RFID 4
 
 int numOldMessages = 0;
 int lastMessageNumber = 0;
@@ -80,10 +84,14 @@ void loop() {
   // When millis() reset, lastMessageNumber will have negative overflow,
   // so its value will be very large. The message is resent and nothing
   // bad happens
-  if (!acknowledged && start - lastSentMessageTime > RETRY_TIME) {
+  if (start - lastSentMessageTime > RETRY_TIME) {
     lastSentMessageNumber = (lastMessageNumber + 1) & 0x7FFF;
     lastSentMessageTime = start;
-    sendMessage(4, lastSentMessageNumber, "04006d0ba0");
+    if (acknowledged) {
+      Serial.write((uint8_t)0);
+    } else {
+      sendMessage(MESSAGE_TYPE_RFID, lastSentMessageNumber, "04006d0ba0");
+    }
   }
 
   int byte;
@@ -180,12 +188,15 @@ void loop() {
   if (messagetype != 0) {
     String acknowledgementPayload(messagenumber);
     setLastMessageNumber((lastMessageNumber + 1) & 0x7FFF);
-    sendMessage(0, lastMessageNumber, acknowledgementPayload);
+    for (int i=0; i<5; i++) {
+      sendMessage(0, lastMessageNumber, acknowledgementPayload);
+      delay(100);
+    }
   }
 
-  if (messagetype == 0 && !isBefore(payload, lastSentMessageNumber)) {
+  if (messagetype == MESSAGE_TYPE_ACK && !isBefore(payload, lastSentMessageNumber)) {
     acknowledged = true;
-  } else if (messagetype == 1) {
+  } else if (messagetype == MESSAGE_TYPE_OPEN_LOCK) {
     // open a locker door
     digitalWrite(LED_BUILTIN, HIGH);
     delay(500);

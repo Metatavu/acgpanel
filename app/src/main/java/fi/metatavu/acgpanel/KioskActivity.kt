@@ -6,7 +6,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.support.v7.app.AlertDialog
+import android.util.Log
 import android.view.View
+import android.view.View.*
+import eu.chainfire.libsuperuser.Shell
+import kotlin.concurrent.thread
+
+private val ANDROID_LAUNCHER = "com.android.launcher3"
 
 abstract class KioskActivity : Activity() {
 
@@ -15,38 +22,22 @@ abstract class KioskActivity : Activity() {
     private val maxUnlockClickDelay = 1000
     private val unlockClicksRequired = 10
 
-    private fun getActivityManager() : ActivityManager {
-        return getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager;
-    }
+    private val activityManager: ActivityManager
+        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager;
 
-    private fun hideUi() {
-        // If there's a more elegant way to completely
-        // hide the system UI, get rid of this. Sticky Immersive Mode is
-        // not it, the UI is still shown on swipe from border
-        val decorView = window.decorView;
-        decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LOW_PROFILE or
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-            View.SYSTEM_UI_FLAG_IMMERSIVE or
-            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        decorView.postOnAnimation { hideUi() }
-    }
+    private val rootView: View
+        get() = findViewById(android.R.id.content)!!
 
     override fun onStart() {
         super.onStart()
         isImmersive = true
-        findViewById<View>(android.R.id.content)!!.keepScreenOn = true
-
-        val activityManager = getActivityManager();
+        rootView.keepScreenOn = true
+        rootView.systemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_STABLE
+        val activityManager = activityManager;
         @Suppress("DEPRECATION")
         if (!activityManager.isInLockTaskMode) {
             startLockTask()
         }
-
-        hideUi()
-
         unlockButton.setOnClickListener { _ -> initiateUnlock(); }
     }
 
@@ -66,13 +57,13 @@ abstract class KioskActivity : Activity() {
         // TODO configurable code
         val dialog = UnlockDialog(this, "0000")
         dialog.setFinishListener {
-            val activityManager = getActivityManager();
+            val activityManager = activityManager;
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {
                 stopLockTask()
             }
             finishAffinity()
-            val info = packageManager.getPackageInfo("com.android.launcher", PackageManager.GET_ACTIVITIES)
+            val info = packageManager.getPackageInfo(ANDROID_LAUNCHER, PackageManager.GET_ACTIVITIES)
             val activity = info.activities.firstOrNull()
             if (activity != null) {
                 val name = ComponentName(activity.applicationInfo.packageName, activity.name);
