@@ -15,6 +15,8 @@ class ProductSelectionActivity : PanelActivity() {
         setContentView(R.layout.activity_product_selection)
         root.requestFocus()
         amount_input.showSoftInputOnFocus = false
+        product_name.text = model.currentProduct?.name
+        product_description.text = model.currentProduct?.description
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {

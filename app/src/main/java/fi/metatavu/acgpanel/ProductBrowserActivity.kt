@@ -13,6 +13,8 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.PagerSnapHelper
 import android.support.v7.widget.RecyclerView
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -176,9 +178,7 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
             holder.populate(item) {}
         }
     }
-
 }
-
 
 class ProductBrowserActivity : PanelActivity() {
 
@@ -187,14 +187,37 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
+            model.currentProduct = it
             val intent = Intent(this, ProductSelectionActivity::class.java)
             startActivity(intent)
         }
         products_view.adapter = adapter;
-        adapter.submitList(nCopies(5, ProductPage()))
+        adapter.submitList(model.productPages)
+        // TODO throttle/debounce
+        search_box.addTextChangedListener(object: TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                model.searchTerm = s.toString()
+                model.refreshProductPages {
+                    adapter.submitList(model.productPages)
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            }
+        })
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(products_view)
         products_view.addItemDecoration(LinePagerIndicatorDecoration())
+        val user = model.currentUser
+        if (user != null) {
+            show_profile_button.visibility = View.VISIBLE
+            show_profile_button.text = user.userName
+        } else {
+            show_profile_button.visibility = View.INVISIBLE
+        }
     }
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {

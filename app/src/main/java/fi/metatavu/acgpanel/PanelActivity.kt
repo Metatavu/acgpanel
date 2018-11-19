@@ -22,7 +22,9 @@ abstract class PanelActivity : Activity() {
     private val maxUnlockClickDelay = 1000
     private val unlockClicksRequired = 10
     private val onLogout = {
-        finish()
+        if (!(this is DefaultActivity)) {
+            finish()
+        }
     }
 
     private val activityManager: ActivityManager
