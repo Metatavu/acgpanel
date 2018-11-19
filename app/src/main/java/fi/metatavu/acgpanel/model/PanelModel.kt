@@ -1,6 +1,8 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
+import retrofit2.Call
+import retrofit2.http.GET
 import kotlin.concurrent.thread
 
 @Entity
@@ -19,8 +21,24 @@ data class Product(
 
 data class ProductPage(val products: List<Product>)
 
+class GiptoolProduct {
+    var productId: Long? = null
+    var name: String = ""
+    var description: String = ""
+}
+
+class GiptoolProducts {
+    var products: MutableList<GiptoolProduct> = mutableListOf()
+}
+
+interface GiptoolProductsService {
+    @GET("products/page/1")
+    fun listProducts(): Call<GiptoolProducts>
+}
+
 @Dao
 interface ProductDao {
+
     @Query("SELECT * FROM product LIMIT 6 OFFSET :offset")
     fun getProductPage(offset: Long): List<Product>
 
@@ -33,8 +51,12 @@ interface ProductDao {
     @Query("SELECT COUNT(*) FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm)")
     fun getProductCountSearch(searchTerm: String): Long
 
+    @Query("DELETE FROM product")
+    fun nukeProducts()
+
     @Insert
     fun insertAll(vararg products: Product)
+
 }
 
 private const val SESSION_TIMEOUT_MS = 5*60*1000L
@@ -44,6 +66,7 @@ abstract class PanelModel {
     abstract fun schedule(callback: Runnable, timeout: Long)
     abstract fun unSchedule(callback: Runnable)
     abstract val productDao: ProductDao
+    abstract val giptoolProductsService: GiptoolProductsService
 
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
@@ -55,16 +78,7 @@ abstract class PanelModel {
 
     init {
         thread(start = true) {
-            productDao.insertAll(
-                Product(null, "Lapio", "Lorem"),
-                Product(null, "Kirves", "Ipsum"),
-                Product(null, "Saha", "Dolor"),
-                Product(null, "Vasara", "Sit"),
-                Product(null, "Kuokka", "Amet"),
-                Product(null, "Tuote 6", "Lorem"),
-                Product(null, "Tuote 7", "Ipsum"),
-                Product(null, "Tuote 8", "Dolor")
-            )
+            syncProducts()
             unsafeRefreshProductPages()
         }
     }
@@ -136,5 +150,20 @@ abstract class PanelModel {
                 ProductPage(productDao.getProductPageSearch("%$searchTerm%", it))
             }
         }
+    }
+
+    private fun syncProducts() {
+        productDao.nukeProducts()
+        productDao.insertAll(
+            *giptoolProductsService
+                .listProducts()
+                .execute()
+                .body()!!
+                .products
+                .map {
+                    Product(it.productId, it.name.trim(), it.description.trim())
+                }
+                .toTypedArray()
+        )
     }
 }

@@ -11,7 +11,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
-import fi.metatavu.acgpanel.model.AndroidPanelModel
+import fi.metatavu.acgpanel.model.PanelModelImpl
 import java.lang.Exception
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -194,7 +194,7 @@ class McuCommunicationService : Service() {
     private val notificationManager: NotificationManager
         get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val model = AndroidPanelModel
+    private val model = PanelModelImpl
 
     private var jobThread: Thread? = null
     private var serial: UsbSerialDevice? = null

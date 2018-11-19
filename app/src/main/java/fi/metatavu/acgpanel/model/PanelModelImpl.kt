@@ -6,18 +6,27 @@ import android.arch.persistence.room.RoomDatabase
 import android.os.Handler
 import android.os.Looper
 import fi.metatavu.acgpanel.PanelApplication
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 @Database(entities = arrayOf(Product::class), version = 1)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
 }
 
-object AndroidPanelModel : PanelModel() {
+object PanelModelImpl : PanelModel() {
     val db: AndroidPanelDatabase =
         Room.inMemoryDatabaseBuilder(
             PanelApplication.instance,
             AndroidPanelDatabase::class.java
         ).build()
+
+    override val giptoolProductsService: GiptoolProductsService
+            = Retrofit.Builder()
+        .baseUrl("http://rfidpaikannus.metatavu.io/api/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(GiptoolProductsService::class.java)
 
     override val productDao: ProductDao
         get() = db.productDao()

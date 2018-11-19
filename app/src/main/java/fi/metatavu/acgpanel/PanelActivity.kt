@@ -9,13 +9,13 @@ import android.content.pm.PackageManager
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
-import fi.metatavu.acgpanel.model.AndroidPanelModel
+import fi.metatavu.acgpanel.model.PanelModelImpl
 
 private val ANDROID_LAUNCHER = "com.android.launcher3"
 
 abstract class PanelActivity : Activity() {
 
-    protected val model = AndroidPanelModel
+    protected val model = PanelModelImpl
 
     private var lastUnlockClickTime = Long.MIN_VALUE
     private var unlockClickCount = 0

@@ -26,7 +26,7 @@ import java.util.Collections.nCopies
 
 class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
-    private val color = Color.rgb(0xFF, 0xFF, 0xFF) // Color.rgb(0x00, 0x64, 0xa1)
+    private val color = Color.rgb(0xFF, 0xFF, 0xFF) // dark: Color.rgb(0x00, 0x64, 0xa1)
     private val indicatorHeight = (DP * 48).toInt()
     private val itemSpacing = DP * 32
     private val itemRadius = DP * 6
