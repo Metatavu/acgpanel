@@ -6,6 +6,6 @@
     android:theme="@style/Theme.Transparent"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".McuConnectedActivity">
+    tools:context=".device.McuConnectedActivity">
 
 </android.support.constraint.ConstraintLayout>

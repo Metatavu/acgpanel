@@ -1,4 +1,4 @@
-package fi.metatavu.acgpanel
+package fi.metatavu.acgpanel.device
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,22 +9,16 @@ import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.IBinder
-import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
+import fi.metatavu.acgpanel.model.AndroidPanelModel
 import java.lang.Exception
-import java.nio.charset.StandardCharsets
-import java.sql.Time
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.concurrent.thread
 
-const val ID_CARD_READ_INTENT = "id-card-read"
-const val ID_CARD_READ_INTENT_EXTRA_CODE = "code"
-
-sealed class Message {
-}
+sealed class Message
 
 data class Acknowledgement(val number: Int, val target: Int): Message()
 data class OpenLock(val number: Int, val shelf: Int, val compartment: Int): Message()
@@ -32,12 +26,10 @@ data class LockStateRequest(val number: Int, val shelf: Int, val compartment: In
 data class LockStateReply(val number: Int, val shelf: Int, val compartment: Int, val open: Boolean): Message()
 data class ReadCard(val number: Int, val cardId: String): Message()
 
-private class InvalidMessageException : Exception() {
-
-}
+private class InvalidMessageException : Exception()
 
 private fun bytes2string(bytes: Collection<Byte>): String {
-    return String(bytes.toByteArray(), Charsets.US_ASCII);
+    return String(bytes.toByteArray(), Charsets.US_ASCII)
 }
 
 private const val ZERO = '0'.toByte()
@@ -114,7 +106,10 @@ abstract class MessageReader() {
             }
             try {
                 return when (messageType) {
-                    0 -> Acknowledgement(messageNumber, bytes2string(payload).toInt())
+                    0 -> Acknowledgement(
+                        messageNumber,
+                        bytes2string(payload).toInt()
+                    )
                     1 -> OpenLock(
                         messageNumber,
                         bytes2string(payload).split(";")[0].toInt(),
@@ -131,7 +126,10 @@ abstract class MessageReader() {
                         bytes2string(payload).split(";")[1].toInt(),
                         bytes2string(payload).split(";")[2] == "1"
                     )
-                    4 -> ReadCard(messageNumber, bytes2string(payload))
+                    4 -> ReadCard(
+                        messageNumber,
+                        bytes2string(payload)
+                    )
                     else -> null
                 }
             } catch (ex: ArrayIndexOutOfBoundsException) {
@@ -187,9 +185,7 @@ abstract class MessageWriter() {
 
 }
 
-public class DisconnectException() : Exception("Device disconnected") {
-
-}
+class DisconnectException() : Exception("Device disconnected")
 
 class McuCommunicationService : Service() {
     private val usbManager: UsbManager
@@ -198,17 +194,17 @@ class McuCommunicationService : Service() {
     private val notificationManager: NotificationManager
         get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val broadcastManager: LocalBroadcastManager
-        get() = LocalBroadcastManager.getInstance(this)
+    private val model = AndroidPanelModel
 
     private var jobThread: Thread? = null
     private var serial: UsbSerialDevice? = null
     private val inBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
     private val outBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
     private var readFailures = 0
+
     private val messageReader = object : MessageReader() {
         override fun read(): Byte {
-            val byte = inBuffer.poll(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            val byte = inBuffer.poll(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             if (byte != null) {
                 readFailures = 0
                 return byte
@@ -225,6 +221,7 @@ class McuCommunicationService : Service() {
             return inBuffer.isNotEmpty()
         }
     }
+
     private val messageWriter = object : MessageWriter() {
         override fun write(byte: Byte) {
             outBuffer.add(byte)
@@ -239,7 +236,6 @@ class McuCommunicationService : Service() {
     }
 
     private fun process() {
-        var msgnum = 0
         while (jobThread != null) {
             try {
                 val msg = messageReader.readMessage()
@@ -255,10 +251,9 @@ class McuCommunicationService : Service() {
                             )
                             Thread.sleep(100)
                         }
-                        msgnum = msg.number
-                        val intent = Intent(ID_CARD_READ_INTENT)
-                        intent.putExtra(ID_CARD_READ_INTENT_EXTRA_CODE, msg.cardId)
-                        broadcastManager.sendBroadcast(intent)
+                        Handler(mainLooper).post {
+                            model.logIn(msg.cardId, usingRfid = true)
+                        }
                     }
                 }
                 Thread.sleep(50)
@@ -274,7 +269,7 @@ class McuCommunicationService : Service() {
         }
     }
 
-    fun tryStart() {
+    private fun tryStart() {
         stop()
         val deviceList = usbManager.deviceList.values
         val device = deviceList.firstOrNull { it.vendorId == CH340G_VENDOR_ID }
@@ -289,14 +284,13 @@ class McuCommunicationService : Service() {
             serial = UsbSerialDevice.createUsbSerialDevice(device, connection)
             serial!!.open()
             serial!!.read {
-                Log.d(javaClass.name, "Incoming data: ${it.toString(StandardCharsets.ISO_8859_1)}")
                 inBuffer.addAll(it.asIterable())
             }
             jobThread = thread(start = true) { process() }
         }
     }
 
-    fun stop() {
+    private fun stop() {
         val thread = jobThread
         if (thread != null) {
             jobThread = null
@@ -318,7 +312,7 @@ class McuCommunicationService : Service() {
             handler.postDelayed(autorestarter, RESTART_INTERVAL_MS)
         }
         autorestarter.run()
-        var channel = NotificationChannel("ACGPanel", "ACGPanel notifications", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel("ACGPanel", "ACGPanel notifications", NotificationManager.IMPORTANCE_LOW)
         notificationManager.createNotificationChannel(channel)
         val notification = Notification.Builder(this, channel.id)
             .setContentTitle("MCU COMMUNICATION")
@@ -339,6 +333,6 @@ class McuCommunicationService : Service() {
 
     companion object {
         val CH340G_VENDOR_ID = 0x1A86
-        val BUFFER_SIZE = 1024*1024;
+        val BUFFER_SIZE = 1024*1024
     }
 }

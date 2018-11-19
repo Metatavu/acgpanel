@@ -1,4 +1,4 @@
-package fi.metatavu.acgpanel
+package fi.metatavu.acgpanel.device
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 
 class StartMcuCommunicationServiceReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val intent = Intent(context, McuCommunicationService::class.java)
-        context.startService(intent)
+        val startIntent = Intent(context, McuCommunicationService::class.java)
+        context.startService(startIntent)
     }
 }

@@ -1,14 +1,14 @@
 package fi.metatavu.acgpanel
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import fi.metatavu.acgpanel.model.PanelModel
 import kotlinx.android.synthetic.main.activity_menu.*
 
-class MenuActivity : KioskActivity() {
+class MenuActivity : PanelActivity() {
     override val unlockButton: Button
         get() = unlock_button
 

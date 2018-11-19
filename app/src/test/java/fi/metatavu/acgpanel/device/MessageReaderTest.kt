@@ -1,4 +1,4 @@
-package fi.metatavu.acgpanel
+package fi.metatavu.acgpanel.device
 
 import org.junit.Assert.*
 import org.junit.Test

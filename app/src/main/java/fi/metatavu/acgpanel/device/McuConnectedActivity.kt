@@ -1,11 +1,9 @@
-package fi.metatavu.acgpanel
+package fi.metatavu.acgpanel.device
 
 import android.app.Activity
 import android.os.Bundle
 import android.hardware.usb.UsbManager
-import android.content.Intent
-import android.view.View
-import kotlinx.android.synthetic.main.activity_mcu_connected.*
+import fi.metatavu.acgpanel.R
 
 class McuConnectedActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -8,7 +8,6 @@ import android.text.TextWatcher
 import android.view.Window
 import kotlinx.android.synthetic.main.dialog_unlock.*
 
-
 class UnlockDialog(activity: Activity, val code: String) : Dialog(activity) {
 
     private var finishListener : (() -> Unit)? = null

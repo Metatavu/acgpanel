@@ -4,10 +4,10 @@ import android.app.Activity
 import android.app.Dialog
 import android.os.Bundle
 import android.view.Window
-import kotlinx.android.synthetic.main.dialog_profile.ok_button
-import kotlinx.android.synthetic.main.dialog_profile.logout_button
+import fi.metatavu.acgpanel.model.PanelModel
+import kotlinx.android.synthetic.main.dialog_profile.*
 
-class ProfileDialog(activity: Activity) : Dialog(activity) {
+class ProfileDialog(activity: Activity, private val model: PanelModel) : Dialog(activity) {
 
     private var logoutListener : (() -> Unit)? = null
 
@@ -19,6 +19,9 @@ class ProfileDialog(activity: Activity) : Dialog(activity) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_profile)
+
+        content_name.text = model.currentUser?.userName
+        content_card_code.text = model.currentUser?.cardCode
 
         logout_button.setOnClickListener {
             val listener = logoutListener

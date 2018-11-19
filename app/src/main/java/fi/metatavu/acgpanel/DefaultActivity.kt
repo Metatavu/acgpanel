@@ -1,16 +1,12 @@
 package fi.metatavu.acgpanel
 
-import android.app.ActivityManager
-import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
 import android.view.View
+import fi.metatavu.acgpanel.device.McuCommunicationService
 import kotlinx.android.synthetic.main.activity_default.*
 
-class DefaultActivity : KioskActivity() {
+class DefaultActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)

@@ -6,21 +6,24 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.support.v7.app.AlertDialog
-import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
-import eu.chainfire.libsuperuser.Shell
-import kotlin.concurrent.thread
+import fi.metatavu.acgpanel.model.AndroidPanelModel
 
 private val ANDROID_LAUNCHER = "com.android.launcher3"
 
-abstract class KioskActivity : Activity() {
+abstract class PanelActivity : Activity() {
+
+    protected val model = AndroidPanelModel
 
     private var lastUnlockClickTime = Long.MIN_VALUE
     private var unlockClickCount = 0
     private val maxUnlockClickDelay = 1000
     private val unlockClicksRequired = 10
+    private val onLogout = {
+        finish()
+    }
 
     private val activityManager: ActivityManager
         get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager;
@@ -39,6 +42,12 @@ abstract class KioskActivity : Activity() {
             startLockTask()
         }
         unlockButton.setOnClickListener { _ -> initiateUnlock(); }
+        model.addLogOutListener(onLogout)
+    }
+
+    override fun onDestroy() {
+        model.removeLogOutListener(onLogout)
+        super.onDestroy()
     }
 
     private fun initiateUnlock() {
@@ -75,6 +84,11 @@ abstract class KioskActivity : Activity() {
         }
         dialog.show()
    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        model.refresh()
+        return super.dispatchTouchEvent(ev)
+    }
 
     abstract val unlockButton : View;
 }
