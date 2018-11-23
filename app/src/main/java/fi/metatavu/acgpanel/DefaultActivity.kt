@@ -10,8 +10,10 @@ class DefaultActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
-        val intent = Intent(this, McuCommunicationService::class.java)
-        startService(intent)
+        val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
+        startService(mcuCommServiceIntent)
+        val serverSyncServiceIntent = Intent(this, ServerSyncService::class.java)
+        startService(serverSyncServiceIntent)
    }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {

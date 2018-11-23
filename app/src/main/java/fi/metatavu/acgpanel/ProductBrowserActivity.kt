@@ -3,6 +3,7 @@ package fi.metatavu.acgpanel
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
+import android.content.res.TypedArray
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -18,11 +19,11 @@ import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import fi.metatavu.acgpanel.model.Product
 import fi.metatavu.acgpanel.model.ProductPage
 import kotlinx.android.synthetic.main.activity_product_browser.*
-import java.util.Collections.nCopies
 
 class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
@@ -43,12 +44,9 @@ class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
         super.onDrawOver(c, parent, state)
 
         val itemCount = parent.adapter!!.itemCount
-        // center horizontally, calculate width and subtract half from center
         val totalLength = itemSpacing * itemCount
         val indicatorStartX = (parent.width - totalLength) / 2f
-        // center vertically in the allotted space
         val indicatorPosY = parent.height - indicatorHeight / 2f
-        // find active page (which should be highlighted)
         val layoutManager = parent.layoutManager as LinearLayoutManager
         val position = layoutManager.findFirstCompletelyVisibleItemPosition()
         if (position != RecyclerView.NO_POSITION) {
@@ -94,55 +92,38 @@ internal fun productPageView(context: Context): View {
     return View.inflate(context, R.layout.view_product_page, null)!!
 }
 
-class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
+const val PRODUCTS_PER_PAGE = 6
+
+class ProductPageViewHolder(private val context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
+
+    private val parentViewIds = context.resources.obtainTypedArray(R.array.product_view_ids)
+    private val textViewIds = context.resources.obtainTypedArray(R.array.product_view_text_ids)
+    private val imageViewIds = context.resources.obtainTypedArray(R.array.product_view_image_ids)
+    private val buttonIds = context.resources.obtainTypedArray(R.array.product_view_button_ids)
+
+    private fun <T: View> getView(arr: TypedArray, i: Int): T
+        = itemView.findViewById<T>(arr.getResourceId(i, -1))
 
     fun populate(item: ProductPage, onProductClick: (Product) -> Unit) {
-        with (itemView) {
-            for (i in 0..5) {
-                if (i < item.products.size) {
-                    val product = item.products[i]
-                    findViewById<View>(parentViewIds[i]).visibility = View.VISIBLE
-                    findViewById<TextView>(textViewIds[i]).text = product.name
-                    findViewById<Button>(buttonIds[i]).setOnClickListener {
-                        onProductClick(product)
-                    }
-                } else {
-                    findViewById<View>(parentViewIds[i]).visibility = View.INVISIBLE
+        for (i in 0 until PRODUCTS_PER_PAGE) {
+            if (i < item.products.size) {
+                val product = item.products[i]
+                getView<View>(parentViewIds, i).visibility = View.VISIBLE
+                getView<TextView>(textViewIds, i).text = product.name
+                getView<Button>(buttonIds, i).setOnClickListener {
+                    onProductClick(product)
                 }
+            } else {
+               getView<View>(parentViewIds, i).visibility = View.INVISIBLE
             }
         }
+        drawProducts(
+            item.products.withIndex().map {
+                Pair(it.value, getView<ImageView>(imageViewIds, it.index))
+            }
+        )
     }
 
-    companion object {
-
-        private val parentViewIds = arrayOf(
-            R.id.product0,
-            R.id.product1,
-            R.id.product2,
-            R.id.product3,
-            R.id.product4,
-            R.id.product5
-        )
-
-        private val textViewIds = arrayOf(
-            R.id.product0_text,
-            R.id.product1_text,
-            R.id.product2_text,
-            R.id.product3_text,
-            R.id.product4_text,
-            R.id.product5_text
-        )
-
-        private val buttonIds = arrayOf(
-            R.id.product0_button,
-            R.id.product1_button,
-            R.id.product2_button,
-            R.id.product3_button,
-            R.id.product4_button,
-            R.id.product5_button
-        )
-
-    }
 }
 
 class ProductPageItemCallback : DiffUtil.ItemCallback<ProductPage>() {
@@ -191,7 +172,7 @@ class ProductBrowserActivity : PanelActivity() {
             val intent = Intent(this, ProductSelectionActivity::class.java)
             startActivity(intent)
         }
-        products_view.adapter = adapter;
+        basket_items_view.adapter = adapter
         adapter.submitList(model.productPages)
         // TODO throttle/debounce
         search_box.addTextChangedListener(object: TextWatcher {
@@ -209,8 +190,8 @@ class ProductBrowserActivity : PanelActivity() {
             }
         })
         val snapHelper = PagerSnapHelper()
-        snapHelper.attachToRecyclerView(products_view)
-        products_view.addItemDecoration(LinePagerIndicatorDecoration())
+        snapHelper.attachToRecyclerView(basket_items_view)
+        basket_items_view.addItemDecoration(LinePagerIndicatorDecoration())
         val user = model.currentUser
         if (user != null) {
             show_profile_button.visibility = View.VISIBLE
@@ -222,15 +203,15 @@ class ProductBrowserActivity : PanelActivity() {
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {
         val itemWidth = layoutManager.getChildAt(0)!!.width
-        var distance: Int
+        val distance: Int
         if (edge) {
-            val difference = products_view.width - itemWidth
+            val difference = basket_items_view.width - itemWidth
             distance = itemWidth - difference/2
         } else {
             distance = itemWidth
         }
-        products_view.stopScroll()
-        products_view.smoothScrollBy(direction * distance, 0)
+        basket_items_view.stopScroll()
+        basket_items_view.smoothScrollBy(direction * distance, 0)
     }
 
     fun menu(@Suppress("UNUSED_PARAMETER") target: View) {
@@ -240,13 +221,13 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     fun nextPage(@Suppress("UNUSED_PARAMETER") target: View) {
-        val layoutManager = products_view.layoutManager as LinearLayoutManager
+        val layoutManager = basket_items_view.layoutManager as LinearLayoutManager
         val itemNumber = layoutManager.findFirstCompletelyVisibleItemPosition()
         scrollPage(layoutManager, itemNumber == 0, 1)
     }
 
     fun previousPage(@Suppress("UNUSED_PARAMETER") target: View) {
-        val layoutManager = products_view.layoutManager as LinearLayoutManager
+        val layoutManager = basket_items_view.layoutManager as LinearLayoutManager
         val itemNumber = layoutManager.findFirstCompletelyVisibleItemPosition()
         scrollPage(layoutManager, itemNumber == layoutManager.itemCount - 1, -1)
     }
@@ -264,7 +245,7 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     override val unlockButton: View
-        get() = unlock_button;
+        get() = unlock_button
 
 }
 

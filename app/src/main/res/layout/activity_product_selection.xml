@@ -10,7 +10,7 @@
     tools:context=".ProductSelectionActivity">
 
     <TextView
-        android:id="@+id/amount_label"
+        android:id="@+id/count_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="660dp"
@@ -19,11 +19,12 @@
         android:textSize="60dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        />
 
     <!-- TODO align to end if we move cursor to end on touch -->
     <EditText
-        android:id="@+id/amount_input"
+        android:id="@+id/count_input"
         android:layout_width="280dp"
         android:layout_height="80dp"
         android:layout_marginTop="30dp"
@@ -32,20 +33,22 @@
         android:paddingLeft="20dp"
         android:background="@drawable/etra_border"
         android:inputType="number"
-        app:layout_constraintLeft_toLeftOf="@id/amount_label"
-        app:layout_constraintTop_toBottomOf="@id/amount_label"
+        android:hint="1"
+        app:layout_constraintLeft_toLeftOf="@id/count_label"
+        app:layout_constraintTop_toBottomOf="@id/count_label"
         />
 
     <TextView
-        android:id="@+id/amount_units"
+        android:id="@+id/count_units"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
         android:text="kpl"
         android:textSize="60dp"
         android:textStyle="bold"
-        app:layout_constraintLeft_toRightOf="@id/amount_input"
-        app:layout_constraintTop_toTopOf="@id/amount_input" />
+        app:layout_constraintLeft_toRightOf="@id/count_input"
+        app:layout_constraintTop_toTopOf="@id/count_input"
+        />
 
     <TextView
         android:id="@+id/expenditure_label"
@@ -55,8 +58,9 @@
         android:text="Kustannuspaikka"
         android:textSize="30dp"
         android:textStyle="bold"
-        app:layout_constraintLeft_toLeftOf="@id/amount_input"
-        app:layout_constraintTop_toBottomOf="@id/amount_input" />
+        app:layout_constraintLeft_toLeftOf="@id/count_input"
+        app:layout_constraintTop_toBottomOf="@id/count_input"
+        />
 
     <TextView
         android:id="@+id/expenditure_input"
@@ -67,7 +71,7 @@
         android:text="EPS200"
         android:textSize="30dp"
         android:paddingLeft="10dp"
-        app:layout_constraintRight_toRightOf="@id/amount_units"
+        app:layout_constraintRight_toRightOf="@id/count_units"
         app:layout_constraintLeft_toLeftOf="@id/expenditure_label"
         app:layout_constraintTop_toBottomOf="@id/expenditure_label"
         />
@@ -81,7 +85,8 @@
         android:textSize="30dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="@id/expenditure_input"
-        app:layout_constraintTop_toBottomOf="@id/expenditure_input" />
+        app:layout_constraintTop_toBottomOf="@id/expenditure_input"
+        />
 
     <TextView
         android:id="@+id/reference_input"
@@ -92,7 +97,7 @@
         android:text="Matti Meikäläinen"
         android:textSize="30dp"
         android:paddingLeft="10dp"
-        app:layout_constraintRight_toRightOf="@id/amount_units"
+        app:layout_constraintRight_toRightOf="@id/count_units"
         app:layout_constraintLeft_toLeftOf="@id/reference_label"
         app:layout_constraintTop_toBottomOf="@id/reference_label"
         />
@@ -116,7 +121,6 @@
         android:id="@+id/product_picture"
         android:layout_width="520dp"
         android:layout_height="300dp"
-        android:background="@drawable/image_placeholder"
         android:layout_marginTop="40dp"
         android:layout_marginLeft="40dp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -143,7 +147,8 @@
         android:textStyle="bold"
         android:layout_marginTop="20dp"
         app:layout_constraintLeft_toLeftOf="@id/product_picture"
-        app:layout_constraintTop_toBottomOf="@id/product_picture" />
+        app:layout_constraintTop_toBottomOf="@id/product_picture"
+        />
 
     <ScrollView
         android:id="@+id/product_description_container"
@@ -187,6 +192,7 @@
         android:layout_height="100dp"
         android:background="@android:color/transparent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        />
 
 </android.support.constraint.ConstraintLayout>

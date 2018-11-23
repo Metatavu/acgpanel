@@ -11,6 +11,8 @@ import android.os.Handler
 import android.os.IBinder
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
+import fi.metatavu.acgpanel.R
+import fi.metatavu.acgpanel.model.OpenLockAction
 import fi.metatavu.acgpanel.model.PanelModelImpl
 import java.lang.Exception
 import java.util.concurrent.ArrayBlockingQueue
@@ -180,12 +182,29 @@ abstract class MessageWriter() {
                 writeByte(END_OF_MESSAGE)
                 flush()
             }
+            is OpenLock -> {
+                writeByte(START_OF_MESSAGE)
+                writeString("1")
+                writeByte(SEPARATOR)
+                writeString(msg.number.toString())
+                writeByte(SEPARATOR)
+                writeString("0;0".length.toString())
+                writeByte(SEPARATOR)
+                writeString("0;0")
+                writeByte(SEPARATOR)
+                writeString(checksum.toString(), computeChecksum = false)
+                writeByte(SEPARATOR)
+                writeByte(END_OF_MESSAGE)
+                flush()
+            }
         }
     }
 
 }
 
 class DisconnectException() : Exception("Device disconnected")
+
+const val MCU_COMMUNICATION_SERVICE_ID = 1
 
 class McuCommunicationService : Service() {
     private val usbManager: UsbManager
@@ -236,8 +255,22 @@ class McuCommunicationService : Service() {
     }
 
     private fun process() {
+        var messageNumber = 0
+        // TODO reliability for message sending
         while (jobThread != null) {
             try {
+                val action = model.nextAction()
+                when (action) {
+                    is OpenLockAction -> {
+                        for (i in 0..3) {
+                            messageWriter.writeMessage(
+                                OpenLock(messageNumber, 0, 0)
+                            )
+                            Thread.sleep(100)
+                        }
+                    }
+                }
+
                 val msg = messageReader.readMessage()
                 if (msg != null) {
                     Log.d(javaClass.name, "Received message $msg")
@@ -251,6 +284,7 @@ class McuCommunicationService : Service() {
                             )
                             Thread.sleep(100)
                         }
+                        messageNumber = msg.number + 2
                         Handler(mainLooper).post {
                             model.logIn(msg.cardId, usingRfid = true)
                         }
@@ -312,13 +346,16 @@ class McuCommunicationService : Service() {
             handler.postDelayed(autorestarter, RESTART_INTERVAL_MS)
         }
         autorestarter.run()
-        val channel = NotificationChannel("ACGPanel", "ACGPanel notifications", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(
+            getString(R.string.app_name),
+            getString(R.string.notifications_name),
+            NotificationManager.IMPORTANCE_LOW)
         notificationManager.createNotificationChannel(channel)
         val notification = Notification.Builder(this, channel.id)
-            .setContentTitle("MCU COMMUNICATION")
-            .setContentText("Mcu communication running in background")
+            .setContentTitle(getString(R.string.mcu_communication_title))
+            .setContentText(getString(R.string.mcu_communication_desc))
             .build()
-        startForeground(1, notification)
+        startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
         return Service.START_STICKY
     }
 

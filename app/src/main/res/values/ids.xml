@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer-array name="product_view_ids">
+        <item>@id/product0</item>
+        <item>@id/product1</item>
+        <item>@id/product2</item>
+        <item>@id/product3</item>
+        <item>@id/product4</item>
+        <item>@id/product5</item>
+    </integer-array>
+    <integer-array name="product_view_text_ids">
+        <item>@id/product0_text</item>
+        <item>@id/product1_text</item>
+        <item>@id/product2_text</item>
+        <item>@id/product3_text</item>
+        <item>@id/product4_text</item>
+        <item>@id/product5_text</item>
+    </integer-array>
+    <integer-array name="product_view_image_ids">
+        <item>@id/product0_image</item>
+        <item>@id/product1_image</item>
+        <item>@id/product2_image</item>
+        <item>@id/product3_image</item>
+        <item>@id/product4_image</item>
+        <item>@id/product5_image</item>
+    </integer-array>
+    <integer-array name="product_view_button_ids">
+        <item>@id/product0_button</item>
+        <item>@id/product1_button</item>
+        <item>@id/product2_button</item>
+        <item>@id/product3_button</item>
+        <item>@id/product4_button</item>
+        <item>@id/product5_button</item>
+    </integer-array>
+</resources>

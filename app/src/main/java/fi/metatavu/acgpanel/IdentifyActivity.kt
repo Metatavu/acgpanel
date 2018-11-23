@@ -18,6 +18,10 @@ class IdentifyActivity : PanelActivity() {
             return@onLogIn
         }
         locked = true;
+        greeting_text.text = getString(
+            R.string.userGreeting,
+            model.currentUser?.userName
+        )
 
         greeting.alpha = 0f;
         greeting.visibility = View.VISIBLE;

@@ -24,10 +24,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product0_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product0_button"
@@ -53,10 +53,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product1_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product1_button"
@@ -82,10 +82,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product2_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product2_button"
@@ -113,10 +113,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product3_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product3_button"
@@ -142,10 +142,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product4_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product4_button"
@@ -171,10 +171,10 @@
                     android:text="Tuote"
                     />
                 <ImageView
+                    android:id="@+id/product5_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    android:background="@drawable/image_placeholder"
                     />
                 <Button
                     android:id="@+id/product5_button"

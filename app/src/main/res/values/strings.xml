@@ -5,7 +5,7 @@
     <string name="arrowDown">Nuoli alas</string>
     <string name="showIdCard">Näytä ID-kortti</string>
     <string name="logo">Etra logo</string>
-    <string name="userGreeting">Tervetuloa\nMatti Meikäläinen</string>
+    <string name="userGreeting">Tervetuloa\n%1$s</string>
     <string name="menu">Valikko</string>
     <string name="profileName">Matti Meikäläinen</string>
     <string name="ok">OK</string>
@@ -20,4 +20,16 @@
     <string name="logout">Kirjaudu ulos</string>
     <string name="profile_name">Nimi</string>
     <string name="profile_card_code">Korttikoodi</string>
+    <string name="browse_products_without_login">Selaa tuotteita kirjautumatta</string>
+    <string name="accept_vend">Hyväksy otto</string>
+    <string name="num_products">%1$d tuotetta</string>
+    <string name="basket_product_details">%1$d kpl, kustannuspaikka: %2$s, lisäviite: %3$s</string>
+    <string name="vend">Otto</string>
+    <string name="select_another">Ota lisää</string>
+    <string name="basket_item_placeholder">\???</string>
+    <string name="notifications_name">ACGPanel notifications</string>
+    <string name="mcu_communication_title">MCU COMMUNICATION</string>
+    <string name="mcu_communication_desc">Mcu communication running in background</string>
+    <string name="server_sync_title">SERVER SYNC</string>
+    <string name="server_sync_desc">Server synchronization running in background</string>
 </resources>

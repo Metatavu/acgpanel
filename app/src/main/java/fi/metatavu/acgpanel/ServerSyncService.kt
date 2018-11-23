@@ -1,0 +1,58 @@
+package fi.metatavu.acgpanel
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.IBinder
+import android.util.Log
+import fi.metatavu.acgpanel.model.PanelModelImpl
+import kotlin.concurrent.thread
+
+const val SERVER_SYNC_SERVICE_ID = 2
+const val SERVER_SYNC_INTERVAL_MS = 5L*60L*1000L
+
+class ServerSyncService : Service() {
+    private val notificationManager: NotificationManager
+        get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    private val model = PanelModelImpl
+
+    private var running = false
+
+    private fun process() {
+        while (running) {
+            Log.d(javaClass.name, "Syncing with server...")
+            model.serverSync()
+            Thread.sleep(SERVER_SYNC_INTERVAL_MS)
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(javaClass.name, "Starting sync service")
+        running = true
+        thread(start = true) { process() }
+        val channel = NotificationChannel(
+            getString(R.string.app_name),
+            getString(R.string.notifications_name),
+            NotificationManager.IMPORTANCE_LOW)
+        notificationManager.createNotificationChannel(channel)
+        val notification = Notification.Builder(this, channel.id)
+            .setContentTitle(getString(R.string.server_sync_title))
+            .setContentText(getString(R.string.server_sync_desc))
+            .build()
+        startForeground(SERVER_SYNC_SERVICE_ID, notification)
+        return Service.START_STICKY
+    }
+
+    override fun onDestroy() {
+        running = false
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent): IBinder? {
+        return null
+    }
+}

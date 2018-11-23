@@ -1,8 +1,12 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
+import android.database.sqlite.SQLiteConstraintException
 import retrofit2.Call
 import retrofit2.http.GET
+import java.io.IOException
+import java.lang.NullPointerException
+import java.util.concurrent.ArrayBlockingQueue
 import kotlin.concurrent.thread
 
 @Entity
@@ -16,7 +20,15 @@ data class User(
 data class Product(
     @PrimaryKey var id: Long?,
     var name: String,
-    var description: String
+    var description: String,
+    var image: String
+)
+
+data class BasketItem(
+    val product: Product,
+    val count: Int,
+    val expenditure: String,
+    val reference: String
 )
 
 data class ProductPage(val products: List<Product>)
@@ -25,19 +37,36 @@ class GiptoolProduct {
     var productId: Long? = null
     var name: String = ""
     var description: String = ""
+    var picture: String = ""
 }
 
 class GiptoolProducts {
     var products: MutableList<GiptoolProduct> = mutableListOf()
 }
 
-interface GiptoolProductsService {
+class GiptoolUser {
+    var id: Long? = null
+    var name: String = ""
+    var cardCode: String = ""
+}
+
+class GiptoolUsers {
+    var users: MutableList<GiptoolUser> = mutableListOf()
+}
+
+interface GiptoolService {
     @GET("products/page/1")
     fun listProducts(): Call<GiptoolProducts>
+
+    @GET("users/page/1")
+    fun listUsers(): Call<GiptoolUsers>
 }
 
 @Dao
 interface ProductDao {
+
+    @Insert
+    fun insertAll(vararg products: Product)
 
     @Query("SELECT * FROM product LIMIT 6 OFFSET :offset")
     fun getProductPage(offset: Long): List<Product>
@@ -54,10 +83,25 @@ interface ProductDao {
     @Query("DELETE FROM product")
     fun nukeProducts()
 
+}
+
+@Dao
+interface UserDao {
+
     @Insert
-    fun insertAll(vararg products: Product)
+    fun insertAll(vararg users: User)
+
+    @Query("SELECT * FROM user WHERE cardCode = :cardCode")
+    fun findUserByCardCode(cardCode: String): User?
+
+    @Query("DELETE FROM user")
+    fun nukeUsers()
 
 }
+
+sealed class Action
+
+data class OpenLockAction(val shelf: Int, val compartment: Int) : Action()
 
 private const val SESSION_TIMEOUT_MS = 5*60*1000L
 
@@ -65,21 +109,36 @@ abstract class PanelModel {
 
     abstract fun schedule(callback: Runnable, timeout: Long)
     abstract fun unSchedule(callback: Runnable)
+    abstract fun transaction(tx: () -> Unit)
     abstract val productDao: ProductDao
-    abstract val giptoolProductsService: GiptoolProductsService
+    abstract val userDao: UserDao
+    abstract val giptoolService: GiptoolService
 
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
+    private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
     var canLogInViaRfid = false
     var currentProduct: Product? = null
     var searchTerm = ""
+    val basket: MutableList<BasketItem> = mutableListOf()
 
     init {
         thread(start = true) {
-            syncProducts()
             unsafeRefreshProductPages()
+        }
+    }
+
+    fun serverSync() {
+        try {
+            transaction {
+                syncUsers()
+                syncProducts()
+                unsafeRefreshProductPages()
+            }
+        } catch (e: IOException) {
+            // device offline, do nothing
         }
     }
 
@@ -99,21 +158,28 @@ abstract class PanelModel {
         loginEventListeners.remove(listener)
     }
 
+    fun nextAction(): Action? {
+        return actionQueue.poll()
+    }
+
     var currentUser: User? = null
 
     fun logIn(cardCode: String, usingRfid: Boolean = false) {
         if (usingRfid && !canLogInViaRfid) {
-            return;
+            return
         }
-        currentUser = User(
-            1,
-            "Matti Meikäläinen",
-            cardCode
-        )
-        for (listener in loginEventListeners) {
-            listener()
+        thread(start = true) {
+            val user = userDao.findUserByCardCode(cardCode)
+            if (user != null) {
+                currentUser = user
+                schedule(Runnable {
+                    for (listener in loginEventListeners) {
+                        listener()
+                    }
+                    refresh()
+                }, 0)
+            }
         }
-        refresh()
     }
 
     fun refresh() {
@@ -127,9 +193,15 @@ abstract class PanelModel {
             listener()
         }
         currentUser = null
+        basket.clear()
+    }
+
+    fun openLock() {
+        actionQueue.add(OpenLockAction(0, 0))
     }
 
     var productPages: List<ProductPage> = listOf()
+        private set
 
     fun refreshProductPages(callback: () -> Unit) {
         thread(start = true) {
@@ -153,17 +225,40 @@ abstract class PanelModel {
     }
 
     private fun syncProducts() {
+        var products = giptoolService
+            .listProducts()
+            .execute()
+            .body()!!
+            .products
+            .map {
+                Product(it.productId,
+                    it.name.trim(),
+                    it.description.trim(),
+                    it.picture)
+            }
+            .toTypedArray()
         productDao.nukeProducts()
-        productDao.insertAll(
-            *giptoolProductsService
-                .listProducts()
-                .execute()
-                .body()!!
-                .products
-                .map {
-                    Product(it.productId, it.name.trim(), it.description.trim())
-                }
-                .toTypedArray()
-        )
+        productDao.insertAll(*products)
     }
+
+    private fun syncUsers() {
+        var users = giptoolService
+            .listUsers()
+            .execute()
+            .body()!!
+            .users
+            .map {
+                User(it.id,
+                    it.name.trim(),
+                    it.cardCode.trim())
+            }
+            .toTypedArray()
+        userDao.nukeUsers()
+        userDao.insertAll(*users)
+    }
+
+    companion object {
+        private const val BUFFER_SIZE = 1024
+    }
+
 }

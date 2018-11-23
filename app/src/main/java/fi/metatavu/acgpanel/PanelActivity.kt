@@ -28,7 +28,7 @@ abstract class PanelActivity : Activity() {
     }
 
     private val activityManager: ActivityManager
-        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager;
+        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
     private val rootView: View
         get() = findViewById(android.R.id.content)!!
@@ -38,7 +38,7 @@ abstract class PanelActivity : Activity() {
         isImmersive = true
         rootView.keepScreenOn = true
         rootView.systemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_STABLE
-        val activityManager = activityManager;
+        val activityManager = activityManager
         @Suppress("DEPRECATION")
         if (!activityManager.isInLockTaskMode) {
             startLockTask()
@@ -68,7 +68,7 @@ abstract class PanelActivity : Activity() {
         // TODO configurable code
         val dialog = UnlockDialog(this, "0000")
         dialog.setFinishListener {
-            val activityManager = activityManager;
+            val activityManager = activityManager
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {
                 stopLockTask()
@@ -77,10 +77,10 @@ abstract class PanelActivity : Activity() {
             val info = packageManager.getPackageInfo(ANDROID_LAUNCHER, PackageManager.GET_ACTIVITIES)
             val activity = info.activities.firstOrNull()
             if (activity != null) {
-                val name = ComponentName(activity.applicationInfo.packageName, activity.name);
+                val name = ComponentName(activity.applicationInfo.packageName, activity.name)
                 val intent = Intent(Intent.ACTION_MAIN)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                intent.component = name;
+                intent.component = name
                 startActivity(intent)
             }
         }
@@ -92,5 +92,5 @@ abstract class PanelActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    abstract val unlockButton : View;
+    abstract val unlockButton : View
 }
