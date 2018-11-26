@@ -43,7 +43,7 @@ private const val RESTART_INTERVAL_MS = 1000L
 private const val READ_TIMEOUT_MS = 100L
 private const val READ_TIMEOUT_MAX_FAILURES = 50
 
-abstract class MessageReader() {
+abstract class MessageReader {
 
     abstract fun read(): Byte
     abstract fun available(): Boolean
@@ -144,7 +144,7 @@ abstract class MessageReader() {
 
 }
 
-abstract class MessageWriter() {
+abstract class MessageWriter {
 
     abstract fun write(byte: Byte)
     abstract fun flush()
@@ -202,7 +202,7 @@ abstract class MessageWriter() {
 
 }
 
-class DisconnectException() : Exception("Device disconnected")
+class DisconnectException : Exception("Device disconnected")
 
 const val MCU_COMMUNICATION_SERVICE_ID = 1
 

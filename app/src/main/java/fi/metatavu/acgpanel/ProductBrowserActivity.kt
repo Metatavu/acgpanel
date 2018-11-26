@@ -84,7 +84,7 @@ class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
     }
 
     companion object {
-        private val DP = Resources.getSystem().getDisplayMetrics().density
+        private val DP = Resources.getSystem().displayMetrics.density
     }
 }
 
@@ -238,10 +238,6 @@ class ProductBrowserActivity : PanelActivity() {
             model.logOut()
         }
         dialog.show()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
     }
 
     override val unlockButton: View

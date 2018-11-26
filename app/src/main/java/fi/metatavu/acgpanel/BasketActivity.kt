@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
+import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -25,7 +26,10 @@ internal fun productView(context: Context): View {
 
 class BasketItemViewHolder(private val context: Context) : RecyclerView.ViewHolder(productView(context)) {
 
-    fun populate(index: Int, item: BasketItem, onDeleteClick: (Int) -> Unit) {
+    fun populate(index: Int,
+                 item: BasketItem,
+                 onDeleteClick: (Int) -> Unit,
+                 onChangeCount: (Int, Int) -> Unit) {
         with (itemView) {
             product_name.text = item.product.name
             product_description.text =
@@ -35,6 +39,12 @@ class BasketItemViewHolder(private val context: Context) : RecyclerView.ViewHold
                        item.reference)
             product_delete_button.setOnClickListener {
                 onDeleteClick(index)
+            }
+            product_count.minValue=1
+            product_count.maxValue=100
+            product_count.value = item.count
+            product_count.setOnValueChangedListener {_, _, value ->
+                onChangeCount(index, value)
             }
             drawProduct(item.product, product_image)
         }
@@ -57,10 +67,16 @@ class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
 
     private var deleteClickListener : (Int) -> Unit = {}
+    private var changeCountListener: (Int, Int) -> Unit = {_, _ ->}
 
     fun setDeleteClickListener(listener: (Int) -> Unit) {
         deleteClickListener = listener
     }
+
+    fun setChangeCountListener(listener: (Int, Int) -> Unit) {
+        changeCountListener = listener
+    }
+
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): BasketItemViewHolder {
         return BasketItemViewHolder(viewGroup.context)
@@ -68,12 +84,14 @@ class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCa
 
     override fun onBindViewHolder(holder: BasketItemViewHolder, index: Int) {
         val item = getItem(index)
-        holder.populate(index, item, deleteClickListener)
+        holder.populate(index, item, deleteClickListener, changeCountListener)
     }
 
 }
 
 class BasketActivity : PanelActivity() {
+
+    private var basketAccepted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +105,20 @@ class BasketActivity : PanelActivity() {
             updateNumProducts()
             adapter.notifyDataSetChanged()
         }
+        val handler = Handler(mainLooper)
+        var callback: Runnable? = null
+        adapter.setChangeCountListener {i, count ->
+            if (callback != null) {
+                handler.removeCallbacks(callback)
+            }
+            callback = Runnable {
+                val old = model.basket[i]
+                val new = BasketItem(old.product, count, old.expenditure, old.reference)
+                model.basket[i] = new
+                adapter.notifyDataSetChanged()
+            }
+            handler.postDelayed(callback, 500)
+        }
     }
 
     private fun updateNumProducts() {
@@ -94,7 +126,11 @@ class BasketActivity : PanelActivity() {
             R.string.num_products,
             model.basket.size
         )
-        ok_button.isEnabled = model.basket.size != 0
+        if (basketAccepted) {
+            ok_button.isEnabled = true
+        } else {
+            ok_button.isEnabled = model.basket.size != 0
+        }
     }
 
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
@@ -108,8 +144,10 @@ class BasketActivity : PanelActivity() {
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
         model.openLock()
+        basketAccepted = true
+        cancel_button.isEnabled = false
+        select_another_button.isEnabled = false
         val intent = Intent(this, TakeActivity::class.java)
-        finish()
         startActivity(intent)
     }
 

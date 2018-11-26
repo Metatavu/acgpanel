@@ -12,7 +12,7 @@ class UnlockDialog(activity: Activity, val code: String) : Dialog(activity) {
 
     private var finishListener : (() -> Unit)? = null
 
-    public fun setFinishListener(listener : () -> Unit) {
+    fun setFinishListener(listener : () -> Unit) {
         finishListener = listener
     }
 

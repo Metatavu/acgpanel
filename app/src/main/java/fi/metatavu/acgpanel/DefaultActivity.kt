@@ -22,5 +22,5 @@ class DefaultActivity : PanelActivity() {
     }
 
     override val unlockButton: View
-        get() = unlock_button;
+        get() = unlock_button
 }

@@ -61,12 +61,12 @@
         android:layout_height="80dp"
         android:layout_marginRight="40dp"
         android:layout_marginBottom="40dp"
-        android:background="@color/colorPrimaryDark"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:background="@drawable/bg_dark"
         android:text="@string/accept_vend"
         android:textColor="@android:color/white"
         android:textSize="40dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         />
 
     <Button
@@ -76,12 +76,13 @@
         android:layout_height="60dp"
         android:layout_marginLeft="40dp"
         android:layout_marginBottom="40dp"
-        android:background="@color/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:background="@drawable/bg_light"
         android:text="@string/cancel"
         android:textColor="@android:color/white"
         android:textSize="30dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent" />
+        />
 
     <Button
         android:id="@+id/select_another_button"

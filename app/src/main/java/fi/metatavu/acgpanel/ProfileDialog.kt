@@ -11,7 +11,7 @@ class ProfileDialog(activity: Activity, private val model: PanelModel) : Dialog(
 
     private var logoutListener : (() -> Unit)? = null
 
-    public fun setLogoutListener(listener : () -> Unit) {
+    fun setLogoutListener(listener : () -> Unit) {
         logoutListener = listener
     }
 

@@ -16,6 +16,10 @@ class TakeActivity : PanelActivity() {
         model.logOut()
     }
 
+    fun back(@Suppress("UNUSED_PARAMETER") view: View) {
+        finish()
+    }
+
     override val unlockButton: View
         get() = unlock_button
 
