@@ -23,7 +23,8 @@
     <string name="browse_products_without_login">Selaa tuotteita kirjautumatta</string>
     <string name="accept_vend">Hyväksy otto</string>
     <string name="num_products">%1$d tuotetta</string>
-    <string name="basket_product_details">%1$d kpl, kustannuspaikka: %2$s, lisäviite: %3$s</string>
+    <string name="basket_product_title">%1$s (%2$d kpl)</string>
+    <string name="basket_product_details">kustannuspaikka: %1$s, lisäviite: %2$s</string>
     <string name="vend">Otto</string>
     <string name="select_another">Ota lisää</string>
     <string name="basket_item_placeholder">\???</string>

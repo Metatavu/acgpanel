@@ -28,8 +28,14 @@ data class BasketItem(
     val product: Product,
     val count: Int,
     val expenditure: String,
-    val reference: String
-)
+    val reference: String) {
+
+    fun withCount(count: Int): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+}
+
 
 data class ProductPage(val products: List<Product>)
 
@@ -120,7 +126,7 @@ abstract class PanelModel {
     private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
     var canLogInViaRfid = false
-    var currentProduct: Product? = null
+    var currentProductIndex = 0
     var searchTerm = ""
     val basket: MutableList<BasketItem> = mutableListOf()
 
@@ -193,6 +199,7 @@ abstract class PanelModel {
             listener()
         }
         currentUser = null
+        currentProductIndex = 0
         basket.clear()
     }
 
@@ -225,7 +232,7 @@ abstract class PanelModel {
     }
 
     private fun syncProducts() {
-        var products = giptoolService
+        val products = giptoolService
             .listProducts()
             .execute()
             .body()!!
@@ -242,7 +249,7 @@ abstract class PanelModel {
     }
 
     private fun syncUsers() {
-        var users = giptoolService
+        val users = giptoolService
             .listUsers()
             .execute()
             .body()!!

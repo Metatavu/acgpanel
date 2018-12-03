@@ -220,6 +220,7 @@ class McuCommunicationService : Service() {
     private val inBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
     private val outBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
     private var readFailures = 0
+    private var permissionAsked = false
 
     private val messageReader = object : MessageReader() {
         override fun read(): Byte {

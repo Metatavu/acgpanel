@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
-import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -24,27 +23,32 @@ internal fun productView(context: Context): View {
     return view
 }
 
-class BasketItemViewHolder(private val context: Context) : RecyclerView.ViewHolder(productView(context)) {
+class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productView(context)) {
 
     fun populate(index: Int,
                  item: BasketItem,
                  onDeleteClick: (Int) -> Unit,
-                 onChangeCount: (Int, Int) -> Unit) {
+                 onModifyClick: (Int) -> Unit) {
         with (itemView) {
-            product_name.text = item.product.name
+            if (item.count == 1) {
+                product_name.text = item.product.name
+            } else {
+                product_name.text =
+                        context.getString(
+                            R.string.basket_product_title,
+                            item.product.name,
+                            item.count
+                        )
+            }
             product_description.text =
                    context.getString(R.string.basket_product_details,
-                       item.count,
                        item.expenditure,
                        item.reference)
             product_delete_button.setOnClickListener {
                 onDeleteClick(index)
             }
-            product_count.minValue=1
-            product_count.maxValue=100
-            product_count.value = item.count
-            product_count.setOnValueChangedListener {_, _, value ->
-                onChangeCount(index, value)
+            product_modify_button.setOnClickListener {
+                onModifyClick(index)
             }
             drawProduct(item.product, product_image)
         }
@@ -67,16 +71,15 @@ class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
 
     private var deleteClickListener : (Int) -> Unit = {}
-    private var changeCountListener: (Int, Int) -> Unit = {_, _ ->}
+    private var modifyClickListener: (Int) -> Unit = {}
 
     fun setDeleteClickListener(listener: (Int) -> Unit) {
         deleteClickListener = listener
     }
 
-    fun setChangeCountListener(listener: (Int, Int) -> Unit) {
-        changeCountListener = listener
+    fun setModifyClickListener(listener: (Int) -> Unit) {
+        modifyClickListener = listener
     }
-
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): BasketItemViewHolder {
         return BasketItemViewHolder(viewGroup.context)
@@ -84,7 +87,7 @@ class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCa
 
     override fun onBindViewHolder(holder: BasketItemViewHolder, index: Int) {
         val item = getItem(index)
-        holder.populate(index, item, deleteClickListener, changeCountListener)
+        holder.populate(index, item, deleteClickListener, modifyClickListener)
     }
 
 }
@@ -92,12 +95,12 @@ class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCa
 class BasketActivity : PanelActivity() {
 
     private var basketAccepted = false
+    private val adapter = BasketAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_basket)
         updateNumProducts()
-        val adapter = BasketAdapter()
         basket_items_view.adapter = adapter
         adapter.submitList(model.basket)
         adapter.setDeleteClickListener {
@@ -105,20 +108,16 @@ class BasketActivity : PanelActivity() {
             updateNumProducts()
             adapter.notifyDataSetChanged()
         }
-        val handler = Handler(mainLooper)
-        var callback: Runnable? = null
-        adapter.setChangeCountListener {i, count ->
-            if (callback != null) {
-                handler.removeCallbacks(callback)
-            }
-            callback = Runnable {
-                val old = model.basket[i]
-                val new = BasketItem(old.product, count, old.expenditure, old.reference)
-                model.basket[i] = new
-                adapter.notifyDataSetChanged()
-            }
-            handler.postDelayed(callback, 500)
+        adapter.setModifyClickListener {
+            model.currentProductIndex = it
+            val intent = Intent(this, ProductSelectionActivity::class.java)
+            startActivity(intent)
         }
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        adapter.notifyDataSetChanged()
     }
 
     private fun updateNumProducts() {

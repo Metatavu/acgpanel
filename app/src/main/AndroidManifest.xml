@@ -42,17 +42,29 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-        <activity android:name=".IdentifyActivity" />
+        <activity
+            android:name=".IdentifyActivity"
+            android:launchMode="singleTask"
+            />
         <activity
             android:name=".ProductBrowserActivity"
-            android:windowSoftInputMode="stateHidden" />
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="stateHidden"
+            />
         <activity
             android:name=".ProductSelectionActivity"
-            android:windowSoftInputMode="stateHidden" />
-        <activity android:name=".MenuActivity" />
-
-        <activity android:name=".BasketActivity" />
-        <activity android:name=".TakeActivity" />
+            android:windowSoftInputMode="stateHidden"
+            />
+        <activity
+            android:name=".MenuActivity"
+            android:launchMode="singleTask"
+            />
+        <activity
+            android:launchMode="singleTask"
+            android:name=".BasketActivity"
+            />
+        <activity android:name=".TakeActivity"
+            />
 
         <service
             android:name=".device.McuCommunicationService"

@@ -21,6 +21,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import fi.metatavu.acgpanel.model.BasketItem
 import fi.metatavu.acgpanel.model.Product
 import fi.metatavu.acgpanel.model.ProductPage
 import kotlinx.android.synthetic.main.activity_product_browser.*
@@ -168,7 +169,8 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
-            model.currentProduct = it
+            model.basket.add(BasketItem(it, 1, "EPS2000", "Viite"))
+            model.currentProductIndex = model.basket.size - 1
             val intent = Intent(this, ProductSelectionActivity::class.java)
             startActivity(intent)
         }

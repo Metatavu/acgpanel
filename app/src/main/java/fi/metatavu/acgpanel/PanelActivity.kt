@@ -13,7 +13,8 @@ import fi.metatavu.acgpanel.model.PanelModelImpl
 
 private val ANDROID_LAUNCHER = "com.android.launcher3"
 
-abstract class PanelActivity : Activity() {
+abstract class PanelActivity(private val lockOnStart: Boolean = false)
+        : Activity() {
 
     protected val model = PanelModelImpl
 
@@ -38,10 +39,12 @@ abstract class PanelActivity : Activity() {
         isImmersive = true
         rootView.keepScreenOn = true
         rootView.systemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_STABLE
-        val activityManager = activityManager
-        @Suppress("DEPRECATION")
-        if (!activityManager.isInLockTaskMode) {
-            startLockTask()
+        if (lockOnStart) {
+            val activityManager = activityManager
+            @Suppress("DEPRECATION")
+            if (!activityManager.isInLockTaskMode) {
+                startLockTask()
+            }
         }
         unlockButton.setOnClickListener { _ -> initiateUnlock(); }
         model.addLogOutListener(onLogout)
