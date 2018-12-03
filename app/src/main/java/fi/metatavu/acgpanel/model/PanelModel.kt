@@ -129,6 +129,7 @@ abstract class PanelModel {
     var currentProductIndex = 0
     var searchTerm = ""
     val basket: MutableList<BasketItem> = mutableListOf()
+    var newItem = false
 
     init {
         thread(start = true) {

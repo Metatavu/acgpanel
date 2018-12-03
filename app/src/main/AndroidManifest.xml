@@ -66,21 +66,18 @@
             />
         <activity android:name=".TakeActivity"
             />
-
         <service
             android:name=".device.McuCommunicationService"
             android:enabled="true"
             android:exported="true"
             tools:ignore="ExportedService"
             />
-
         <service
             android:name=".ServerSyncService"
             android:enabled="true"
             android:exported="true"
             tools:ignore="ExportedService"
             />
-
     </application>
 
 </manifest>

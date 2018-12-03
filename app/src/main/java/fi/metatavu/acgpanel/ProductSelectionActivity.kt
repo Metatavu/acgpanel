@@ -32,13 +32,17 @@ class ProductSelectionActivity : PanelActivity() {
         val old = model.basket[model.currentProductIndex]
         val new = old.withCount(count_input.text.toString().toIntOrNull() ?: 1)
         model.basket[model.currentProductIndex] = new
-
         val intent = Intent(this, BasketActivity::class.java)
         finish()
         startActivity(intent)
     }
 
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
+        // TODO refactor to do this in model
+        if (model.newItem) {
+            model.basket.removeAt(model.currentProductIndex)
+            model.newItem = false
+        }
         finish()
     }
 

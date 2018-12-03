@@ -169,6 +169,8 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
+            // TODO put product creation in model
+            model.newItem = true
             model.basket.add(BasketItem(it, 1, "EPS2000", "Viite"))
             model.currentProductIndex = model.basket.size - 1
             val intent = Intent(this, ProductSelectionActivity::class.java)
