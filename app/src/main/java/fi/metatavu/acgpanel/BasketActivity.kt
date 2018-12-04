@@ -104,12 +104,12 @@ class BasketActivity : PanelActivity() {
         basket_items_view.adapter = adapter
         adapter.submitList(model.basket)
         adapter.setDeleteClickListener {
-            model.basket.removeAt(it)
+            model.deleteBasketItem(it)
             updateNumProducts()
             adapter.notifyDataSetChanged()
         }
         adapter.setModifyClickListener {
-            model.currentProductIndex = it
+            model.selectExistingBasketItem(it)
             val intent = Intent(this, ProductSelectionActivity::class.java)
             startActivity(intent)
         }
@@ -133,7 +133,7 @@ class BasketActivity : PanelActivity() {
     }
 
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.basket.clear()
+        model.clearBasket()
         finish()
     }
 

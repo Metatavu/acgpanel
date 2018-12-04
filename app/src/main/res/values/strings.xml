@@ -34,4 +34,18 @@
     <string name="server_sync_title">SERVER SYNC</string>
     <string name="server_sync_desc">Server synchronization running in background</string>
     <string name="product_count">Määrä</string>
+    <string name="title_activity_acg_panel_settings">ACGPanel asetukset</string>
+
+    <!-- Strings related to Settings -->
+
+    <!-- Example General settings -->
+    <string name="pref_header_general">Yleiset</string>
+
+    <string name="pref_key_vending_machine_id">vending_machine_id</string>
+    <string name="pref_title_vending_machine_id">Automaatin tunnus</string>
+    <string name="pref_default_vending_machine_id">0</string>
+    <string name="pref_default_password" />
+    <string name="pref_key_password">password</string>
+    <string name="pref_title_password">Salasana</string>
+
 </resources>

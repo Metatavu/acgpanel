@@ -1,10 +1,12 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
-import android.database.sqlite.SQLiteConstraintException
+import android.util.Log
 import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.Path
 import java.io.IOException
+import java.lang.Exception
 import java.lang.NullPointerException
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.concurrent.thread
@@ -24,6 +26,23 @@ data class Product(
     var image: String
 )
 
+@Entity
+data class ProductTransactionItem(
+    @PrimaryKey var id: Long?,
+    var transactionId: Long,
+    var productId: Long,
+    var count: Int,
+    var expenditure: String,
+    var reference: String
+)
+
+@Entity
+data class ProductTransaction(
+    @PrimaryKey var id: Long?,
+    var vendingMachineId: String,
+    var userId: Long
+)
+
 data class BasketItem(
     val product: Product,
     val count: Int,
@@ -31,6 +50,14 @@ data class BasketItem(
     val reference: String) {
 
     fun withCount(count: Int): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+    fun withExpenditure(expenditure: String): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+    fun withReference(reference: String): BasketItem {
         return BasketItem(product, count, expenditure, reference)
     }
 
@@ -61,8 +88,8 @@ class GiptoolUsers {
 }
 
 interface GiptoolService {
-    @GET("products/page/1")
-    fun listProducts(): Call<GiptoolProducts>
+    @GET("products/vendingMachine/{vendingMachineId}")
+    fun listProducts(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolProducts>
 
     @GET("users/page/1")
     fun listUsers(): Call<GiptoolUsers>
@@ -87,7 +114,7 @@ interface ProductDao {
     fun getProductCountSearch(searchTerm: String): Long
 
     @Query("DELETE FROM product")
-    fun nukeProducts()
+    fun clearProducts()
 
 }
 
@@ -101,7 +128,18 @@ interface UserDao {
     fun findUserByCardCode(cardCode: String): User?
 
     @Query("DELETE FROM user")
-    fun nukeUsers()
+    fun clearUsers()
+
+}
+
+@Dao
+interface ProductTransactionDao {
+
+    @Insert
+    fun insertProductTransaction(transactions: ProductTransaction): Long
+
+    @Insert
+    fun insertProductTransactionItems(vararg items: ProductTransactionItem)
 
 }
 
@@ -113,28 +151,116 @@ private const val SESSION_TIMEOUT_MS = 5*60*1000L
 
 abstract class PanelModel {
 
+    private sealed class SelectedBasketItem {
+        class New(val product: Product) : SelectedBasketItem()
+        class Existing(val index: Int): SelectedBasketItem()
+    }
+
     abstract fun schedule(callback: Runnable, timeout: Long)
     abstract fun unSchedule(callback: Runnable)
     abstract fun transaction(tx: () -> Unit)
     abstract val productDao: ProductDao
     abstract val userDao: UserDao
+    abstract val productTransactionDao: ProductTransactionDao
     abstract val giptoolService: GiptoolService
+    abstract val vendingMachineId: String
+    abstract val password: String
 
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
-    var canLogInViaRfid = false
-    var currentProductIndex = 0
     var searchTerm = ""
-    val basket: MutableList<BasketItem> = mutableListOf()
-    var newItem = false
+    var canLogInViaRfid = false
+
+    private var selectedBasketItem: SelectedBasketItem? = null
+    private val mutableBasket: MutableList<BasketItem> = mutableListOf()
+    val basket: List<BasketItem>
+        get() = mutableBasket
 
     init {
         thread(start = true) {
             unsafeRefreshProductPages()
         }
+    }
+
+    val currentBasketItem: BasketItem?
+        get() {
+            val item = selectedBasketItem
+            return when (item) {
+                is SelectedBasketItem.Existing -> basket[item.index]
+                is SelectedBasketItem.New -> BasketItem(item.product, 1, "", "")
+                null -> null
+            }
+        }
+
+    fun selectNewBasketItem(product: Product) {
+        selectedBasketItem = SelectedBasketItem.New(product)
+    }
+
+    fun selectExistingBasketItem(index: Int) {
+        selectedBasketItem = SelectedBasketItem.Existing(index)
+    }
+
+    fun saveSelectedItem(
+        count: Int?,
+        expenditure: String,
+        reference: String
+    ) {
+        val item = selectedBasketItem
+        when (item) {
+            is SelectedBasketItem.Existing -> {
+                mutableBasket[item.index] = mutableBasket[item.index]
+                    .withCount(count ?: 1)
+                    .withExpenditure(expenditure)
+                    .withReference(reference)
+            }
+            is SelectedBasketItem.New -> {
+                mutableBasket.add(
+                    BasketItem(
+                        item.product,
+                        count ?: 1,
+                        expenditure,
+                        reference
+                    )
+                )
+            }
+        }
+    }
+
+    fun completeProductTransaction() {
+        thread(start = true) {
+            val user = currentUser
+            if (user != null) {
+                val tx = ProductTransaction(
+                    null,
+                    vendingMachineId,
+                    user.id!!
+                )
+                val id = productTransactionDao.insertProductTransaction(tx)
+                val items = basket.map {
+                    ProductTransactionItem(
+                        null,
+                        id,
+                        it.product.id!!,
+                        it.count,
+                        it.expenditure,
+                        it.reference
+                    )
+                }.toTypedArray()
+                productTransactionDao.insertProductTransactionItems(*items)
+                schedule(Runnable {mutableBasket.clear()}, 0);
+            }
+        }
+    }
+
+    fun deleteBasketItem(index: Int) {
+        mutableBasket.removeAt(index)
+    }
+
+    fun clearBasket() {
+        mutableBasket.clear()
     }
 
     fun serverSync() {
@@ -146,6 +272,9 @@ abstract class PanelModel {
             }
         } catch (e: IOException) {
             // device offline, do nothing
+        } catch (e: Exception) {
+            Log.e(javaClass.name, "Error when syncing to server: $e")
+            Log.e(javaClass.name, Log.getStackTraceString(e))
         }
     }
 
@@ -200,8 +329,8 @@ abstract class PanelModel {
             listener()
         }
         currentUser = null
-        currentProductIndex = 0
-        basket.clear()
+        selectedBasketItem = null
+        mutableBasket.clear()
     }
 
     fun openLock() {
@@ -234,7 +363,7 @@ abstract class PanelModel {
 
     private fun syncProducts() {
         val products = giptoolService
-            .listProducts()
+            .listProducts(vendingMachineId)
             .execute()
             .body()!!
             .products
@@ -245,7 +374,7 @@ abstract class PanelModel {
                     it.picture)
             }
             .toTypedArray()
-        productDao.nukeProducts()
+        productDao.clearProducts()
         productDao.insertAll(*products)
     }
 
@@ -261,7 +390,7 @@ abstract class PanelModel {
                     it.cardCode.trim())
             }
             .toTypedArray()
-        userDao.nukeUsers()
+        userDao.clearUsers()
         userDao.insertAll(*users)
     }
 

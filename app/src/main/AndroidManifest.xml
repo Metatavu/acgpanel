@@ -4,7 +4,9 @@
     package="fi.metatavu.acgpanel">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.MANAGE_USB" tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.MANAGE_USB"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature android:name="android.hardware.usb.host" />
@@ -45,39 +47,44 @@
         </activity>
         <activity
             android:name=".IdentifyActivity"
-            android:launchMode="singleTask"
-            />
+            android:launchMode="singleTask" />
         <activity
             android:name=".ProductBrowserActivity"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="stateHidden"
-            />
+            android:windowSoftInputMode="stateAlwaysHidden" />
         <activity
             android:name=".ProductSelectionActivity"
-            android:windowSoftInputMode="stateHidden"
-            />
+            android:windowSoftInputMode="stateAlwaysHidden" />
         <activity
             android:name=".MenuActivity"
-            android:launchMode="singleTask"
-            />
+            android:launchMode="singleTask" />
         <activity
-            android:launchMode="singleTask"
             android:name=".BasketActivity"
-            />
-        <activity android:name=".TakeActivity"
-            />
+            android:launchMode="singleTask" />
+        <activity android:name=".TakeActivity" />
+
         <service
             android:name=".device.McuCommunicationService"
             android:enabled="true"
             android:exported="true"
-            tools:ignore="ExportedService"
-            />
+            tools:ignore="ExportedService" />
         <service
             android:name=".ServerSyncService"
             android:enabled="true"
             android:exported="true"
-            tools:ignore="ExportedService"
-            />
+            tools:ignore="ExportedService" />
+
+        <activity
+            android:name=".AcgPanelSettingsActivity"
+            android:label="@string/title_activity_acg_panel_settings"
+            android:taskAffinity="fi.metatavu.acgpanel.SettingsTask"
+            >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

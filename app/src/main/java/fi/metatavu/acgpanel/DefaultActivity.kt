@@ -12,12 +12,9 @@ import android.util.Log
 import android.view.View
 import fi.metatavu.acgpanel.device.McuCommunicationService
 import kotlinx.android.synthetic.main.activity_default.*
-import java.lang.reflect.AccessibleObject.setAccessible
 import android.hardware.usb.UsbDevice
-import android.Manifest.permission
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.content.pm.ApplicationInfo
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
 
@@ -31,12 +28,12 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
                 intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
             if (permissionGranted) {
                 Log.d(javaClass.name, "Permission granted")
-                Handler(mainLooper).post {
+                Handler(mainLooper).postDelayed({
                     startLockTask()
-                }
+                }, PERMISSION_GRANT_WAIT_PERIOD)
             } else {
                 Log.d(javaClass.name, "Permission denied")
-                askForMcuPermission()
+                ensureMcuPermission()
             }
         }
     }
@@ -84,21 +81,20 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
         registerReceiver(receiver, IntentFilter(ACTION_USB_PERMISSION))
-    }
-
-    override fun onStart() {
-        super.onStart()
         val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
         startService(mcuCommServiceIntent)
         val serverSyncServiceIntent = Intent(this, ServerSyncService::class.java)
         startService(serverSyncServiceIntent)
-        askForMcuPermission()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ensureMcuPermission()
    }
 
-    private fun askForMcuPermission() {
+    private fun ensureMcuPermission() {
         val deviceList = usbManager.deviceList.values
         val device = deviceList.firstOrNull { it.vendorId == CH340G_VENDOR_ID }
-        Log.d(javaClass.name, "requesting permission for $device")
         if (device != null && !usbManager.hasPermission(device)) {
             if (!grantAutomaticPermission(device)) {
                 usbManager.requestPermission(
@@ -124,5 +120,6 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     companion object {
         private const val CH340G_VENDOR_ID = 0x1A86
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
+        private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
     }
 }
