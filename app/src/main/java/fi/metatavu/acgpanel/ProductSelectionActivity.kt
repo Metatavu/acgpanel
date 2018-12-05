@@ -93,6 +93,11 @@ class ProductSelectionActivity : PanelActivity() {
         startActivity(intent)
     }
 
+    fun showDetails(@Suppress("UNUSED_PARAMETER") view: View) {
+        val intent = Intent(this, ProductDetailsActivity::class.java)
+        startActivity(intent)
+    }
+
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
         finish()
     }

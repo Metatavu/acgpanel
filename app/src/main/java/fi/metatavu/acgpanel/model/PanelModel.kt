@@ -7,7 +7,6 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import java.io.IOException
 import java.lang.Exception
-import java.lang.NullPointerException
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.concurrent.thread
 
@@ -23,7 +22,9 @@ data class Product(
     @PrimaryKey var id: Long?,
     var name: String,
     var description: String,
-    var image: String
+    var image: String,
+    var safetyCard: String,
+    var productInfo: String
 )
 
 @Entity
@@ -71,6 +72,8 @@ class GiptoolProduct {
     var name: String = ""
     var description: String = ""
     var picture: String = ""
+    var safetyCard: String = ""
+    var productInfo: String = ""
 }
 
 class GiptoolProducts {
@@ -250,7 +253,7 @@ abstract class PanelModel {
                     )
                 }.toTypedArray()
                 productTransactionDao.insertProductTransactionItems(*items)
-                schedule(Runnable {mutableBasket.clear()}, 0);
+                schedule(Runnable {mutableBasket.clear()}, 0)
             }
         }
     }
@@ -348,14 +351,14 @@ abstract class PanelModel {
     }
 
     private fun unsafeRefreshProductPages() {
-        if (searchTerm == "") {
+        productPages = if (searchTerm == "") {
             val productCount = productDao.getProductCount()
-            productPages = (0 until productCount step 6).map {
+            (0 until productCount step 6).map {
                 ProductPage(productDao.getProductPage(it))
             }
         } else {
             val productCount = productDao.getProductCountSearch("%$searchTerm%")
-            productPages = (0 until productCount step 6).map {
+            (0 until productCount step 6).map {
                 ProductPage(productDao.getProductPageSearch("%$searchTerm%", it))
             }
         }
@@ -371,7 +374,9 @@ abstract class PanelModel {
                 Product(it.productId,
                     it.name.trim(),
                     it.description.trim(),
-                    it.picture)
+                    it.picture,
+                    it.safetyCard,
+                    it.productInfo)
             }
             .toTypedArray()
         productDao.clearProducts()

@@ -77,14 +77,14 @@
         <activity
             android:name=".AcgPanelSettingsActivity"
             android:label="@string/title_activity_acg_panel_settings"
-            android:taskAffinity="fi.metatavu.acgpanel.SettingsTask"
-            >
+            android:taskAffinity="fi.metatavu.acgpanel.SettingsTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <activity android:name=".ProductDetailsActivity"></activity>
     </application>
 
 </manifest>

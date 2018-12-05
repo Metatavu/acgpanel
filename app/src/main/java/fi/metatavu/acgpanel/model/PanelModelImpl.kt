@@ -22,7 +22,7 @@ import retrofit2.converter.gson.GsonConverterFactory
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class
-], version = 2)
+], version = 3)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -39,6 +39,7 @@ object PanelModelImpl : PanelModel() {
             DATABASE_NAME
         )
         .addMigrations(
+
             object: Migration(1, 2) {
                 override fun migrate(database: SupportSQLiteDatabase) {
                     database.query("""CREATE TABLE ProductTransaction(
@@ -58,7 +59,15 @@ object PanelModelImpl : PanelModel() {
                         FOREIGN KEY (productId) REFERENCES Product(id)
                     )""")
                 }
+            },
+
+            object: Migration(2, 3) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.query("ALTER TABLE Product ADD COLUMN safetyCard VARCHAR(255)")
+                    database.query("ALTER TABLE Product ADD COLUMN productInfo VARCHAR(4096)")
+                }
             }
+
         )
         .build()
 

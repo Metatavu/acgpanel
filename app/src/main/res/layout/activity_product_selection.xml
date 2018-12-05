@@ -142,6 +142,7 @@
 
     <Button
         android:id="@+id/info_button"
+        android:onClick="showDetails"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:background="@drawable/info_icon"
