@@ -42,7 +42,7 @@
         android:layout_width="150dp"
         android:layout_height="150dp"
         android:background="@android:color/transparent"
-        android:text="Muokkaa"
+        android:text="@string/edit"
         android:textStyle="bold"
         android:textSize="24dp"
         android:layout_gravity="end"

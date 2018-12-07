@@ -12,7 +12,6 @@ import android.preference.PreferenceManager
 import fi.metatavu.acgpanel.PanelApplication
 import fi.metatavu.acgpanel.R
 import okhttp3.Credentials
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -22,7 +21,7 @@ import retrofit2.converter.gson.GsonConverterFactory
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class
-], version = 3)
+], version = 4)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -65,6 +64,12 @@ object PanelModelImpl : PanelModel() {
                 override fun migrate(database: SupportSQLiteDatabase) {
                     database.query("ALTER TABLE Product ADD COLUMN safetyCard VARCHAR(255)")
                     database.query("ALTER TABLE Product ADD COLUMN productInfo VARCHAR(4096)")
+                }
+            },
+
+            object: Migration(3, 4) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.query("ALTER TABLE Product ADD COLUMN unit VARCHAR(255)")
                 }
             }
 

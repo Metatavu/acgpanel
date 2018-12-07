@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#808080"
     tools:context=".ProductDetailsActivity">
 
-    <com.otaliastudios.zoom.ZoomImageView
+    <fi.metatavu.acgpanel.ZoomRemotePdfView
         android:id="@+id/product_safety_card"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -24,11 +23,34 @@
         android:tint="@android:color/holo_red_light"
         />
 
+    <ImageButton
+        android:onClick="previousPage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginLeft="20dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/arrow_left_2"
+        android:tint="#ccc"
+        />
+
+    <ImageButton
+        android:onClick="nextPage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginRight="20dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/arrow_right_2"
+        android:tint="#ccc"
+        />
+
+
     <Button
         android:id="@+id/unlock_button"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:layout_gravity="top|left"
+        android:layout_gravity="top|start"
         android:background="@android:color/transparent"
         />
 

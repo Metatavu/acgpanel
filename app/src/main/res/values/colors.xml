@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <color name="colorPrimary">#1EC3F6</color>
     <color name="colorPrimaryDim">#bee0ea</color>
     <color name="colorPrimaryDark">#0064A1</color>
@@ -10,5 +10,5 @@
     <color name="lightText">#FFFFFF</color>
     <color name="lightBackground">#FFFFFF</color>
 
-    <color name="black_overlay">#66000000</color>
+    <color name="black_overlay" tools:ignore="UnusedResources">#66000000</color>
 </resources>

@@ -1,11 +1,12 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <TableLayout
         android:layout_gravity="center"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        tools:ignore="UselessParent">
         <TableRow>
             <FrameLayout
                 android:id="@+id/product0"
@@ -21,7 +22,7 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product0_image"
@@ -50,7 +51,7 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product1_image"
@@ -79,7 +80,7 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product2_image"
@@ -110,7 +111,7 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product3_image"
@@ -139,14 +140,14 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product4_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="48dp"
-                    />
+                    tools:ignore="ContentDescription" />
                 <Button
                     android:id="@+id/product4_button"
                     android:layout_width="match_parent"
@@ -168,7 +169,7 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="28dp"
                     android:gravity="center"
-                    android:text="Tuote"
+                    android:text="@string/product"
                     />
                 <ImageView
                     android:id="@+id/product5_image"

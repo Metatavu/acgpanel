@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="PluralsCandidate">
     <string name="app_name">ACGPanel</string>
 
     <string name="welcomeText">Kosketa ruutua aloittaaksesi ›</string>
@@ -33,7 +33,6 @@
     <string name="mcu_communication_desc">Mcu communication running in background</string>
     <string name="server_sync_title">SERVER SYNC</string>
     <string name="server_sync_desc">Server synchronization running in background</string>
-    <string name="product_count">Määrä</string>
     <string name="title_activity_acg_panel_settings">ACGPanel asetukset</string>
 
     <!-- Strings related to Settings -->
@@ -47,5 +46,14 @@
     <string name="pref_default_password" />
     <string name="pref_key_password">password</string>
     <string name="pref_title_password">Salasana</string>
+    <string name="input_count">Anna määrä</string>
+    <string name="expenditure">Kustannuspaikka</string>
+    <string name="reference">Lisäviite</string>
+    <string name="pick_up_products">Nouda tuotteet, ole hyvä</string>
+    <string name="complete_by_closing_door">Otto päättyy, kun suljet luukut</string>
+    <string name="modify_checkout">Muokkaa ottoa</string>
+    <string name="edit">Muokkaa</string>
+    <string name="product">Tuote</string>
+    <string name="default_unit">kpl</string>
 
 </resources>

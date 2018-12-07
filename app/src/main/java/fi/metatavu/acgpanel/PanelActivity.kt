@@ -11,7 +11,7 @@ import android.view.View
 import android.view.View.*
 import fi.metatavu.acgpanel.model.PanelModelImpl
 
-private val ANDROID_LAUNCHER = "com.android.launcher3"
+private const val ANDROID_LAUNCHER = "com.android.launcher3"
 
 abstract class PanelActivity(private val lockOnStart: Boolean = false)
         : Activity() {
@@ -23,7 +23,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     private val maxUnlockClickDelay = 1000
     private val unlockClicksRequired = 10
     private val onLogout = {
-        if (!(this is DefaultActivity)) {
+        if (this !is DefaultActivity) {
             finish()
         }
     }
@@ -46,7 +46,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
                 startLockTask()
             }
         }
-        unlockButton.setOnClickListener { _ -> initiateUnlock(); }
+        unlockButton.setOnClickListener { initiateUnlock(); }
         model.addLogOutListener(onLogout)
     }
 

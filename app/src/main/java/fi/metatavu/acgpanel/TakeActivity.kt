@@ -1,6 +1,5 @@
 package fi.metatavu.acgpanel
 
-import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import kotlinx.android.synthetic.main.activity_take.*

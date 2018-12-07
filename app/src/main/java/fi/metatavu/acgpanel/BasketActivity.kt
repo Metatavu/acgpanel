@@ -14,11 +14,11 @@ import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
 
 internal fun productView(context: Context): View {
-    val DP = Resources.getSystem().displayMetrics.density
+    val dp = Resources.getSystem().displayMetrics.density
     val view = View.inflate(context, R.layout.view_basket_item, null)!!
     view.layoutParams = RecyclerView.LayoutParams(
         RecyclerView.LayoutParams.MATCH_PARENT,
-        (150*DP).toInt()
+        (150*dp).toInt()
     )
     return view
 }
@@ -128,7 +128,7 @@ class BasketActivity : PanelActivity() {
         if (basketAccepted) {
             ok_button.isEnabled = true
         } else {
-            ok_button.isEnabled = model.basket.size != 0
+            ok_button.isEnabled = model.basket.isNotEmpty()
         }
     }
 

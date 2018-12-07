@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="600dp"
     android:layout_height="match_parent"
-    android:padding="20dp"
-    >
+    android:padding="20dp">
 
     <TextView
         android:id="@+id/title"
@@ -31,7 +28,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Matti Meikäläinen"
         app:layout_constraintLeft_toRightOf="@id/label_name"
         app:layout_constraintTop_toTopOf="@id/label_name"
         />
@@ -50,7 +46,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="01234567890123"
         app:layout_constraintLeft_toRightOf="@id/label_card_code"
         app:layout_constraintTop_toTopOf="@id/label_card_code"
         />

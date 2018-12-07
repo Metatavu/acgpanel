@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="120dp"
-        android:text="Nouda tuotteet, ole hyvä"
+        android:text="@string/pick_up_products"
         android:textStyle="bold"
         android:textSize="60dp"
         />
@@ -31,7 +31,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="200dp"
-        android:text="Otto päättyy, kun suljet luukut"
+        android:text="@string/complete_by_closing_door"
         android:textSize="40dp"
         />
 
@@ -41,7 +41,7 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:layout_marginTop="270dp"
-        android:text="Muokkaa ottoa"
+        android:text="@string/modify_checkout"
         android:textSize="30dp"
         android:background="@color/colorPrimary"
         android:textColor="@android:color/white"

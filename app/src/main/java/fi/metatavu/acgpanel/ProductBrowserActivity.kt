@@ -26,7 +26,7 @@ internal fun productPageView(context: Context): View {
 
 const val PRODUCTS_PER_PAGE = 6
 
-class ProductPageViewHolder(private val context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
+class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
 
     private val parentViewIds = context.resources.obtainTypedArray(R.array.product_view_ids)
     private val textViewIds = context.resources.obtainTypedArray(R.array.product_view_text_ids)
@@ -34,7 +34,7 @@ class ProductPageViewHolder(private val context: Context) : RecyclerView.ViewHol
     private val buttonIds = context.resources.obtainTypedArray(R.array.product_view_button_ids)
 
     private fun <T: View> getView(arr: TypedArray, i: Int): T
-        = itemView.findViewById<T>(arr.getResourceId(i, -1))
+        = itemView.findViewById(arr.getResourceId(i, -1))
 
     fun populate(item: ProductPage, onProductClick: (Product) -> Unit) {
         for (i in 0 until PRODUCTS_PER_PAGE) {
@@ -135,12 +135,11 @@ class ProductBrowserActivity : PanelActivity() {
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {
         val itemWidth = layoutManager.getChildAt(0)!!.width
-        val distance: Int
-        if (edge) {
+        val distance = if (edge) {
             val difference = basket_items_view.width - itemWidth
-            distance = itemWidth - difference/2
+            itemWidth - difference/2
         } else {
-            distance = itemWidth
+            itemWidth
         }
         basket_items_view.stopScroll()
         basket_items_view.smoothScrollBy(direction * distance, 0)

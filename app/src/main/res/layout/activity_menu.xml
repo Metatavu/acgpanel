@@ -6,7 +6,8 @@
     android:background="@drawable/bg_blue"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MenuActivity">
+    tools:context=".MenuActivity"
+    tools:ignore="Overdraw">
 
     <ImageView
         android:layout_width="wrap_content"

@@ -24,7 +24,8 @@ data class Product(
     var description: String,
     var image: String,
     var safetyCard: String,
-    var productInfo: String
+    var productInfo: String,
+    var unit: String
 )
 
 @Entity
@@ -74,6 +75,7 @@ class GiptoolProduct {
     var picture: String = ""
     var safetyCard: String = ""
     var productInfo: String = ""
+    var unit: String = ""
 }
 
 class GiptoolProducts {
@@ -376,7 +378,8 @@ abstract class PanelModel {
                     it.description.trim(),
                     it.picture,
                     it.safetyCard,
-                    it.productInfo)
+                    it.productInfo,
+                    it.unit)
             }
             .toTypedArray()
         productDao.clearProducts()

@@ -31,7 +31,7 @@
         android:textStyle="bold"
         app:layout_constraintBaseline_toBaselineOf="@id/vend_label"
         app:layout_constraintLeft_toLeftOf="parent"
-        />
+        tools:ignore="SpUsage" />
 
     <ScrollView
         android:layout_width="0dp"

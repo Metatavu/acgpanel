@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="660dp"
         android:layout_marginTop="40dp"
-        android:text="Anna määrä"
+        android:text="@string/input_count"
         android:textSize="60dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -43,14 +43,14 @@
         android:nextFocusForward="@id/ok_button"
         app:layout_constraintLeft_toLeftOf="@id/count_label"
         app:layout_constraintTop_toBottomOf="@id/count_label"
-        />
+        tools:ignore="HardcodedText,RtlHardcoded,RtlSymmetry" />
 
     <TextView
         android:id="@+id/count_units"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
-        android:text="kpl"
+        android:text="@string/default_unit"
         android:textSize="60dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toRightOf="@id/count_input"
@@ -62,7 +62,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="60dp"
-        android:text="Kustannuspaikka"
+        android:text="@string/expenditure"
         android:textSize="30dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="@id/count_input"
@@ -76,7 +76,6 @@
         android:layout_height="50dp"
         android:layout_marginTop="5dp"
         android:background="@drawable/transparent_border"
-        android:text="EPS200"
         android:textSize="30dp"
         android:paddingLeft="10dp"
         app:layout_constraintRight_toRightOf="@id/count_units"
@@ -89,7 +88,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:text="Lisäviite"
+        android:text="@string/reference"
         android:textSize="30dp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="@id/expenditure_input"
@@ -103,7 +102,6 @@
         android:layout_height="50dp"
         android:layout_marginTop="5dp"
         android:background="@drawable/transparent_border"
-        android:text="Matti Meikäläinen"
         android:textSize="30dp"
         android:paddingLeft="10dp"
         app:layout_constraintRight_toRightOf="@id/count_units"
@@ -182,7 +180,7 @@
             android:text=""
             android:textSize="22dp"
             android:textStyle="bold"
-            />
+            tools:ignore="SpUsage" />
     </ScrollView>
 
     <Button

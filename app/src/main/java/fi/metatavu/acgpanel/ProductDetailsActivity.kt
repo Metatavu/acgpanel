@@ -1,6 +1,5 @@
 package fi.metatavu.acgpanel
 
-import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import kotlinx.android.synthetic.main.activity_product_details.*
@@ -14,12 +13,27 @@ class ProductDetailsActivity : PanelActivity() {
         setContentView(R.layout.activity_product_details)
         val product = model.currentBasketItem?.product
         if (product != null) {
-            drawProductSafetyCard(product, product_safety_card)
+            product_safety_card.url = "$PRODUCT_IMAGE_PREFIX/UserAssets/${product.safetyCard}"
         }
     }
 
     fun close(@Suppress("UNUSED_PARAMETER") view: View) {
         finish()
     }
+
+    fun nextPage(@Suppress("UNUSED_PARAMETER") view: View) {
+        if (product_safety_card.page < product_safety_card.numPages - 1) {
+            product_safety_card.page++
+        }
+    }
+
+    fun previousPage(@Suppress("UNUSED_PARAMETER") view: View) {
+        if (product_safety_card.page > 0) {
+            product_safety_card.page--
+        }
+    }
+
+
+
 
 }

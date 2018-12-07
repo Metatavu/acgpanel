@@ -3,17 +3,12 @@ package fi.metatavu.acgpanel
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.graphics.Rect
 import android.os.Bundle
-import android.os.Handler
-import android.renderscript.ScriptGroup
 import android.text.InputType
-import android.text.method.TransformationMethod
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
-import fi.metatavu.acgpanel.model.BasketItem
 import kotlinx.android.synthetic.main.activity_product_selection.*
 
 class ProductSelectionActivity : PanelActivity() {
@@ -36,6 +31,7 @@ class ProductSelectionActivity : PanelActivity() {
             if (basketItem.count != 1) {
                 count_input.text.insert(0, basketItem.count.toString())
             }
+            count_units.text = product.unit
             expenditure_input.text = basketItem.expenditure
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
