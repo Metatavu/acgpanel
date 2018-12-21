@@ -49,7 +49,7 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
             if (!file.exists()) {
                 OkHttpClient().newCall(
                     Request.Builder()
-                        .url(url)
+                        .url(url!!)
                         .get()
                         .build()
                 )
