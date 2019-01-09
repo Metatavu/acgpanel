@@ -7,6 +7,7 @@
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include <avr/iom1280.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,9 @@
 #define MESSAGE_TYPE_OPEN_LOCK 1
 #define MESSAGE_TYPE_RFID 4
 
+#define F_OSC 1843200
+#define BAUD_RATE 9600
+
 int isBefore(int messagenumber1, int messagenumber2) {
   if (messagenumber2 < 0x4000) {
     return (messagenumber1 < messagenumber2) ||
@@ -44,6 +48,64 @@ int isBefore(int messagenumber1, int messagenumber2) {
   }
 }
 
+// USART routines
+void usartInit(void) {
+  // init UART, 8 data bits, 1 stop bit
+  // 2549Q-AVR-02/2014 page 206
+  unsigned int ubrr = F_OSC/16/BAUD_RATE - 1;
+  UBRR0H = (unsigned char)(ubrr>>8);
+  UBRR0L = (unsigned char)ubrr;
+  // 2549Q-AVR-02/2014 page 221
+  UCSR0B = (1<<RXEN0) | (1<<TXEN0); // enable RX and TX
+  UCSR0C = 1<<UCSZ00 | 1<<UCSZ01; // 8 data bits
+}
+
+void write(int c) {
+  // 2549Q-AVR-02/2014 page 207
+  while (!(UCSR0A & (1<<UDRE0)))
+    ;
+  UDR0 = (unsigned char)c;
+}
+
+int read(void) {
+  // 2549Q-AVR-02/2014 page 210
+  while (!(UCSR0A & (1<<RXC0)))
+    ;
+  return UDR0;
+}
+
+// timing routines
+volatile unsigned long millis_count = 0;
+volatile unsigned long wait_millis_left = 0;
+
+ISR(TIMER1_COMPA_vect)
+{
+  ++millis_count;
+  if (wait_millis_left > 0) {
+    --wait_millis_left;
+  }
+}
+
+unsigned long millis(void) {
+  cli();
+  unsigned long result;
+  result = millis_count;
+  sei();
+  return result;
+}
+
+void wait(unsigned long millis) {
+  cli();
+  wait_millis_left = millis;
+  sei();
+  while (1) {
+    if (wait_millis_left == 0) {
+      return;
+    }
+  }
+}
+
+// messaging routines
 void writeWithChecksum(int length, char *part, int *checksum) {
   for (int i=0; i<length; i++) {
     char c = part[i];
@@ -82,45 +144,12 @@ void writeString(int length, char *string) {
   }
 }
 
-void write(int c) {
 
+void init(void) {
+  usartInit();
 }
 
-int read() {
-  return -1;
-}
-
-volatile unsigned long millis_count = 0;
-volatile unsigned long wait_millis_left = 0;
-
-ISR(TIMER1_COMPA_vect)
-{
-  ++millis_count;
-  if (wait_millis_left > 0) {
-    --wait_millis_left;
-  }
-}
-
-unsigned long millis() {
-  cli();
-  unsigned long result;
-  result = millis_count;
-  sei();
-  return result;
-}
-
-void wait(unsigned long millis) {
-  cli();
-  wait_millis_left = millis;
-  sei();
-  while (1) {
-    if (wait_millis_left == 0) {
-      return;
-    }
-  }
-}
-
-void loop() {
+void loop(void) {
   unsigned long start = millis();
   int checksum = 0;
   int byte;
@@ -215,6 +244,7 @@ void loop() {
 
 int main(void)
 {
+  init();
   while (1) 
   {
     loop();
