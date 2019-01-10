@@ -9,6 +9,7 @@ void write(int c);
 int read(void);
 
 // timing routines
+void timerInit(void);
 unsigned long millis(void);
 void wait(unsigned long millis);
 
