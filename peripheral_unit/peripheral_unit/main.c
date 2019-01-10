@@ -91,25 +91,25 @@ void cuCommWriteChkSum(int length, char *part, int *checksum) {
 }
 
 void cuCommSendMsg(int type, int number, char* payload) {
-  char type_str[10];
-  char number_str[10];
-  char payload_length_str[10];
-  sprintf(type_str, "%d", type);
-  sprintf(number_str, "%d", type);
-  sprintf(payload_length_str, "%d", type);
+  char typeStr[10];
+  char numberStr[10];
+  char payloadLengthStr[10];
+  sprintf(typeStr, "%d", type);
+  sprintf(numberStr, "%d", type);
+  sprintf(payloadLengthStr, "%d", type);
   int checksum = 0;
   cuCommWriteChkSum(1, START_OF_MESSAGE_STR, &checksum);
-  cuCommWriteChkSum(strlen(type_str), type_str, &checksum);
+  cuCommWriteChkSum(strlen(typeStr), typeStr, &checksum);
   cuCommWriteChkSum(1, SEPARATOR_STR, &checksum);
-  cuCommWriteChkSum(strlen(number_str), number_str, &checksum);
+  cuCommWriteChkSum(strlen(numberStr), numberStr, &checksum);
   cuCommWriteChkSum(1, SEPARATOR_STR, &checksum);
-  cuCommWriteChkSum(strlen(payload_length_str), payload_length_str, &checksum);
+  cuCommWriteChkSum(strlen(payloadLengthStr), payloadLengthStr, &checksum);
   cuCommWriteChkSum(1, SEPARATOR_STR, &checksum);
   cuCommWriteChkSum(strlen(payload), payload, &checksum);
   cuCommWriteChkSum(1, SEPARATOR_STR, &checksum);
-  char checksum_str[10];
-  sprintf(checksum_str, "%d", checksum);
-  cuCommWriteString(strlen(checksum_str), checksum_str);
+  char checksumStr[10];
+  sprintf(checksumStr, "%d", checksum);
+  cuCommWriteString(strlen(checksumStr), checksumStr);
   cuCommWriteString(2, ";\n");
 }
 
