@@ -4,19 +4,19 @@
 int isBefore(int messagenumber1, int messagenumber2);
 
 // USART routines
-void usartInit(void);
-void write(int c);
-int read(void);
+void cuCommInit(void);
+void cuCommWrite(int c);
+int cuCommRead(void);
+
+// messaging routines
+void cuCommWriteString(int length, char *string);
+void cuCommWriteChkSum(int length, char *part, int *checksum);
+void cuCommSendMsg(int type, int number, char* payload);
 
 // timing routines
 void timerInit(void);
-unsigned long millis(void);
-void wait(unsigned long millis);
-
-// messaging routines
-void writeString(int length, char *string);
-void writeWithChecksum(int length, char *part, int *checksum);
-void sendMessage(int type, int number, char* payload);
+unsigned long timerMillisSinceBoot(void);
+void timerWait(unsigned long millis);
 
 void init(void);
 void loop(void);

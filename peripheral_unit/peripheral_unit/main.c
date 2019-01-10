@@ -5,14 +5,12 @@
  * Author : Ilmo Euro <ilmo.euro@gmail.com>
  */ 
 
-#define __AVR_ATmega1280__
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
 #include "main.h"
 
 #define VALIDATE_BYTE(var, validator) \
@@ -158,6 +156,7 @@ void timerWait(unsigned long millis) {
 
 void init(void) {
   cuCommInit();
+  timerInit();
 }
 
 void loop(void) {
