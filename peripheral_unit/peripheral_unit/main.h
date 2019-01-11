@@ -1,22 +1,23 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-int isBefore(int messagenumber1, int messagenumber2);
+int16_t isBefore(int16_t messagenumber1, int16_t messagenumber2);
 
 // USART routines
 void cuCommInit(void);
-void cuCommWrite(int c);
-int cuCommRead(void);
+void cuCommWrite(uint8_t c);
+int16_t cuCommRead(void);
 
 // messaging routines
-void cuCommWriteString(int length, char *string);
-void cuCommWriteChkSum(int length, char *part, int *checksum);
-void cuCommSendMsg(int type, int number, char* payload);
+void cuCommWriteString(int16_t length, char *string);
+void cuCommWriteChkSum(int16_t length, char *part, uint8_t *checksum);
+void cuCommSendMsg(int16_t type, int16_t number, char* payload);
 
 // timing routines
 void timerInit(void);
-unsigned long timerMillisSinceBoot(void);
-void timerWait(unsigned long millis);
+void timerSet(uint16_t millis);
+int16_t timerFinished();
+void timerWait(uint16_t millis);
 
 void init(void);
 void loop(void);
