@@ -59,6 +59,34 @@ void cuCommInit(void) {
   UCSR2C = (1<<UCSZ20) | (1<<UCSZ21); // 8 data bits
 }
 
+void bdCommInit(void) {
+  // init USART, 8 data bits, 1 stop bit
+  // 2549Q-AVR-02/2014 page 206
+  uint16_t ubrr = F_OSC/16/BAUD_RATE - 1;
+  UBRR1H = (uint8_t)(ubrr>>8);
+  UBRR1L = (uint8_t)ubrr;
+  // 2549Q-AVR-02/2014 page 221
+  UCSR1B = (1<<RXEN1) | (1<<TXEN1); // enable RX and TX
+  UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
+  DDRC = 0x01;
+  PORTC = 0x01;
+}
+
+void bdCommWrite(uint8_t c) {
+  // 2549Q-AVR-02/2014 page 207
+  while (!(UCSR1A & (1<<UDRE1)))
+    ;
+  UDR1 = c;
+}
+
+int16_t bdCommRead(void) {
+  // 2549Q-AVR-02/2014 page 210
+  if (!(UCSR1A & (1<<RXC1))) {
+    return -1;
+  }
+  return UDR1;
+}
+
 #ifdef TEST
 
 int16_t testOutputBufLoc = 0;
@@ -74,10 +102,14 @@ int16_t testInputBufLoc = 0;
 uint8_t testInputBuf[1024];
 
 int16_t cuCommRead(void) {
-  return testInputBuf[testInputBufLoc++ % testInputBufLen];
+  if (testInputBufLoc < testInputBufLen) {
+    return testInputBuf[testInputBufLoc++];
+  } else {
+    return -1;
+  }
 }
 
-#else // TEST
+#else // not TEST
 
 void cuCommWrite(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
@@ -85,6 +117,7 @@ void cuCommWrite(uint8_t c) {
     ;
   UDR2 = c;
 }
+/*
 
 int16_t cuCommRead(void) {
   // 2549Q-AVR-02/2014 page 210
@@ -92,6 +125,13 @@ int16_t cuCommRead(void) {
     return -1;
   }
   return UDR2;
+}
+*/
+
+int16_t cuCommRead(void) {
+  static char buf[] = "\x02" "0;0;;51";
+  static int i = 0;
+  return buf[i++ % 12];
 }
 
 #endif // not TEST
@@ -116,8 +156,8 @@ void cuCommSendMsg(int16_t type, int16_t number, char* payload) {
   char numberStr[10];
   char payloadLengthStr[10];
   sprintf(typeStr, "%d", type);
-  sprintf(numberStr, "%d", type);
-  sprintf(payloadLengthStr, "%d", type);
+  sprintf(numberStr, "%d", number);
+  sprintf(payloadLengthStr, "%d", strlen(payload));
   uint8_t checksum = 0;
   cuCommWriteChkSum(1, START_OF_MESSAGE_STR, &checksum);
   cuCommWriteChkSum(strlen(typeStr), typeStr, &checksum);
@@ -145,12 +185,16 @@ void timerInit(void) {
 #endif
   uint8_t sreg = SREG;
   cli();
+  // compare value
   OCR1AH = (uint8_t)(numCycles >> 8);
   OCR1AL = (uint8_t)numCycles;
+  // set mode: no prescaler, clear when reaching compare value
   TCCR1A = 0;
   TCCR1B = (1 << WGM12) | (1 << CS10);
+  // start from 0
   TCNT1H = 0;
   TCNT1L = 0;
+  // unmask compare interrupt
   TIMSK1 = 1 << OCIE1A;
   SREG = sreg;
 }
@@ -182,11 +226,13 @@ void timerWait(uint16_t millis) {
 
 void init(void) {
   cuCommInit();
+  //bdCommInit();
   timerInit();
   sei();
 }
 
-uint16_t lastMessageNumber = 0u;
+int16_t lastMessageNumber = 0u;
+int16_t oldMessagesReceived = 0u;
 
 void loop(void) {
   uint8_t checksum = 0;
@@ -239,16 +285,31 @@ void loop(void) {
   if (byte != SEPARATOR) return;
 
   // message payload
-  int16_t payload = 0;
+  int16_t payload1 = 0;
+  int16_t payload2 = 0;
+  uint8_t part = 0;
   for (int pos = 0; pos<length; pos++) {
     while ((byte = cuCommRead()) == -1);
     if (byte < 0x21) {
       return;
     }
     checksum ^= byte;
+    // acknowledgement
     if (messagetype == 0) {
-      payload *= 10;
-      payload += byte - '0';
+      payload1 *= 10;
+      payload1 += byte - '0';
+    }
+    // open lock
+    if (messagetype == 1) {
+      if (byte == ';') {
+        part = 1;
+      } else if (part == 0) {
+        payload1 *= 10;
+        payload1 += byte - '0';
+      } else {
+        payload2 *= 10;
+        payload2 += byte - '0';
+      }
     }
   }
   while ((byte = cuCommRead()) == -1);
@@ -269,21 +330,44 @@ void loop(void) {
   while ((byte = cuCommRead()) == -1);
   if (byte != END_OF_MESSAGE) return;
 
+  /*
+  if (isBefore(messagenumber, lastMessageNumber)) {
+    if (oldMessagesReceived < MAX_OLD_MESSAGES) {
+      oldMessagesReceived++;
+      return;
+    } else {
+      oldMessagesReceived = 0;
+    }
+  }
+  */
+
   // acknowledge
   if (messagetype != 0) {
     char payload[10];
     sprintf(payload, "%d", messagenumber);
     lastMessageNumber = (messagenumber+1) & 0x7FFF;
-    for (int i=0; i<5; i++) {
+    for (uint8_t i=0; i<5; i++) {
       cuCommSendMsg(0, lastMessageNumber, payload);
       timerWait(100);
     }
+  }
+
+  if (messagetype == 1) {
+    bdCommWrite(0x02); // STX
+    bdCommWrite('0' + payload1 / 10);
+    bdCommWrite('0' + payload1 % 10);
+    bdCommWrite('O');
+    bdCommWrite('P');
+    bdCommWrite('E');
+    bdCommWrite('0' + payload2 / 10);
+    bdCommWrite('0' + payload2 % 10);
+    bdCommWrite(0x0D); // CR
   }
 }
 
 #ifdef TEST
 
-char *fail_reason;
+volatile char *failReason;
 
 int16_t fail(void) {
   return 0; // PUT BREAKPOINT HERE
@@ -296,14 +380,14 @@ int16_t pass(void) {
 void testCuCommWriteString(void) {
   testOutputBufLoc = 0;
   cuCommWriteString(1, "x");
-  if (strcmp(testOutputBuf, "x") != 0) {
-    fail_reason = "Didn't write \"x\" to output buffer";
+  if (strcmp((char *)testOutputBuf, "x") != 0) {
+    failReason = "Didn't write \"x\" to output buffer";
     fail();
   }
   testOutputBufLoc = 0;
   cuCommWriteString(2, "\x01\x02");
-  if (strcmp(testOutputBuf, "\x01\x02") != 0) {
-    fail_reason = "Didn't write \"\\x01\\x02\" to output buffer";
+  if (strcmp((char *)testOutputBuf, "\x01\x02") != 0) {
+    failReason = "Didn't write \"\\x01\\x02\" to output buffer";
     fail();
   }
 }
@@ -311,14 +395,22 @@ void testCuCommWriteString(void) {
 void testAsyncTimer(void) {
   timerSet(1000);
   if (timer_left == 0) {
-    fail_reason = "Timer zero after timerSet";
+    failReason = "Timer zero after timerSet";
     fail();
   }
   for (int i=0; i<1000; i++) {
-    PORTA = PORTA;
+    PORTA = PINB; // prevent optimization
   }
-  if (timer_left == 0) {
-    fail_reason = "Timer not changed after wait";
+  if (timer_left == 1000) {
+    failReason = "Timer not changed after wait";
+    fail();
+  }
+  timerSet(1);
+  for (int i=0; i<1000; i++) {
+    PORTA = PINB; // prevent optimization
+  }
+  if (timer_left != 0) {
+    failReason = "Short timer not finished after wait";
     fail();
   }
 }
@@ -326,16 +418,82 @@ void testAsyncTimer(void) {
 void testTimerFinished(void) {
   timerSet(0);
   if (!timerFinished()) {
-    fail_reason = "Timer not finisher after setting to 0";
+    failReason = "Timer not finished after setting to 0";
+    fail();
+  }
+  timerSet(10000);
+  if (timerFinished()) {
+    failReason = "Timer finished immediately after starting";
+    fail();
+  }
+}
+
+void testLoop(void) {
+  strcpy((char*)testInputBuf, "\x02" "1;0;0;;51;\n");
+  testInputBufLoc = 0;
+  testInputBufLen = strlen((const char*)testInputBuf);
+  lastMessageNumber = 0x7FFF;
+  testOutputBufLoc = 0;
+  loop();
+  if (strncmp((const char *)testOutputBuf, "\x02" "0;1;1;0;2;\n", 12) != 0) {
+    failReason = "Incorrect response from loop()";
+    fail();
+  }
+}
+
+void testKeepalive(void) {
+  testOutputBufLoc = 0;
+  loop();
+  if (testOutputBufLoc != 1) {
+    failReason = "No keep-alive byte sent";
+    fail();
+  }
+  if (testOutputBuf[0] != '\0') {
+    failReason = "Wrong keep-alive byte sent";
+    fail();
+  }
+}
+
+void testIsBefore(void) {
+  if (!isBefore(0, 1)) {
+    failReason = "isBefore(0, 1) fails";
+    fail();
+  }
+  if (isBefore(1, 0)) {
+    failReason = "isBefore(1, 0) fails";
+    fail();
+  }
+  if (!isBefore(0, 0x3999)) {
+    failReason = "isBefore(0, 0x3999) fails";
+    fail();
+  }
+  if (isBefore(0, 0x4001)) {
+    failReason = "isBefore(0, 0x4001) fails";
+    fail();
+  }
+  if (!isBefore(0x3999, 0x4000)) {
+    failReason = "isBefore(0x3999, 0x4000) fails";
+    fail();
+  }
+  if (!isBefore(0x7FFF,  0)) {
+    failReason = "isBefore(0x7FFF, 0) fails";
+    fail();
+  }
+  if (!isBefore(0x3000, 0x5000)) {
+    failReason = "isBefore(0x3000, 0x5000) fails";
     fail();
   }
 }
 
 int16_t main(void)
 {
+  init();
   testCuCommWriteString();
   testAsyncTimer();
   testTimerFinished();
+  testIsBefore();
+  testLoop();
+  testKeepalive();
   pass();
   return 0;
 }
@@ -351,6 +509,32 @@ int16_t main(void)
   }
   return 0;
 }
+/*
+int16_t main(void)
+{
+  init();
+  while (1) {
+    int16_t input = -1;
+    if ((input = cuCommRead()) != -1) {
+      bdCommWrite(input);
+      cuCommWrite(input);
+    }
+    if ((input = bdCommRead()) != -1) {
+      cuCommWrite(input);
+    }
+  }
+}
+int16_t main(void)
+{
+  init();
+  while (1) {
+    cuCommRead();
+    cuCommWrite('I');
+    cuCommWrite('\n');
+    timerWait(100);
+  }
+}      
+*/
 
 #endif // not TEST
 
