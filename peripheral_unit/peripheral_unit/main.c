@@ -6,6 +6,7 @@
  */ 
 
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include <avr/io.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -69,22 +70,6 @@ void bdCommInit(void) {
   UCSR1B = (1<<RXEN1) | (1<<TXEN1); // enable RX and TX
   UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
   DDRC = 0x01;
-  PORTC = 0x01;
-}
-
-void bdCommWrite(uint8_t c) {
-  // 2549Q-AVR-02/2014 page 207
-  while (!(UCSR1A & (1<<UDRE1)))
-    ;
-  UDR1 = c;
-}
-
-int16_t bdCommRead(void) {
-  // 2549Q-AVR-02/2014 page 210
-  if (!(UCSR1A & (1<<RXC1))) {
-    return -1;
-  }
-  return UDR1;
 }
 
 #ifdef TEST
@@ -113,11 +98,11 @@ int16_t cuCommRead(void) {
 
 void cuCommWrite(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
-  while (!(UCSR2A & (1<<UDRE2)))
-    ;
+  while (!(UCSR2A & (1<<UDRE2))) {
+    wdt_reset();
+  }
   UDR2 = c;
 }
-/*
 
 int16_t cuCommRead(void) {
   // 2549Q-AVR-02/2014 page 210
@@ -126,12 +111,42 @@ int16_t cuCommRead(void) {
   }
   return UDR2;
 }
-*/
 
-int16_t cuCommRead(void) {
-  static char buf[] = "\x02" "0;0;;51";
-  static int i = 0;
-  return buf[i++ % 12];
+void bdCommWrite(uint8_t c) {
+  // 2549Q-AVR-02/2014 page 207
+  while (!(UCSR1A & (1<<UDRE1))) {
+    wdt_reset();
+  }
+  UDR1 = c;
+}
+
+void bdCommFlush(void) {
+  while (!(UCSR1A & (1<<UDRE1))) {
+    wdt_reset();
+  }    
+}
+
+int16_t bdCommRead(void) {
+  // 2549Q-AVR-02/2014 page 210
+  if (!(UCSR1A & (1<<RXC1))) {
+    return -1;
+  }
+  return UDR1;
+}
+
+int16_t bdCommReadBlocking(void) {
+  while (!(UCSR1A & (1<<RXC1))) {
+    wdt_reset();
+  }
+  return UDR1;
+}
+
+void bdCommInput(void) {
+  PORTC = 0x00;
+}
+
+void bdCommOutput(void) {
+  PORTC = 0x01;
 }
 
 #endif // not TEST
@@ -221,12 +236,13 @@ void timerWait(uint16_t millis) {
   timerSet(millis);
   while (!timerFinished()) {
     // wait
+    wdt_reset();
   }
 }
 
 void init(void) {
   cuCommInit();
-  //bdCommInit();
+  bdCommInit();
   timerInit();
   sei();
 }
@@ -353,15 +369,35 @@ void loop(void) {
   }
 
   if (messagetype == 1) {
-    bdCommWrite(0x02); // STX
-    bdCommWrite('0' + payload1 / 10);
-    bdCommWrite('0' + payload1 % 10);
-    bdCommWrite('O');
-    bdCommWrite('P');
-    bdCommWrite('E');
-    bdCommWrite('0' + payload2 / 10);
-    bdCommWrite('0' + payload2 % 10);
-    bdCommWrite(0x0D); // CR
+    while (1) {
+      cuCommWrite(0x00); // keep CU comm open
+      bdCommWrite(0x02); // STX
+      bdCommWrite('0' + payload1 / 10);
+      bdCommWrite('0' + payload1 % 10);
+      bdCommWrite('O');
+      bdCommWrite('P');
+      bdCommWrite('E');
+      bdCommWrite('0');
+      bdCommWrite('0' + payload2 / 10);
+      bdCommWrite('0' + payload2 % 10);
+      bdCommWrite(0x0D); // CR
+      if (bdCommReadBlocking() != 0x02) continue;
+      if (bdCommReadBlocking() != '0' + payload1 / 10) continue;
+      if (bdCommReadBlocking() != '0' + payload1 % 10) continue;
+      if (bdCommReadBlocking() != 'O') continue;
+      if (bdCommReadBlocking() != 'K') continue;
+      if (bdCommReadBlocking() != 'O') continue;
+      if (bdCommReadBlocking() != '0') continue;
+      if (bdCommReadBlocking() != '0' + payload2 / 10) continue;
+      if (bdCommReadBlocking() != '0' + payload2 % 10) continue;
+      bdCommReadBlocking();
+      bdCommReadBlocking();
+      bdCommReadBlocking();
+      bdCommReadBlocking();
+      if (bdCommReadBlocking() != 0x0D) continue;
+      timerWait(100);
+      break;
+    }
   }
 }
 
@@ -500,6 +536,7 @@ int16_t main(void)
 
 #else // TEST
 
+/*
 int16_t main(void)
 {
   init();
@@ -509,32 +546,27 @@ int16_t main(void)
   }
   return 0;
 }
-/*
+*/
 int16_t main(void)
 {
   init();
+  //int16_t byte = -1;
   while (1) {
-    int16_t input = -1;
-    if ((input = cuCommRead()) != -1) {
-      bdCommWrite(input);
-      cuCommWrite(input);
-    }
-    if ((input = bdCommRead()) != -1) {
-      cuCommWrite(input);
-    }
+    bdCommOutput();
+    timerWait(10);
+    bdCommWrite(0x02);
+    bdCommWrite('I');
+    bdCommWrite('D');
+    bdCommWrite('0');
+    bdCommWrite('0');
+    bdCommWrite('1');
+    //bdCommWrite(0xD);
+    bdCommFlush();
+    timerWait(3);
+    bdCommInput();
+    timerWait(2000);
   }
 }
-int16_t main(void)
-{
-  init();
-  while (1) {
-    cuCommRead();
-    cuCommWrite('I');
-    cuCommWrite('\n');
-    timerWait(100);
-  }
-}      
-*/
 
 #endif // not TEST
 
