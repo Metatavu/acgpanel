@@ -4,6 +4,7 @@ import android.arch.persistence.room.*
 import android.util.Log
 import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 import java.io.IOException
 import java.lang.Exception
@@ -98,6 +99,9 @@ interface GiptoolService {
 
     @GET("users/page/1")
     fun listUsers(): Call<GiptoolUsers>
+
+    @POST("productTransactions/")
+    fun sendProductTransaction(productTransaction: ProductTransaction): Call<Void>
 }
 
 @Dao
@@ -339,7 +343,11 @@ abstract class PanelModel {
     }
 
     fun openLock() {
-        actionQueue.add(OpenLockAction(0, 0))
+        for (item in basket) {
+            actionQueue.add(OpenLockAction(
+                1,
+                1 + ((item.product.id ?: 0L) % 12L).toInt()))
+        }
     }
 
     var productPages: List<ProductPage> = listOf()
@@ -400,6 +408,10 @@ abstract class PanelModel {
             .toTypedArray()
         userDao.clearUsers()
         userDao.insertAll(*users)
+    }
+
+    private fun syncProductTransactions() {
+
     }
 
     companion object {

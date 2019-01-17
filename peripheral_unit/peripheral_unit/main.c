@@ -36,7 +36,8 @@
 #define MESSAGE_TYPE_RFID 4
 
 #define F_OSC 8000000
-#define BAUD_RATE 9600
+#define BAUD_RATE_CU 9600
+#define BAUD_RATE_BD 2400
 
 int16_t isBefore(int16_t messagenumber1, int16_t messagenumber2) {
   if (messagenumber2 < 0x4000) {
@@ -52,7 +53,7 @@ int16_t isBefore(int16_t messagenumber1, int16_t messagenumber2) {
 void cuCommInit(void) {
   // init USART, 8 data bits, 1 stop bit
   // 2549Q-AVR-02/2014 page 206
-  uint16_t ubrr = F_OSC/16/BAUD_RATE - 1;
+  uint16_t ubrr = F_OSC/16/BAUD_RATE_CU - 1;
   UBRR2H = (uint8_t)(ubrr>>8);
   UBRR2L = (uint8_t)ubrr;
   // 2549Q-AVR-02/2014 page 221
@@ -63,7 +64,7 @@ void cuCommInit(void) {
 void bdCommInit(void) {
   // init USART, 8 data bits, 1 stop bit
   // 2549Q-AVR-02/2014 page 206
-  uint16_t ubrr = F_OSC/16/BAUD_RATE - 1;
+  uint16_t ubrr = F_OSC/16/BAUD_RATE_BD - 1;
   UBRR1H = (uint8_t)(ubrr>>8);
   UBRR1L = (uint8_t)ubrr;
   // 2549Q-AVR-02/2014 page 221
@@ -369,7 +370,9 @@ void loop(void) {
   }
 
   if (messagetype == 1) {
-    while (1) {
+    for (int16_t i=0; i<25; i++) {
+      bdCommOutput();
+      timerWait(5);
       cuCommWrite(0x00); // keep CU comm open
       bdCommWrite(0x02); // STX
       bdCommWrite('0' + payload1 / 10);
@@ -381,20 +384,18 @@ void loop(void) {
       bdCommWrite('0' + payload2 / 10);
       bdCommWrite('0' + payload2 % 10);
       bdCommWrite(0x0D); // CR
+      bdCommFlush();
+      timerWait(5);
+      bdCommInput();
       if (bdCommReadBlocking() != 0x02) continue;
       if (bdCommReadBlocking() != '0' + payload1 / 10) continue;
       if (bdCommReadBlocking() != '0' + payload1 % 10) continue;
       if (bdCommReadBlocking() != 'O') continue;
       if (bdCommReadBlocking() != 'K') continue;
       if (bdCommReadBlocking() != 'O') continue;
-      if (bdCommReadBlocking() != '0') continue;
-      if (bdCommReadBlocking() != '0' + payload2 / 10) continue;
-      if (bdCommReadBlocking() != '0' + payload2 % 10) continue;
-      bdCommReadBlocking();
-      bdCommReadBlocking();
-      bdCommReadBlocking();
-      bdCommReadBlocking();
-      if (bdCommReadBlocking() != 0x0D) continue;
+      while (bdCommRead() != -1) {
+        wdt_reset();
+      }
       timerWait(100);
       break;
     }
@@ -536,7 +537,6 @@ int16_t main(void)
 
 #else // TEST
 
-/*
 int16_t main(void)
 {
   init();
@@ -546,27 +546,30 @@ int16_t main(void)
   }
   return 0;
 }
-*/
+/*
 int16_t main(void)
 {
   init();
-  //int16_t byte = -1;
   while (1) {
     bdCommOutput();
     timerWait(10);
     bdCommWrite(0x02);
-    bdCommWrite('I');
-    bdCommWrite('D');
+    bdCommWrite('0');
+    bdCommWrite('1');
+    bdCommWrite('O');
+    bdCommWrite('P');
+    bdCommWrite('E');
     bdCommWrite('0');
     bdCommWrite('0');
     bdCommWrite('1');
-    //bdCommWrite(0xD);
+    bdCommWrite(0xD);
     bdCommFlush();
-    timerWait(3);
+    timerWait(10);
     bdCommInput();
-    timerWait(2000);
+    timerWait(5000);
   }
 }
+*/
 
 #endif // not TEST
 
