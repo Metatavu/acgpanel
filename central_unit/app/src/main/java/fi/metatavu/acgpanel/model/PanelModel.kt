@@ -174,6 +174,7 @@ abstract class PanelModel {
     abstract val giptoolService: GiptoolService
     abstract val vendingMachineId: String
     abstract val password: String
+    abstract val demoMode: Boolean
 
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
@@ -183,6 +184,7 @@ abstract class PanelModel {
     var searchTerm = ""
     var canLogInViaRfid = false
 
+    private var nextLockToOpen = -1;
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
     val basket: List<BasketItem>
@@ -342,11 +344,28 @@ abstract class PanelModel {
         mutableBasket.clear()
     }
 
-    fun openLock() {
-        for (item in basket) {
-            actionQueue.add(OpenLockAction(
-                1,
-                1 + ((item.product.id ?: 0L) % 12L).toInt()))
+    fun mapLockNumber(lineNumber: Int): Pair<Int, Int> {
+        val shelf = lineNumber.div(100)
+        val aux = lineNumber.rem(100)
+        if (aux.rem(2) == 0) {
+            return Pair(shelf, aux.div(2))
+        } else {
+            return Pair(shelf, 7 + aux.div(2))
+        }
+    }
+
+    fun openLock(first: Boolean = true) {
+        if (first) {
+            nextLockToOpen = 0
+        }
+        val i = nextLockToOpen
+        if (i != -1 && i < basket.size) {
+            val item = basket[i]
+            val (shelf, compartment) = mapLockNumber(
+                100 + ((item.product.id ?: 0L) % 12L).toInt()
+            )
+            actionQueue.add(OpenLockAction(shelf, compartment))
+            nextLockToOpen++
         }
     }
 
@@ -375,39 +394,52 @@ abstract class PanelModel {
     }
 
     private fun syncProducts() {
-        val products = giptoolService
-            .listProducts(vendingMachineId)
-            .execute()
-            .body()!!
-            .products
-            .map {
-                Product(it.productId,
-                    it.name.trim(),
-                    it.description.trim(),
-                    it.picture,
-                    it.safetyCard,
-                    it.productInfo,
-                    it.unit)
+        if (demoMode) {
+            productDao.clearProducts()
+            val products = (1L..20L).map {
+                Product(it, "Tuote $it","Kuvaus $it", "", "", "", "kpl")
             }
-            .toTypedArray()
-        productDao.clearProducts()
-        productDao.insertAll(*products)
+            productDao.insertAll(*products.toTypedArray())
+        } else {
+            val products = giptoolService
+                .listProducts(vendingMachineId)
+                .execute()
+                .body()!!
+                .products
+                .map {
+                    Product(it.productId,
+                        it.name.trim(),
+                        it.description.trim(),
+                        it.picture,
+                        it.safetyCard,
+                        it.productInfo,
+                        it.unit)
+                }
+                .toTypedArray()
+            productDao.clearProducts()
+            productDao.insertAll(*products)
+        }
     }
 
     private fun syncUsers() {
-        val users = giptoolService
-            .listUsers()
-            .execute()
-            .body()!!
-            .users
-            .map {
-                User(it.id,
-                    it.name.trim(),
-                    it.cardCode.trim())
-            }
-            .toTypedArray()
-        userDao.clearUsers()
-        userDao.insertAll(*users)
+        if (demoMode) {
+        } else {
+            val users = giptoolService
+                .listUsers()
+                .execute()
+                .body()!!
+                .users
+                .map {
+                    User(
+                        it.id,
+                        it.name.trim(),
+                        it.cardCode.trim()
+                    )
+                }
+                .toTypedArray()
+            userDao.clearUsers()
+            userDao.insertAll(*users)
+        }
     }
 
     private fun syncProductTransactions() {

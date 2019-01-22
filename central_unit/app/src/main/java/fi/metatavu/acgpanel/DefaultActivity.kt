@@ -94,7 +94,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
 
     private fun ensureMcuPermission() {
         val deviceList = usbManager.deviceList.values
-        val device = deviceList.firstOrNull { it.vendorId == CH340G_VENDOR_ID }
+        val device = deviceList.firstOrNull { it.vendorId == DEVICE_VENDOR_ID }
         if (device != null && !usbManager.hasPermission(device)) {
             if (!grantAutomaticPermission(device)) {
                 usbManager.requestPermission(
@@ -118,7 +118,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         get() = unlock_button
 
     companion object {
-        private const val CH340G_VENDOR_ID = 0x1A86
+        private const val DEVICE_VENDOR_ID = 0x0403 // FTDI
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
         private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
     }

@@ -77,7 +77,7 @@ int main(void)
   {
     int16_t byte = puCommReadBlocking();
     if (byte < 8) {
-      for (uint32_t i=0; i<0xFFFF; i++) {
+      for (uint32_t i=0; i<0xFFFFFF; i++) {
         PORTA = 1<<byte;
       }
       PORTA = 0x00;

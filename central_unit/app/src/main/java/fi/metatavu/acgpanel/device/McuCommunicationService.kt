@@ -27,6 +27,7 @@ data class OpenLock(val number: Int, val shelf: Int, val compartment: Int): Mess
 data class LockStateRequest(val number: Int, val shelf: Int, val compartment: Int): Message()
 data class LockStateReply(val number: Int, val shelf: Int, val compartment: Int, val open: Boolean): Message()
 data class ReadCard(val number: Int, val cardId: String): Message()
+data class LockClosed(val number: Int, val shelf: Int, val compartment: Int): Message()
 
 private class InvalidMessageException : Exception()
 
@@ -36,12 +37,12 @@ private fun bytes2string(bytes: Collection<Byte>): String {
 
 private const val ZERO = '0'.toByte()
 private const val NINE = '9'.toByte()
-private const val START_OF_MESSAGE = '!'.toByte()
+private const val START_OF_MESSAGE = 0x02.toByte()
 private const val SEPARATOR = ';'.toByte()
 private const val END_OF_MESSAGE = '\n'.toByte()
 private const val RESTART_INTERVAL_MS = 1000L
-private const val READ_TIMEOUT_MS = 100L
-private const val READ_TIMEOUT_MAX_FAILURES = 50
+private const val READ_TIMEOUT_MS = 1000L
+private const val READ_TIMEOUT_MAX_FAILURES = 5
 
 abstract class MessageReader {
 
@@ -102,6 +103,7 @@ abstract class MessageReader {
             }
             if (checksum != msgChecksum) {
                 throw InvalidMessageException()
+                Log.e(javaClass.name, "Invalid checksum")
             }
             if (next(allowCc = true) != END_OF_MESSAGE) {
                 throw InvalidMessageException()
@@ -132,12 +134,18 @@ abstract class MessageReader {
                         messageNumber,
                         bytes2string(payload)
                     )
+                    5 -> LockClosed(
+                        messageNumber,
+                        bytes2string(payload).split(";")[0].toInt(),
+                        bytes2string(payload).split(";")[1].toInt()
+                    )
                     else -> null
                 }
             } catch (ex: ArrayIndexOutOfBoundsException) {
                 return null
             }
         } catch (ex: InvalidMessageException) {
+            Log.e(javaClass.name, "$ex")
             return null
         }
     }
@@ -183,14 +191,16 @@ abstract class MessageWriter {
                 flush()
             }
             is OpenLock -> {
+                val payload = "${msg.shelf};${msg.compartment}"
+                Log.d(javaClass.name, "Opening lock: $payload")
                 writeByte(START_OF_MESSAGE)
                 writeString("1")
                 writeByte(SEPARATOR)
                 writeString(msg.number.toString())
                 writeByte(SEPARATOR)
-                writeString("0;0".length.toString())
+                writeString(payload.length.toString())
                 writeByte(SEPARATOR)
-                writeString("0;0")
+                writeString(payload)
                 writeByte(SEPARATOR)
                 writeString(checksum.toString(), computeChecksum = false)
                 writeByte(SEPARATOR)
@@ -262,12 +272,15 @@ class McuCommunicationService : Service() {
                 val action = model.nextAction()
                 when (action) {
                     is OpenLockAction -> {
-                        for (i in 0..3) {
+                        for (i in 0..6) {
                             messageWriter.writeMessage(
-                                OpenLock(messageNumber, 0, 0)
+                                OpenLock(messageNumber,
+                                         action.shelf,
+                                         action.compartment)
                             )
                             Thread.sleep(100)
                         }
+                        messageNumber = (messageNumber + 1) and 0x7FFF
                     }
                 }
 
@@ -277,24 +290,39 @@ class McuCommunicationService : Service() {
                 }
                 when (msg) {
                     // TODO: number checks
+                    is Acknowledgement -> {
+                        Log.d(javaClass.name, "Got acknowledgement: $msg")
+                    }
                     is ReadCard -> {
                         for (i in 0..3) {
                             messageWriter.writeMessage(
-                                Acknowledgement((msg.number + 1) and 0x7FFF, msg.number)
+                                Acknowledgement(messageNumber, msg.number)
                             )
                             Thread.sleep(100)
                         }
-                        messageNumber = msg.number + 2
+                        messageNumber = (messageNumber + 1) and 0x7FFF
                         Handler(mainLooper).post {
                             model.logIn(msg.cardId, usingRfid = true)
+                        }
+                    }
+                    is LockClosed -> {
+                        for (i in 0..3) {
+                            messageWriter.writeMessage(
+                                Acknowledgement(messageNumber, msg.number)
+                            )
+                            Thread.sleep(100)
+                        }
+                        messageNumber = (messageNumber + 1) and 0x7FFF
+                        Handler(mainLooper).post {
+                            model.openLock(first = false)
                         }
                     }
                 }
                 Thread.sleep(50)
             } catch (ex: InvalidMessageException) {
-                // Do nothing
+                Log.d(javaClass.name, "Invalid message: $ex")
             } catch (ex: TimeoutException) {
-                // Do nothing
+                Log.d(javaClass.name, "Timeout: $ex")
             } catch (ex: Exception) {
                 Log.e(javaClass.name, "Lock/RFID module communication error: $ex")
                 jobThread = null
@@ -306,7 +334,7 @@ class McuCommunicationService : Service() {
     private fun tryStart() {
         stop()
         val deviceList = usbManager.deviceList.values
-        val device = deviceList.firstOrNull { it.vendorId == CH340G_VENDOR_ID }
+        val device = deviceList.firstOrNull { it.vendorId == DEVICE_VENDOR_ID }
         if (device != null) {
             if (!usbManager.hasPermission(device)) {
                 return
@@ -369,7 +397,7 @@ class McuCommunicationService : Service() {
     }
 
     companion object {
-        const val CH340G_VENDOR_ID = 0x1A86
+        const val DEVICE_VENDOR_ID = 0x0403 // FTDI
         const val BUFFER_SIZE = 1024*1024
     }
 }

@@ -55,5 +55,7 @@
     <string name="edit">Muokkaa</string>
     <string name="product">Tuote</string>
     <string name="default_unit">kpl</string>
+    <string name="pref_demo_mode">demo_mode</string>
+    <string name="pref_title_demo_mode">Esittelytila</string>
 
 </resources>

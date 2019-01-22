@@ -18,4 +18,8 @@
         android:singleLine="true"
         android:title="@string/pref_title_password" />
 
+    <CheckBoxPreference
+        android:key="@string/pref_demo_mode"
+        android:title="@string/pref_title_demo_mode" />
+
 </PreferenceScreen>

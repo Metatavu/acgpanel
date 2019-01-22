@@ -24,7 +24,8 @@
 #define RETRY_TIME 1000
 #define MESSAGE_WAIT_TIME 200
 
-#define START_OF_MESSAGE '\x02'
+#define START_OF_CU_MESSAGE '\x02'
+#define START_OF_BD_MESSAGE '\x02'
 #define START_OF_MESSAGE_STR "\x02"
 #define END_OF_MESSAGE '\n'
 #define END_OF_MESSAGE_STR "\n"
@@ -136,8 +137,12 @@ int16_t bdCommRead(void) {
 }
 
 int16_t bdCommReadBlocking(void) {
+  timerSet(200);
   while (!(UCSR1A & (1<<RXC1))) {
     wdt_reset();
+    if (timerFinished()) {
+      return -1;
+    }
   }
   return UDR1;
 }
@@ -157,6 +162,11 @@ void cuCommWriteString(int16_t length, char *string) {
   for (int i=0; i<length; i++) {
     cuCommWrite((uint8_t)string[i]);
   }
+}
+
+void cuCommWriteNullTerm(char *string) {
+  int16_t length = strlen(string);
+  cuCommWriteString(length, string);
 }
 
 void cuCommWriteChkSum(int16_t length, char *part, uint8_t *checksum) {
@@ -248,22 +258,42 @@ void init(void) {
   sei();
 }
 
-int16_t lastMessageNumber = 0u;
+int16_t sentMessageNumber = 0u;
 int16_t oldMessagesReceived = 0u;
+uint8_t shelf = 0;
+uint8_t compartment = 0;
 
-void loop(void) {
-  uint8_t checksum = 0;
+void processBdMessage() {
   int16_t byte = 0;
-
-  // start of message
-  timerSet(MESSAGE_WAIT_TIME);
-  while ((byte = cuCommRead()) != START_OF_MESSAGE) {
-    if (timerFinished()) {
-      cuCommWrite(0x00); // keep channel open
-      return;
-    }
+  uint8_t msgShelf = 0;
+  if ((byte = bdCommReadBlocking()) != -1) {
+    msgShelf += byte - '0';
+  }    
+  if ((byte = bdCommReadBlocking()) != -1) {
+    msgShelf *= 10;
+    msgShelf += byte - '0';
   }
-  checksum ^= byte;
+  if (msgShelf != shelf) {
+    return;
+  }
+  if (bdCommReadBlocking() != 'R') {
+    return;
+  }
+  if (bdCommReadBlocking() != 'E') {
+    return;
+  }
+  sentMessageNumber = (sentMessageNumber + 1) & 0x7FFF;
+  char payload[10];
+  sprintf(payload, "%u;%u", shelf, compartment);
+  for (uint8_t i=0; i<6; i++) {
+    cuCommSendMsg(5, sentMessageNumber, payload);
+    timerWait(100);
+  }
+}
+
+void processCuMessage() {
+  uint8_t checksum = 0x02; // STX
+  int16_t byte = 0x02;
 
   // message type
   int16_t messagetype = 0;
@@ -276,6 +306,11 @@ void loop(void) {
   }
   checksum ^= byte;
   if (byte != SEPARATOR) return;
+
+  if (messagetype == 1) {
+    shelf = 0;
+    compartment = 0;
+  }
 
   // message number
   int16_t messagenumber = 0;
@@ -302,9 +337,8 @@ void loop(void) {
   if (byte != SEPARATOR) return;
 
   // message payload
-  int16_t payload1 = 0;
-  int16_t payload2 = 0;
   uint8_t part = 0;
+  int16_t acknowledgedMessageNum = 0;
   for (int pos = 0; pos<length; pos++) {
     while ((byte = cuCommRead()) == -1);
     if (byte < 0x21) {
@@ -313,19 +347,19 @@ void loop(void) {
     checksum ^= byte;
     // acknowledgement
     if (messagetype == 0) {
-      payload1 *= 10;
-      payload1 += byte - '0';
+      acknowledgedMessageNum *= 10;
+      acknowledgedMessageNum += byte - '0';
     }
     // open lock
     if (messagetype == 1) {
       if (byte == ';') {
         part = 1;
       } else if (part == 0) {
-        payload1 *= 10;
-        payload1 += byte - '0';
+        shelf *= 10;
+        shelf += byte - '0';
       } else {
-        payload2 *= 10;
-        payload2 += byte - '0';
+        compartment *= 10;
+        compartment += byte - '0';
       }
     }
   }
@@ -362,44 +396,64 @@ void loop(void) {
   if (messagetype != 0) {
     char payload[10];
     sprintf(payload, "%d", messagenumber);
-    lastMessageNumber = (messagenumber+1) & 0x7FFF;
+    sentMessageNumber = (sentMessageNumber+1) & 0x7FFF;
     for (uint8_t i=0; i<5; i++) {
-      cuCommSendMsg(0, lastMessageNumber, payload);
+      cuCommSendMsg(0, sentMessageNumber, payload);
       timerWait(100);
     }
   }
 
+  // open lock
   if (messagetype == 1) {
-    for (int16_t i=0; i<25; i++) {
+    for (int16_t i=0; i<5; i++) {
+      int16_t bdByte;
+      timerWait(100);
       bdCommOutput();
       timerWait(5);
       cuCommWrite(0x00); // keep CU comm open
       bdCommWrite(0x02); // STX
-      bdCommWrite('0' + payload1 / 10);
-      bdCommWrite('0' + payload1 % 10);
+      bdCommWrite('0' + shelf / 10);
+      bdCommWrite('0' + shelf % 10);
       bdCommWrite('O');
       bdCommWrite('P');
       bdCommWrite('E');
       bdCommWrite('0');
-      bdCommWrite('0' + payload2 / 10);
-      bdCommWrite('0' + payload2 % 10);
+      bdCommWrite('0' + compartment / 10);
+      bdCommWrite('0' + compartment % 10);
       bdCommWrite(0x0D); // CR
       bdCommFlush();
       timerWait(5);
       bdCommInput();
-      if (bdCommReadBlocking() != 0x02) continue;
-      if (bdCommReadBlocking() != '0' + payload1 / 10) continue;
-      if (bdCommReadBlocking() != '0' + payload1 % 10) continue;
+      while ((bdByte = bdCommReadBlocking()) != 0x02) {
+        if (bdByte == -1) {
+          continue;
+        }
+      }
+      if (bdCommReadBlocking() != '0' + shelf / 10) continue;
+      if (bdCommReadBlocking() != '0' + shelf % 10) continue;
       if (bdCommReadBlocking() != 'O') continue;
       if (bdCommReadBlocking() != 'K') continue;
       if (bdCommReadBlocking() != 'O') continue;
       while (bdCommRead() != -1) {
         wdt_reset();
       }
-      timerWait(100);
       break;
     }
   }
+}
+
+void loop(void) {
+  timerSet(MESSAGE_WAIT_TIME);
+  while (!timerFinished()) {
+    if (bdCommRead() == START_OF_BD_MESSAGE) {
+      processBdMessage();
+    }
+    if (cuCommRead() == START_OF_CU_MESSAGE) {
+      processCuMessage();
+    }
+  }
+  // keep channel open
+  cuCommWrite(0x00);
 }
 
 #ifdef TEST
@@ -469,7 +523,7 @@ void testLoop(void) {
   strcpy((char*)testInputBuf, "\x02" "1;0;0;;51;\n");
   testInputBufLoc = 0;
   testInputBufLen = strlen((const char*)testInputBuf);
-  lastMessageNumber = 0x7FFF;
+  sentMessageNumber = 0x7FFF;
   testOutputBufLoc = 0;
   loop();
   if (strncmp((const char *)testOutputBuf, "\x02" "0;1;1;0;2;\n", 12) != 0) {
@@ -546,30 +600,6 @@ int16_t main(void)
   }
   return 0;
 }
-/*
-int16_t main(void)
-{
-  init();
-  while (1) {
-    bdCommOutput();
-    timerWait(10);
-    bdCommWrite(0x02);
-    bdCommWrite('0');
-    bdCommWrite('1');
-    bdCommWrite('O');
-    bdCommWrite('P');
-    bdCommWrite('E');
-    bdCommWrite('0');
-    bdCommWrite('0');
-    bdCommWrite('1');
-    bdCommWrite(0xD);
-    bdCommFlush();
-    timerWait(10);
-    bdCommInput();
-    timerWait(5000);
-  }
-}
-*/
 
 #endif // not TEST
 

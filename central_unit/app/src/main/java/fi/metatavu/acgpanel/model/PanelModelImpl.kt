@@ -125,6 +125,8 @@ object PanelModelImpl : PanelModel() {
         get() = preferences()
             .getString(getString(R.string.pref_key_password), "")
 
+    override val demoMode: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_demo_mode), false)
 
     private val handler = Handler(Looper.getMainLooper())
 
