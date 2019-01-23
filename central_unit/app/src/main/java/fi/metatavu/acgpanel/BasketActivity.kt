@@ -115,6 +115,11 @@ class BasketActivity : PanelActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        ok_button.requestFocus()
+    }
+
     override fun onPostResume() {
         super.onPostResume()
         adapter.notifyDataSetChanged()

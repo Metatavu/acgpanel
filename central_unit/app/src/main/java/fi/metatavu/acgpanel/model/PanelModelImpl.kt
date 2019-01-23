@@ -21,7 +21,7 @@ import retrofit2.converter.gson.GsonConverterFactory
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class
-], version = 4)
+], version = 5)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -70,6 +70,12 @@ object PanelModelImpl : PanelModel() {
             object: Migration(3, 4) {
                 override fun migrate(database: SupportSQLiteDatabase) {
                     database.query("ALTER TABLE Product ADD COLUMN unit VARCHAR(255)")
+                }
+            },
+
+            object: Migration(4, 5) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.query("ALTER TABLE Product ADD COLUMN line VARCHAR(255)")
                 }
             }
 

@@ -50,12 +50,14 @@
     <string name="expenditure">Kustannuspaikka</string>
     <string name="reference">Lisäviite</string>
     <string name="pick_up_products">Nouda tuotteet, ole hyvä</string>
-    <string name="complete_by_closing_door">Otto päättyy, kun suljet luukut</string>
+    <string name="complete_by_closing_door">Luukut aukeavat yksi kerrallaan. Otto päättyy, kun suljet luukut.</string>
     <string name="modify_checkout">Muokkaa ottoa</string>
     <string name="edit">Muokkaa</string>
     <string name="product">Tuote</string>
     <string name="default_unit">kpl</string>
     <string name="pref_demo_mode">demo_mode</string>
     <string name="pref_title_demo_mode">Esittelytila</string>
+    <string name="input_expenditure">Syötä kustannuspaikka</string>
+    <string name="input_reference">Syötä lisäviite</string>
 
 </resources>

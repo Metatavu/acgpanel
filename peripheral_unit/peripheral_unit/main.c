@@ -39,6 +39,7 @@
 #define F_OSC 8000000
 #define BAUD_RATE_CU 9600
 #define BAUD_RATE_BD 2400
+#define BAUD_RATE_CR 9600
 
 int16_t isBefore(int16_t messagenumber1, int16_t messagenumber2) {
   if (messagenumber2 < 0x4000) {
@@ -72,6 +73,17 @@ void bdCommInit(void) {
   UCSR1B = (1<<RXEN1) | (1<<TXEN1); // enable RX and TX
   UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
   DDRC = 0x01;
+}
+
+void crCommInit(void) {
+  // init USART, 8 data bits, 1 stop bit
+  // 2549Q-AVR-02/2014 page 206
+  uint16_t ubrr = F_OSC/16/BAUD_RATE_CR - 1;
+  UBRR0H = (uint8_t)(ubrr>>8);
+  UBRR0L = (uint8_t)ubrr;
+  // 2549Q-AVR-02/2014 page 221
+  UCSR0B = (1<<RXEN0) | (1<<TXEN0); // enable RX and TX
+  UCSR0C = (1<<UCSZ00) | (1<<UCSZ01); // 8 data bits
 }
 
 #ifdef TEST
@@ -114,6 +126,8 @@ int16_t cuCommRead(void) {
   return UDR2;
 }
 
+#endif // not TEST
+
 void bdCommWrite(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
   while (!(UCSR1A & (1<<UDRE1))) {
@@ -155,7 +169,38 @@ void bdCommOutput(void) {
   PORTC = 0x01;
 }
 
-#endif // not TEST
+void crCommWrite(uint8_t c) {
+  // 2549Q-AVR-02/2014 page 207
+  while (!(UCSR0A & (1<<UDRE0))) {
+    wdt_reset();
+  }
+  UDR0 = c;
+}
+
+void crCommFlush(void) {
+  while (!(UCSR0A & (1<<UDRE0))) {
+    wdt_reset();
+  }    
+}
+
+int16_t crCommRead(void) {
+  // 2549Q-AVR-02/2014 page 210
+  if (!(UCSR0A & (1<<RXC0))) {
+    return -1;
+  }
+  return UDR0;
+}
+
+int16_t crCommReadBlocking(void) {
+  timerSet(200);
+  while (!(UCSR0A & (1<<RXC0))) {
+    wdt_reset();
+    if (timerFinished()) {
+      return -1;
+    }
+  }
+  return UDR0;
+}
 
 // messaging routines
 void cuCommWriteString(int16_t length, char *string) {
@@ -263,7 +308,7 @@ int16_t oldMessagesReceived = 0u;
 uint8_t shelf = 0;
 uint8_t compartment = 0;
 
-void processBdMessage() {
+void processBdMessage(void) {
   int16_t byte = 0;
   uint8_t msgShelf = 0;
   if ((byte = bdCommReadBlocking()) != -1) {
@@ -291,7 +336,7 @@ void processBdMessage() {
   }
 }
 
-void processCuMessage() {
+void processCuMessage(void) {
   uint8_t checksum = 0x02; // STX
   int16_t byte = 0x02;
 
@@ -442,6 +487,23 @@ void processCuMessage() {
   }
 }
 
+void processCrMessage(void) {
+  int16_t byte = -1;
+  char code[20];
+  int i = 0;
+  while ((byte = crCommReadBlocking()) != -1 && byte != '\r') {
+    if (i < 19) {
+      code[i++] = byte;
+    }
+  }
+  code[i] = '\0';
+  sentMessageNumber = (sentMessageNumber+1) & 0x7FFF;
+  for (uint8_t i=0; i<5; i++) {
+    cuCommSendMsg(4, sentMessageNumber, code);
+    timerWait(100);
+  }
+}
+
 void loop(void) {
   timerSet(MESSAGE_WAIT_TIME);
   while (!timerFinished()) {
@@ -450,6 +512,9 @@ void loop(void) {
     }
     if (cuCommRead() == START_OF_CU_MESSAGE) {
       processCuMessage();
+    }
+    if (crCommRead() != -1) {
+      processCrMessage();
     }
   }
   // keep channel open

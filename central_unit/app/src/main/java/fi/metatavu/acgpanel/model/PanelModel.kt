@@ -26,7 +26,8 @@ data class Product(
     var image: String,
     var safetyCard: String,
     var productInfo: String,
-    var unit: String
+    var unit: String,
+    var line: String
 )
 
 @Entity
@@ -77,6 +78,7 @@ class GiptoolProduct {
     var safetyCard: String = ""
     var productInfo: String = ""
     var unit: String = ""
+    var line: String = ""
 }
 
 class GiptoolProducts {
@@ -116,7 +118,7 @@ interface ProductDao {
     @Query("SELECT COUNT(*) FROM product")
     fun getProductCount(): Long
 
-    @Query("SELECT * FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm) LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm) OR UPPER(line) LIKE UPPER(:searchTerm) LIMIT 6 OFFSET :offset")
     fun getProductPageSearch(searchTerm: String, offset: Long): List<Product>
 
     @Query("SELECT COUNT(*) FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm)")
@@ -184,7 +186,7 @@ abstract class PanelModel {
     var searchTerm = ""
     var canLogInViaRfid = false
 
-    private var nextLockToOpen = -1;
+    private var nextLockToOpen = -1
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
     val basket: List<BasketItem>
@@ -341,6 +343,7 @@ abstract class PanelModel {
         }
         currentUser = null
         selectedBasketItem = null
+        searchTerm = ""
         mutableBasket.clear()
     }
 
@@ -357,12 +360,19 @@ abstract class PanelModel {
     fun openLock(first: Boolean = true) {
         if (first) {
             nextLockToOpen = 0
+        } else {
+            if (nextLockToOpen == basket.size) {
+                schedule(Runnable {
+                    completeProductTransaction()
+                    logOut()
+                }, 0)
+            }
         }
         val i = nextLockToOpen
         if (i != -1 && i < basket.size) {
             val item = basket[i]
             val (shelf, compartment) = mapLockNumber(
-                100 + ((item.product.id ?: 0L) % 12L).toInt()
+                item.product.line.toInt()
             )
             actionQueue.add(OpenLockAction(shelf, compartment))
             nextLockToOpen++
@@ -397,7 +407,14 @@ abstract class PanelModel {
         if (demoMode) {
             productDao.clearProducts()
             val products = (1L..20L).map {
-                Product(it, "Tuote $it","Kuvaus $it", "", "", "", "kpl")
+                Product(it,
+                    "Tuote $it",
+                    "Kuvaus $it",
+                    "",
+                    "",
+                    "",
+                    "kpl",
+                    "1%02d".format(it))
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
@@ -413,7 +430,8 @@ abstract class PanelModel {
                         it.picture,
                         it.safetyCard,
                         it.productInfo,
-                        it.unit)
+                        it.unit,
+                        it.line)
                 }
                 .toTypedArray()
             productDao.clearProducts()

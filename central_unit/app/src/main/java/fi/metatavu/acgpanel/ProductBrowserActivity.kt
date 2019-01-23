@@ -11,6 +11,7 @@ import android.support.v7.widget.PagerSnapHelper
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -19,6 +20,7 @@ import android.widget.TextView
 import fi.metatavu.acgpanel.model.Product
 import fi.metatavu.acgpanel.model.ProductPage
 import kotlinx.android.synthetic.main.activity_product_browser.*
+import kotlinx.coroutines.selects.select
 
 internal fun productPageView(context: Context): View {
     return View.inflate(context, R.layout.view_product_page, null)!!
@@ -100,9 +102,7 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
-            model.selectNewBasketItem(it)
-            val intent = Intent(this, ProductSelectionActivity::class.java)
-            startActivity(intent)
+            selectProduct(it)
         }
         basket_items_view.adapter = adapter
         adapter.submitList(model.productPages)
@@ -121,6 +121,16 @@ class ProductBrowserActivity : PanelActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
             }
         })
+        search_box.setOnKeyListener { _, _, keyEvent ->
+            val productPage = model.productPages.firstOrNull()
+            val product = productPage?.products?.firstOrNull()
+            if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER && product != null) {
+                selectProduct(product)
+                true
+            } else {
+                false
+            }
+        }
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(basket_items_view)
         basket_items_view.addItemDecoration(LinePagerIndicatorDecoration())
@@ -131,6 +141,17 @@ class ProductBrowserActivity : PanelActivity() {
         } else {
             show_profile_button.visibility = View.INVISIBLE
         }
+    }
+
+    private fun selectProduct(it: Product) {
+        model.selectNewBasketItem(it)
+        val intent = Intent(this, ProductSelectionActivity::class.java)
+        startActivity(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        search_box.requestFocus()
     }
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {

@@ -1,10 +1,12 @@
 package fi.metatavu.acgpanel
 
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -21,6 +23,14 @@ class ProductSelectionActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_selection)
+        count_input.setOnKeyListener listener@{ view, _, keyEvent ->
+            if (keyEvent.action == KeyEvent.ACTION_UP &&
+                    keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                proceed(view)
+                return@listener true
+            }
+            return@listener false
+        }
         val basketItem = model.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
@@ -38,14 +48,19 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
-    fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
+    override fun onResume() {
+        super.onResume()
+        count_input.requestFocus()
+    }
+
+    private fun showEditDialog(title: String, onConfirm: (String) -> Unit) {
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Syötä kustannuspaikka")
+        builder.setTitle(title)
         val input = EditText(this)
         input.inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         builder.setView(input)
         builder.setPositiveButton(R.string.ok) { dialog, _ ->
-            expenditure_input.text = input.text
+            onConfirm(input.text.toString())
             inputMethodManager.hideSoftInputFromWindow(
                 window.decorView.windowToken,
                 InputMethodManager.HIDE_NOT_ALWAYS
@@ -55,27 +70,34 @@ class ProductSelectionActivity : PanelActivity() {
         builder.setNegativeButton(R.string.cancel) { dialog, _ ->
             dialog.cancel()
         }
-        builder.show()
+        val dialog = builder.create()
+        input.setOnKeyListener listener@{ view, _, keyEvent ->
+            if (keyEvent.action == KeyEvent.ACTION_UP) {
+                if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).callOnClick()
+                    return@listener true
+                }
+                if (keyEvent.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick()
+                    return@listener true
+                }
+            }
+            return@listener false
+        }
+        dialog.show()
+
+    }
+
+    fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
+        showEditDialog(getString(R.string.input_expenditure)) {
+            expenditure_input.text = it
+        }
     }
 
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Syötä lisäviite")
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        builder.setView(input)
-        builder.setPositiveButton(R.string.ok) { dialog, _ ->
-            reference_input.text = input.text
-            inputMethodManager.hideSoftInputFromWindow(
-                window.decorView.windowToken,
-                InputMethodManager.HIDE_NOT_ALWAYS
-            )
-            dialog.dismiss()
+        showEditDialog(getString(R.string.input_reference)) {
+            reference_input.text = it
         }
-        builder.setNegativeButton(R.string.cancel) { dialog, _ ->
-            dialog.cancel()
-        }
-        builder.show()
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {

@@ -20,14 +20,16 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.concurrent.thread
 
-sealed class Message
+sealed class Message {
+    abstract val number: Int
+}
 
-data class Acknowledgement(val number: Int, val target: Int): Message()
-data class OpenLock(val number: Int, val shelf: Int, val compartment: Int): Message()
-data class LockStateRequest(val number: Int, val shelf: Int, val compartment: Int): Message()
-data class LockStateReply(val number: Int, val shelf: Int, val compartment: Int, val open: Boolean): Message()
-data class ReadCard(val number: Int, val cardId: String): Message()
-data class LockClosed(val number: Int, val shelf: Int, val compartment: Int): Message()
+data class Acknowledgement(override val number: Int, val target: Int): Message()
+data class OpenLock(override val number: Int, val shelf: Int, val compartment: Int): Message()
+data class LockStateRequest(override val number: Int, val shelf: Int, val compartment: Int): Message()
+data class LockStateReply(override val number: Int, val shelf: Int, val compartment: Int, val open: Boolean): Message()
+data class ReadCard(override val number: Int, val cardId: String): Message()
+data class LockClosed(override val number: Int, val shelf: Int, val compartment: Int): Message()
 
 private class InvalidMessageException : Exception()
 
@@ -265,7 +267,8 @@ class McuCommunicationService : Service() {
     }
 
     private fun process() {
-        var messageNumber = 0
+        var sentMessageNumber = 0
+        var recvMessageNumber = -1
         // TODO reliability for message sending
         while (jobThread != null) {
             try {
@@ -274,33 +277,38 @@ class McuCommunicationService : Service() {
                     is OpenLockAction -> {
                         for (i in 0..6) {
                             messageWriter.writeMessage(
-                                OpenLock(messageNumber,
+                                OpenLock(sentMessageNumber,
                                          action.shelf,
                                          action.compartment)
                             )
                             Thread.sleep(100)
                         }
-                        messageNumber = (messageNumber + 1) and 0x7FFF
+                        sentMessageNumber = (sentMessageNumber + 1) and 0x7FFF
                     }
                 }
 
                 val msg = messageReader.readMessage()
                 if (msg != null) {
                     Log.d(javaClass.name, "Received message $msg")
+                    // TODO wrap around
+                    if (msg.number <= recvMessageNumber) {
+                        continue
+                    } else {
+                        recvMessageNumber = msg.number
+                    }
                 }
                 when (msg) {
-                    // TODO: number checks
                     is Acknowledgement -> {
                         Log.d(javaClass.name, "Got acknowledgement: $msg")
                     }
                     is ReadCard -> {
                         for (i in 0..3) {
                             messageWriter.writeMessage(
-                                Acknowledgement(messageNumber, msg.number)
+                                Acknowledgement(sentMessageNumber, msg.number)
                             )
                             Thread.sleep(100)
                         }
-                        messageNumber = (messageNumber + 1) and 0x7FFF
+                        sentMessageNumber = (sentMessageNumber + 1) and 0x7FFF
                         Handler(mainLooper).post {
                             model.logIn(msg.cardId, usingRfid = true)
                         }
@@ -308,11 +316,11 @@ class McuCommunicationService : Service() {
                     is LockClosed -> {
                         for (i in 0..3) {
                             messageWriter.writeMessage(
-                                Acknowledgement(messageNumber, msg.number)
+                                Acknowledgement(sentMessageNumber, msg.number)
                             )
                             Thread.sleep(100)
                         }
-                        messageNumber = (messageNumber + 1) and 0x7FFF
+                        sentMessageNumber = (sentMessageNumber + 1) and 0x7FFF
                         Handler(mainLooper).post {
                             model.openLock(first = false)
                         }
