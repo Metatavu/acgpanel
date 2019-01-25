@@ -79,11 +79,11 @@ void crCommInit(void) {
   // init USART, 8 data bits, 1 stop bit
   // 2549Q-AVR-02/2014 page 206
   uint16_t ubrr = F_OSC/16/BAUD_RATE_CR - 1;
-  UBRR0H = (uint8_t)(ubrr>>8);
-  UBRR0L = (uint8_t)ubrr;
+  UBRR3H = (uint8_t)(ubrr>>8);
+  UBRR3L = (uint8_t)ubrr;
   // 2549Q-AVR-02/2014 page 221
-  UCSR0B = (1<<RXEN0) | (1<<TXEN0); // enable RX and TX
-  UCSR0C = (1<<UCSZ00) | (1<<UCSZ01); // 8 data bits
+  UCSR3B = (1<<RXEN3) | (1<<TXEN3); // enable RX and TX
+  UCSR3C = (1<<UCSZ30) | (1<<UCSZ31); // 8 data bits
 }
 
 #ifdef TEST
@@ -171,35 +171,35 @@ void bdCommOutput(void) {
 
 void crCommWrite(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
-  while (!(UCSR0A & (1<<UDRE0))) {
+  while (!(UCSR3A & (1<<UDRE3))) {
     wdt_reset();
   }
-  UDR0 = c;
+  UDR3 = c;
 }
 
 void crCommFlush(void) {
-  while (!(UCSR0A & (1<<UDRE0))) {
+  while (!(UCSR3A & (1<<UDRE3))) {
     wdt_reset();
   }    
 }
 
 int16_t crCommRead(void) {
   // 2549Q-AVR-02/2014 page 210
-  if (!(UCSR0A & (1<<RXC0))) {
+  if (!(UCSR3A & (1<<RXC3))) {
     return -1;
   }
-  return UDR0;
+  return UDR3;
 }
 
 int16_t crCommReadBlocking(void) {
   timerSet(200);
-  while (!(UCSR0A & (1<<RXC0))) {
+  while (!(UCSR3A & (1<<RXC3))) {
     wdt_reset();
     if (timerFinished()) {
       return -1;
     }
   }
-  return UDR0;
+  return UDR3;
 }
 
 // messaging routines
@@ -299,6 +299,7 @@ void timerWait(uint16_t millis) {
 void init(void) {
   cuCommInit();
   bdCommInit();
+  crCommInit();
   timerInit();
   sei();
 }
@@ -307,6 +308,7 @@ int16_t sentMessageNumber = 0u;
 int16_t oldMessagesReceived = 0u;
 uint8_t shelf = 0;
 uint8_t compartment = 0;
+uint8_t passthruBuffer[32];
 
 void processBdMessage(void) {
   int16_t byte = 0;
@@ -384,6 +386,7 @@ void processCuMessage(void) {
   // message payload
   uint8_t part = 0;
   int16_t acknowledgedMessageNum = 0;
+  int16_t passthruIndex = 0;
   for (int pos = 0; pos<length; pos++) {
     while ((byte = cuCommRead()) == -1);
     if (byte < 0x21) {
@@ -406,6 +409,10 @@ void processCuMessage(void) {
         compartment *= 10;
         compartment += byte - '0';
       }
+    }
+    // RS485 passthru
+    if (messagetype == 6) {
+      passthruBuffer[passthruIndex++] = byte;
     }
   }
   while ((byte = cuCommRead()) == -1);
@@ -480,19 +487,38 @@ void processCuMessage(void) {
       if (bdCommReadBlocking() != 'K') continue;
       if (bdCommReadBlocking() != 'O') continue;
       while (bdCommRead() != -1) {
-        wdt_reset();
+        // don't reset watchdog
       }
       break;
+    }
+  }
+
+  // passthru message
+  if (messagetype == 6) {
+    int16_t bdByte;
+    timerWait(100);
+    bdCommOutput();
+    timerWait(5);
+    bdCommWrite(0x02); // STX
+    for (int i=0; i<passthruIndex; i++) {
+      bdCommWrite(passthruBuffer[i]);
+    }
+    bdCommWrite(0x0D); // CR
+    bdCommFlush();
+    timerWait(5);
+    bdCommInput();
+    while ((bdByte = bdCommReadBlocking()) != -1) {
+      cuCommWrite(bdByte);
     }
   }
 }
 
 void processCrMessage(void) {
   int16_t byte = -1;
-  char code[20];
+  char code[40];
   int i = 0;
-  while ((byte = crCommReadBlocking()) != -1 && byte != '\r') {
-    if (i < 19) {
+  while ((byte = crCommReadBlocking()) != -1 && byte != '\n') {
+    if (i < 39) {
       code[i++] = byte;
     }
   }
@@ -507,13 +533,14 @@ void processCrMessage(void) {
 void loop(void) {
   timerSet(MESSAGE_WAIT_TIME);
   while (!timerFinished()) {
+    int16_t byte;
     if (bdCommRead() == START_OF_BD_MESSAGE) {
       processBdMessage();
     }
     if (cuCommRead() == START_OF_CU_MESSAGE) {
       processCuMessage();
     }
-    if (crCommRead() != -1) {
+    if ((byte = crCommRead()) != -1) {
       processCrMessage();
     }
   }
