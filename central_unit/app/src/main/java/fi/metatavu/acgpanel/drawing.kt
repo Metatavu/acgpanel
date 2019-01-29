@@ -9,7 +9,7 @@ import java.util.concurrent.Executors
 
 // TODO make RemoteImageView
 // TODO configurable
-const val PRODUCT_IMAGE_PREFIX = "http://ilmoeuro-local.metatavu.io:5001"
+const val PRODUCT_IMAGE_PREFIX = "http://tuotetiedot.metatavu.io"
 
 fun drawProduct(product: Product, view: ImageView) {
     drawProducts(listOf(Pair(product, view)))
@@ -17,7 +17,7 @@ fun drawProduct(product: Product, view: ImageView) {
 
 // TODO share Picasso instances
 fun drawProducts(pairs: List<Pair<Product, ImageView>>) {
-    val executor = Executors.newFixedThreadPool(1)
+    val executor = Executors.newFixedThreadPool(3)
     val context = PanelApplication.instance.applicationContext
     val cacheDir = File(context.cacheDir.path + File.separator + "productImages")
     val cacheSize = 512L*1024L*1024L // 512 MB

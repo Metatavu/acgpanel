@@ -543,6 +543,7 @@ void loop(void) {
     if ((byte = crCommRead()) != -1) {
       processCrMessage();
     }
+    wdt_reset();
   }
   // keep channel open
   cuCommWrite(0x00);

@@ -2,6 +2,7 @@ package fi.metatavu.acgpanel
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.bluetooth.BluetoothClass
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -28,6 +29,9 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
         if (this !is DefaultActivity) {
             finish()
         }
+    }
+    private val onDeviceError = { msg: String ->
+        DeviceErrorDialog(this, msg, model).show()
     }
 
     private val activityManager: ActivityManager
@@ -60,6 +64,16 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
         super.onDestroy()
     }
 
+    override fun onResume() {
+        model.addDeviceErrorListener(onDeviceError)
+        super.onResume()
+    }
+
+    override fun onPause() {
+        model.removeDeviceErrorListener(onDeviceError)
+        super.onPause()
+    }
+
     protected fun enableSoftKeyboard(view: View) {
         view.setOnFocusChangeListener { v, focused ->
             if (focused) {
@@ -84,7 +98,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
             }
         }
         // TODO configurable code
-        val dialog = UnlockDialog(this, "0000")
+        val dialog = UnlockDialog(this, model.maintenancePasscode)
         dialog.setFinishListener {
             val activityManager = activityManager
             @Suppress("DEPRECATION")

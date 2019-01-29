@@ -59,6 +59,12 @@ data class LogInAttempt(
     var uploaded: Boolean
 )
 
+@Entity
+data class SystemProperties(
+    @PrimaryKey var id: Long? = null,
+    var containsDemoData: Boolean
+)
+
 data class BasketItem(
     val product: Product,
     val count: Int,
@@ -184,6 +190,8 @@ interface UserDao {
     @Query("DELETE FROM user")
     fun clearUsers()
 
+    @Query("SELECT * FROM user WHERE id = :id")
+    fun findUserById(id: Long?): User?
 }
 
 @Dao
@@ -204,6 +212,12 @@ interface ProductTransactionDao {
     @Query("UPDATE producttransaction SET uploaded=1 WHERE id=:id")
     fun markUploaded(id: Long)
 
+    @Query("DELETE FROM producttransaction")
+    fun clearProductTransactions()
+
+    @Query("DELETE FROM producttransactionitem")
+    fun clearProductTransactionsItems()
+
 }
 
 @Dao
@@ -217,6 +231,23 @@ interface LogInAttemptDao {
 
     @Query("UPDATE loginattempt SET uploaded=1 WHERE id=:id")
     fun markUploaded(id: Long)
+
+    @Query("DELETE FROM loginattempt")
+    fun clearLogInAttempts()
+
+}
+
+@Dao
+interface SystemPropertiesDao {
+
+    @Insert
+    fun insert(systemProperties: SystemProperties)
+
+    @Query("DELETE FROM systemproperties")
+    fun clear()
+
+    @Query("SELECT * FROM systemproperties WHERE id=1")
+    fun getSystemProperties(): SystemProperties?
 
 }
 
@@ -240,19 +271,23 @@ abstract class PanelModel {
     abstract val userDao: UserDao
     abstract val productTransactionDao: ProductTransactionDao
     abstract val logInAttemptDao: LogInAttemptDao
+    abstract val systemPropertiesDao: SystemPropertiesDao
     abstract val giptoolService: GiptoolService
     abstract val vendingMachineId: String
     abstract val password: String
     abstract val demoMode: Boolean
+    abstract val maintenancePasscode: String
 
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
+    private val deviceErrorListeners: MutableList<(String) -> Unit> = mutableListOf()
     private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
     var searchTerm = ""
     var canLogInViaRfid = false
+    var isDeviceErrorMode = false
 
     var currentUser: User? = null
     private var nextLockToOpen = -1
@@ -347,6 +382,7 @@ abstract class PanelModel {
     fun serverSync() {
         try {
             transaction {
+                demoModeCleanup()
                 syncUsers()
                 syncProducts()
                 syncProductTransactions()
@@ -383,6 +419,14 @@ abstract class PanelModel {
 
     fun removeFailedLogInListener(listener: () -> Unit) {
         failedLoginEventListeners.remove(listener)
+    }
+
+    fun addDeviceErrorListener(listener: (String) -> Unit) {
+        deviceErrorListeners.add(listener)
+    }
+
+    fun removeDeviceErrorListener(listener: (String) -> Unit) {
+        deviceErrorListeners.remove(listener)
     }
 
     fun nextAction(): Action? {
@@ -480,6 +524,16 @@ abstract class PanelModel {
         }
     }
 
+    fun triggerDeviceError(message: String) {
+        if (!isDeviceErrorMode) {
+            schedule(Runnable{
+                for (listener in deviceErrorListeners) {
+                    listener(message)
+                }
+            }, 0)
+        }
+    }
+
     private fun unsafeRefreshProductPages() {
         productPages = if (searchTerm == "") {
             val productCount = productDao.getProductCount()
@@ -539,6 +593,23 @@ abstract class PanelModel {
         }
     }
 
+    private fun demoModeCleanup() {
+        val props = systemPropertiesDao.getSystemProperties()
+        if (props != null) {
+            if (!demoMode && props.containsDemoData) {
+                productTransactionDao.clearProductTransactionsItems()
+                productTransactionDao.clearProductTransactions()
+                logInAttemptDao.clearLogInAttempts()
+                productDao.clearProducts()
+                userDao.clearUsers()
+            }
+            val newProps = SystemProperties(1, demoMode)
+            systemPropertiesDao.clear()
+        }
+        val newProps = SystemProperties(1, demoMode)
+        systemPropertiesDao.insert(newProps)
+    }
+
     private fun syncUsers() {
         if (demoMode) {
             userDao.clearUsers()
@@ -559,9 +630,13 @@ abstract class PanelModel {
                         it.cardCode?.trim() ?: ""
                     )
                 }
+                .filter {
+                    userDao.findUserById(
+                        it.id
+                    ) == null
+                }
                 .toTypedArray()
-            // TODO persistent
-            userDao.clearUsers()
+            // TODO delete removed
             userDao.insertAll(*users)
         }
     }
@@ -576,7 +651,7 @@ abstract class PanelModel {
                 val giptoolTx = GiptoolProductTransaction()
                 giptoolTx.transactionNumber = tx.id
                 giptoolTx.vendingMachineId = vendingMachineId
-                giptoolTx.userId = currentUser!!.id
+                giptoolTx.userId = tx.userId
                 val items = productTransactionDao.listItemsByTransaction(tx.id!!)
                 for (item in items) {
                     val product = productDao.findProductById(item.productId)

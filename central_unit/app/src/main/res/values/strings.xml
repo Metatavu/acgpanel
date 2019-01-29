@@ -57,5 +57,8 @@
     <string name="invalid_card">⛔ KORTTI EI KELPAA</string>
     <string name="pref_key_server_address">server_address</string>
     <string name="pref_server_address">Palvelimen osoite</string>
+    <string name="pref_key_maintenance_passcode">maintenance_passcode</string>
+    <string name="pref_maintenance_passcode">Huoltokoodi</string>
+    <string name="device_error">Laitevika. Ota yhteyttä huoltoon.</string>
 
 </resources>

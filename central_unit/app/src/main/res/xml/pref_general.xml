@@ -30,4 +30,12 @@
         android:key="@string/pref_key_demo_mode"
         android:title="@string/pref_title_demo_mode" />
 
+    <EditTextPreference
+        android:inputType="text"
+        android:key="@string/pref_key_maintenance_passcode"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_maintenance_passcode" />
+
 </PreferenceScreen>

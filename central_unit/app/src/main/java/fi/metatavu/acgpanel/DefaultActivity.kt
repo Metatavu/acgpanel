@@ -90,6 +90,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     private val usbManager: UsbManager
         get() = getSystemService(Context.USB_SERVICE) as UsbManager
 
+    @SuppressLint("WakelockTimeout")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
@@ -103,7 +104,6 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
             wakeLock = powerManager.newWakeLock(
                 PowerManager.FULL_WAKE_LOCK,
                 "fi.metatavu.acgpanel:wakeLock")
-            @Suppress
             wakeLock!!.acquire()
         }
     }

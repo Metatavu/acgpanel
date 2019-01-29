@@ -332,6 +332,7 @@ class McuCommunicationService : Service() {
                 Log.d(javaClass.name, "Timeout: $ex")
             } catch (ex: Exception) {
                 Log.e(javaClass.name, "Lock/RFID module communication error: $ex")
+                model.triggerDeviceError(ex.message ?: "")
                 jobThread = null
                 serial!!.close()
             }

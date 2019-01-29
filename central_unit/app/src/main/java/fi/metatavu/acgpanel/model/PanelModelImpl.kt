@@ -20,13 +20,15 @@ import retrofit2.converter.gson.GsonConverterFactory
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class,
-    LogInAttempt::class
+    LogInAttempt::class,
+    SystemProperties::class
 ], version = 1)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
     abstract fun productTransactionDao(): ProductTransactionDao
     abstract fun logInAttemptDao(): LogInAttemptDao
+    abstract fun systemPropertiesDao(): SystemPropertiesDao
 }
 
 internal const val DATABASE_NAME = "acgpanel.db"
@@ -78,6 +80,9 @@ object PanelModelImpl : PanelModel() {
     override val logInAttemptDao: LogInAttemptDao
         get() = db.logInAttemptDao()
 
+    override val systemPropertiesDao: SystemPropertiesDao
+        get() = db.systemPropertiesDao()
+
     private fun preferences(): SharedPreferences {
         return PreferenceManager
             .getDefaultSharedPreferences(PanelApplication.instance)
@@ -97,6 +102,16 @@ object PanelModelImpl : PanelModel() {
 
     override val demoMode: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), false)
+
+    override val maintenancePasscode: String
+        get() {
+            val code = preferences().getString(getString(R.string.pref_key_maintenance_passcode), "")
+            if (code != "") {
+                return code
+            } else {
+                return "0000"
+            }
+        }
     
     private val serverAddress: String
         get() = preferences()
