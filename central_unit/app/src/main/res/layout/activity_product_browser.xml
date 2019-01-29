@@ -73,15 +73,16 @@
         android:layout_height="56dp"
         android:layout_marginTop="24dp"
         android:padding="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         android:background="@drawable/etra_border"
+        android:drawableEnd="@drawable/barcode"
         android:inputType="textNoSuggestions"
         android:maxLines="1"
         android:cursorVisible="true"
         android:textCursorDrawable="@color/colorPrimaryDark"
         android:textSize="30dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
         tools:ignore="Autofill" />
 
     <android.support.v7.widget.RecyclerView

@@ -1,10 +1,8 @@
 package fi.metatavu.acgpanel.model
 
-import android.arch.persistence.db.SupportSQLiteDatabase
 import android.arch.persistence.room.Database
 import android.arch.persistence.room.Room
 import android.arch.persistence.room.RoomDatabase
-import android.arch.persistence.room.migration.Migration
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
@@ -14,18 +12,21 @@ import fi.metatavu.acgpanel.R
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 
 @Database(entities = [
     User::class,
     Product::class,
     ProductTransaction::class,
-    ProductTransactionItem::class
-], version = 5)
+    ProductTransactionItem::class,
+    LogInAttempt::class
+], version = 1)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
     abstract fun productTransactionDao(): ProductTransactionDao
+    abstract fun logInAttemptDao(): LogInAttemptDao
 }
 
 internal const val DATABASE_NAME = "acgpanel.db"
@@ -38,55 +39,15 @@ object PanelModelImpl : PanelModel() {
             DATABASE_NAME
         )
         .addMigrations(
-
-            object: Migration(1, 2) {
-                override fun migrate(database: SupportSQLiteDatabase) {
-                    database.query("""CREATE TABLE ProductTransaction(
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        vendingMachineId VARCHAR(255) NOT NULL,
-                        userId INTEGER NOT NULL,
-                        FOREIGN KEY (userId) REFERENCES User(id)
-                    )""")
-                    database.query("""CREATE TABLE ProductTransactionItem(
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        transactionId INTEGER NOT NULL,
-                        productId INTEGER NOT NULL,
-                        count INTEGER NOT NULL,
-                        expenditure VARCHAR(4096) NOT NULL,
-                        reference VARCHAR(4096) NOT NULL,
-                        FOREIGN KEY (transactionId) REFERENCES ProductTransaction(id),
-                        FOREIGN KEY (productId) REFERENCES Product(id)
-                    )""")
-                }
-            },
-
-            object: Migration(2, 3) {
-                override fun migrate(database: SupportSQLiteDatabase) {
-                    database.query("ALTER TABLE Product ADD COLUMN safetyCard VARCHAR(255)")
-                    database.query("ALTER TABLE Product ADD COLUMN productInfo VARCHAR(4096)")
-                }
-            },
-
-            object: Migration(3, 4) {
-                override fun migrate(database: SupportSQLiteDatabase) {
-                    database.query("ALTER TABLE Product ADD COLUMN unit VARCHAR(255)")
-                }
-            },
-
-            object: Migration(4, 5) {
-                override fun migrate(database: SupportSQLiteDatabase) {
-                    database.query("ALTER TABLE Product ADD COLUMN line VARCHAR(255)")
-                }
-            }
-
         )
         .build()
 
     override val giptoolService: GiptoolService
             = Retrofit.Builder()
-        // TODO configurable URL
-        .baseUrl("http://ilmoeuro-local.metatavu.io:5001/api/")
+            //http://ilmoeuro-local.metatavu.io:5001/api/
+        .baseUrl(serverAddress)
         .addConverterFactory(GsonConverterFactory.create())
+        .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
         .client(
             OkHttpClient.Builder()
                 .addInterceptor {
@@ -114,6 +75,9 @@ object PanelModelImpl : PanelModel() {
     override val productTransactionDao: ProductTransactionDao
         get() = db.productTransactionDao()
 
+    override val logInAttemptDao: LogInAttemptDao
+        get() = db.logInAttemptDao()
+
     private fun preferences(): SharedPreferences {
         return PreferenceManager
             .getDefaultSharedPreferences(PanelApplication.instance)
@@ -132,7 +96,11 @@ object PanelModelImpl : PanelModel() {
             .getString(getString(R.string.pref_key_password), "")
 
     override val demoMode: Boolean
-        get() = preferences().getBoolean(getString(R.string.pref_demo_mode), false)
+        get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), false)
+    
+    private val serverAddress: String
+        get() = preferences()
+            .getString(getString(R.string.pref_key_server_address), "")
 
     private val handler = Handler(Looper.getMainLooper())
 

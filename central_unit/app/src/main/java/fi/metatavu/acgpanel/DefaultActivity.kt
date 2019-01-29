@@ -15,8 +15,21 @@ import kotlinx.android.synthetic.main.activity_default.*
 import android.hardware.usb.UsbDevice
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.os.PowerManager
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
+
+    private val loginListener = {
+        val intent = Intent(this, ProductBrowserActivity::class.java)
+        startActivity(intent)
+    }
+
+    private val failedLoginListener = {
+        UnauthorizedDialog(this).show()
+    }
+
+    private val powerManager: PowerManager
+        get() = getSystemService(Context.POWER_SERVICE) as PowerManager
 
     private val receiver = object: BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
@@ -85,12 +98,39 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         startService(mcuCommServiceIntent)
         val serverSyncServiceIntent = Intent(this, ServerSyncService::class.java)
         startService(serverSyncServiceIntent)
+        if (wakeLock == null) {
+            @Suppress("DEPRECATION")
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK,
+                "fi.metatavu.acgpanel:wakeLock")
+            @Suppress
+            wakeLock!!.acquire()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
     }
 
     override fun onStart() {
         super.onStart()
         ensureMcuPermission()
-   }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        model.canLogInViaRfid = true
+        // allow instant login for better usability
+        model.addLogInListener(loginListener)
+        model.addFailedLogInListener(failedLoginListener)
+    }
+
+    override fun onPause() {
+        model.removeLogInListener(loginListener)
+        model.removeFailedLogInListener(failedLoginListener)
+        model.canLogInViaRfid = false
+        super.onPause()
+    }
 
     private fun ensureMcuPermission() {
         val deviceList = usbManager.deviceList.values
@@ -121,5 +161,6 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         private const val DEVICE_VENDOR_ID = 0x0403 // FTDI
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
         private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
+        private var wakeLock: PowerManager.WakeLock? = null
     }
 }

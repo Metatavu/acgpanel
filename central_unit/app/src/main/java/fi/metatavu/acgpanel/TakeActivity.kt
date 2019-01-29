@@ -12,8 +12,9 @@ class TakeActivity : PanelActivity() {
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.completeProductTransaction()
-        model.logOut()
+        model.completeProductTransaction {
+            model.logOut()
+        }
     }
 
     fun back(@Suppress("UNUSED_PARAMETER") view: View) {

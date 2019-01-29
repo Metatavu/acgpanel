@@ -3,11 +3,14 @@ package fi.metatavu.acgpanel
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import android.view.KeyEvent
 import android.view.View
 import kotlinx.android.synthetic.main.activity_identify.*
 
 class IdentifyActivity : PanelActivity() {
+
     private var locked: Boolean = false
+
     private val onLogIn = onLogIn@{
         if (locked) {
             return@onLogIn
@@ -35,16 +38,22 @@ class IdentifyActivity : PanelActivity() {
         }, 700)
     }
 
+    private val failedLoginListener = {
+        UnauthorizedDialog(this).show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identify)
         model.canLogInViaRfid = true
         model.addLogInListener(onLogIn)
+        model.addFailedLogInListener(failedLoginListener)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         model.canLogInViaRfid = false
+        model.removeFailedLogInListener(failedLoginListener)
         model.removeLogInListener(onLogIn)
     }
 
@@ -55,7 +64,7 @@ class IdentifyActivity : PanelActivity() {
     }
 
     fun onIdentify(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.logIn("")
+        model.logIn("123456789012346")
     }
 
     override val unlockButton: View

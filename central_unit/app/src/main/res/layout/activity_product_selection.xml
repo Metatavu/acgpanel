@@ -13,7 +13,7 @@
         android:id="@+id/count_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="660dp"
+        android:layout_marginStart="660dp"
         android:layout_marginTop="40dp"
         android:text="@string/input_count"
         android:textSize="60dp"
@@ -32,15 +32,10 @@
         android:textStyle="bold"
         android:paddingLeft="20dp"
         android:background="@drawable/etra_border"
-        android:digits="0123456789"
-        android:inputType="numberPassword"
         android:hint="1"
-        android:imeOptions="actionDone"
-        android:nextFocusDown="@id/ok_button"
-        android:nextFocusUp="@id/ok_button"
-        android:nextFocusLeft="@id/ok_button"
-        android:nextFocusRight="@id/ok_button"
-        android:nextFocusForward="@id/ok_button"
+        android:singleLine="true"
+        android:inputType="number"
+        android:imeOptions="actionNext"
         app:layout_constraintLeft_toLeftOf="@id/count_label"
         app:layout_constraintTop_toBottomOf="@id/count_label"
         tools:ignore="HardcodedText,RtlHardcoded,RtlSymmetry" />
@@ -49,7 +44,7 @@
         android:id="@+id/count_units"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
+        android:layout_marginStart="20dp"
         android:text="@string/default_unit"
         android:textSize="60dp"
         android:textStyle="bold"
@@ -116,17 +111,28 @@
         android:layout_height="80dp"
         android:layout_marginRight="40dp"
         android:layout_marginBottom="40dp"
-        android:background="@color/colorPrimaryDark"
+        android:background="@drawable/bg_dark"
         android:textSize="40dp"
         android:textColor="@android:color/white"
         android:text="@string/ok"
         android:focusable="true"
-        android:focusableInTouchMode="true"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         >
         <requestFocus />
     </Button>
+
+    <TextView
+        android:id="@+id/not_logged_in_warning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="20sp"
+        app:layout_constraintRight_toLeftOf="@id/ok_button"
+        app:layout_constraintBottom_toBottomOf="@id/ok_button"
+        android:text="@string/not_logged_in_warning"
+        android:textColor="@android:color/holo_red_light"
+        android:textSize="25sp"
+        />
 
     <ImageView
         android:id="@+id/product_picture"

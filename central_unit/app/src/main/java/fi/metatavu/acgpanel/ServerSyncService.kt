@@ -12,7 +12,7 @@ import fi.metatavu.acgpanel.model.PanelModelImpl
 import kotlin.concurrent.thread
 
 const val SERVER_SYNC_SERVICE_ID = 2
-const val SERVER_SYNC_INTERVAL_MS = 5L*60L*1000L
+const val SERVER_SYNC_INTERVAL_MS = 15L*60L*1000L
 
 class ServerSyncService : Service() {
     private val notificationManager: NotificationManager

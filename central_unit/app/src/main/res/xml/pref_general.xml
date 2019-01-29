@@ -18,8 +18,16 @@
         android:singleLine="true"
         android:title="@string/pref_title_password" />
 
+    <EditTextPreference
+        android:inputType="text"
+        android:key="@string/pref_key_server_address"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_server_address" />
+
     <CheckBoxPreference
-        android:key="@string/pref_demo_mode"
+        android:key="@string/pref_key_demo_mode"
         android:title="@string/pref_title_demo_mode" />
 
 </PreferenceScreen>

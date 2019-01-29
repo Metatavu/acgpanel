@@ -3,6 +3,7 @@ package fi.metatavu.acgpanel.model
 import android.arch.persistence.room.*
 import android.util.Log
 import retrofit2.Call
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -21,9 +22,11 @@ data class User(
 @Entity
 data class Product(
     @PrimaryKey var id: Long?,
+    var externalId: Long,
     var name: String,
     var description: String,
     var image: String,
+    var code: String,
     var safetyCard: String,
     var productInfo: String,
     var unit: String,
@@ -43,8 +46,17 @@ data class ProductTransactionItem(
 @Entity
 data class ProductTransaction(
     @PrimaryKey var id: Long?,
-    var vendingMachineId: String,
-    var userId: Long
+    var userId: Long,
+    var uploaded: Boolean = false
+)
+
+@Entity
+data class LogInAttempt(
+    @PrimaryKey var id: Long?,
+    var userId: Long?,
+    var cardCode: String,
+    var successful: Boolean,
+    var uploaded: Boolean
 )
 
 data class BasketItem(
@@ -67,18 +79,18 @@ data class BasketItem(
 
 }
 
-
 data class ProductPage(val products: List<Product>)
 
 class GiptoolProduct {
-    var productId: Long? = null
-    var name: String = ""
-    var description: String = ""
-    var picture: String = ""
-    var safetyCard: String = ""
-    var productInfo: String = ""
-    var unit: String = ""
-    var line: String = ""
+    var externalId: Long? = null
+    var name: String? = null
+    var description: String? = null
+    var picture: String? = null
+    var code: String? = null
+    var safetyCard: String? = null
+    var productInfo: String? = null
+    var unit: String? = null
+    var line: String? = null
 }
 
 class GiptoolProducts {
@@ -88,22 +100,47 @@ class GiptoolProducts {
 class GiptoolUser {
     var id: Long? = null
     var name: String = ""
-    var cardCode: String = ""
+    var cardCode: String? = null
 }
 
 class GiptoolUsers {
     var users: MutableList<GiptoolUser> = mutableListOf()
 }
 
+class GiptoolProductTransactionItem {
+    var productId: Long? = null
+    var line: String = ""
+    var count: Int = 0
+    var expenditure: String = ""
+    var reference: String = ""
+}
+
+class GiptoolProductTransaction {
+    var transactionNumber: Long? = null
+    var userId: Long? = null
+    var vendingMachineId: String? = null
+    val items: MutableList<GiptoolProductTransactionItem> = mutableListOf()
+}
+
+class GiptoolLogInAttempt {
+    var attemptNumber: Long? = null
+    var vendingMachineId: String? = null
+    var cardCode: String = ""
+    var successful: Boolean = false
+}
+
 interface GiptoolService {
     @GET("products/vendingMachine/{vendingMachineId}")
     fun listProducts(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolProducts>
 
-    @GET("users/page/1")
-    fun listUsers(): Call<GiptoolUsers>
+    @GET("users/vendingMachine/{vendingMachineId}")
+    fun listUsers(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolUsers>
 
     @POST("productTransactions/")
-    fun sendProductTransaction(productTransaction: ProductTransaction): Call<Void>
+    fun sendProductTransaction(@Body productTransaction: GiptoolProductTransaction): Call<GiptoolProductTransaction>
+
+    @POST("logInAttempts/")
+    fun sendLogInAttempt(@Body productTransaction: GiptoolLogInAttempt): Call<GiptoolLogInAttempt>
 }
 
 @Dao
@@ -118,11 +155,17 @@ interface ProductDao {
     @Query("SELECT COUNT(*) FROM product")
     fun getProductCount(): Long
 
-    @Query("SELECT * FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm) OR UPPER(line) LIKE UPPER(:searchTerm) LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product WHERE code = :searchTerm OR line = :searchTerm LIMIT 6 OFFSET :offset")
     fun getProductPageSearch(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT COUNT(*) FROM product WHERE UPPER(name) LIKE UPPER(:searchTerm)")
+    @Query("SELECT COUNT(*) FROM product WHERE code = :searchTerm OR line = :searchTerm")
     fun getProductCountSearch(searchTerm: String): Long
+
+    @Query("SELECT * FROM product WHERE id=:id")
+    fun findProductById(id: Long): Product?
+
+    @Query("SELECT * FROM product WHERE externalId=:externalId")
+    fun findProductByExternalId(externalId: Long): Product?
 
     @Query("DELETE FROM product")
     fun clearProducts()
@@ -152,6 +195,29 @@ interface ProductTransactionDao {
     @Insert
     fun insertProductTransactionItems(vararg items: ProductTransactionItem)
 
+    @Query("SELECT * FROM producttransaction WHERE uploaded=0")
+    fun listNonUploadedTransactions(): List<ProductTransaction>
+
+    @Query("SELECT * FROM producttransactionitem WHERE transactionId=:transactionId")
+    fun listItemsByTransaction(transactionId: Long): List<ProductTransactionItem>
+
+    @Query("UPDATE producttransaction SET uploaded=1 WHERE id=:id")
+    fun markUploaded(id: Long)
+
+}
+
+@Dao
+interface LogInAttemptDao {
+
+    @Insert
+    fun insertAll(vararg loginAttempts: LogInAttempt)
+
+    @Query("SELECT * FROM loginattempt WHERE uploaded=0")
+    fun listNonUploadedAttempts(): List<LogInAttempt>
+
+    @Query("UPDATE loginattempt SET uploaded=1 WHERE id=:id")
+    fun markUploaded(id: Long)
+
 }
 
 sealed class Action
@@ -173,6 +239,7 @@ abstract class PanelModel {
     abstract val productDao: ProductDao
     abstract val userDao: UserDao
     abstract val productTransactionDao: ProductTransactionDao
+    abstract val logInAttemptDao: LogInAttemptDao
     abstract val giptoolService: GiptoolService
     abstract val vendingMachineId: String
     abstract val password: String
@@ -181,11 +248,13 @@ abstract class PanelModel {
     private val logoutTimerCallback: Runnable = Runnable { logOut() }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
+    private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
     var searchTerm = ""
     var canLogInViaRfid = false
 
+    var currentUser: User? = null
     private var nextLockToOpen = -1
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
@@ -242,13 +311,12 @@ abstract class PanelModel {
         }
     }
 
-    fun completeProductTransaction() {
+    fun completeProductTransaction(callback: () -> Unit) {
         thread(start = true) {
             val user = currentUser
             if (user != null) {
                 val tx = ProductTransaction(
                     null,
-                    vendingMachineId,
                     user.id!!
                 )
                 val id = productTransactionDao.insertProductTransaction(tx)
@@ -256,14 +324,14 @@ abstract class PanelModel {
                     ProductTransactionItem(
                         null,
                         id,
-                        it.product.id!!,
+                        it.product.externalId,
                         it.count,
                         it.expenditure,
                         it.reference
                     )
                 }.toTypedArray()
                 productTransactionDao.insertProductTransactionItems(*items)
-                schedule(Runnable {mutableBasket.clear()}, 0)
+                schedule(Runnable {callback()}, 0)
             }
         }
     }
@@ -281,6 +349,8 @@ abstract class PanelModel {
             transaction {
                 syncUsers()
                 syncProducts()
+                syncProductTransactions()
+                syncLogInAttempts()
                 unsafeRefreshProductPages()
             }
         } catch (e: IOException) {
@@ -307,18 +377,28 @@ abstract class PanelModel {
         loginEventListeners.remove(listener)
     }
 
+    fun addFailedLogInListener(listener: () -> Unit) {
+        failedLoginEventListeners.add(listener)
+    }
+
+    fun removeFailedLogInListener(listener: () -> Unit) {
+        failedLoginEventListeners.remove(listener)
+    }
+
     fun nextAction(): Action? {
         return actionQueue.poll()
     }
 
-    var currentUser: User? = null
-
     fun logIn(cardCode: String, usingRfid: Boolean = false) {
+        val truncatedCode = cardCode.takeWhile { it != '=' }
         if (usingRfid && !canLogInViaRfid) {
             return
         }
+        if (truncatedCode == "") {
+            return
+        }
         thread(start = true) {
-            val user = userDao.findUserByCardCode(cardCode)
+            val user = userDao.findUserByCardCode(truncatedCode)
             if (user != null) {
                 currentUser = user
                 schedule(Runnable {
@@ -327,9 +407,18 @@ abstract class PanelModel {
                     }
                     refresh()
                 }, 0)
+            } else {
+                schedule(Runnable {
+                    for (listener in failedLoginEventListeners) {
+                        listener()
+                    }
+                }, 0)
             }
         }
     }
+
+    val loggedIn: Boolean
+        get() = currentUser != null
 
     fun refresh() {
         unSchedule(logoutTimerCallback)
@@ -345,6 +434,7 @@ abstract class PanelModel {
         selectedBasketItem = null
         searchTerm = ""
         mutableBasket.clear()
+        refreshProductPages {  }
     }
 
     fun mapLockNumber(lineNumber: Int): Pair<Int, Int> {
@@ -363,8 +453,9 @@ abstract class PanelModel {
         } else {
             if (nextLockToOpen == basket.size) {
                 schedule(Runnable {
-                    completeProductTransaction()
-                    logOut()
+                    completeProductTransaction {
+                        logOut()
+                    }
                 }, 0)
             }
         }
@@ -396,9 +487,9 @@ abstract class PanelModel {
                 ProductPage(productDao.getProductPage(it))
             }
         } else {
-            val productCount = productDao.getProductCountSearch("%$searchTerm%")
+            val productCount = productDao.getProductCountSearch(searchTerm)
             (0 until productCount step 6).map {
-                ProductPage(productDao.getProductPageSearch("%$searchTerm%", it))
+                ProductPage(productDao.getProductPageSearch(searchTerm, it))
             }
         }
     }
@@ -408,13 +499,15 @@ abstract class PanelModel {
             productDao.clearProducts()
             val products = (1L..20L).map {
                 Product(it,
+                    it,
                     "Tuote $it",
                     "Kuvaus $it",
                     "",
+                    "$it",
                     "",
                     "",
                     "kpl",
-                    "1%02d".format(it))
+                    "1%02d".format((it-1)%12+1))
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
@@ -424,26 +517,38 @@ abstract class PanelModel {
                 .body()!!
                 .products
                 .map {
-                    Product(it.productId,
-                        it.name.trim(),
-                        it.description.trim(),
-                        it.picture,
-                        it.safetyCard,
-                        it.productInfo,
-                        it.unit,
-                        it.line)
+                    Product(null,
+                        it.externalId!!,
+                        it.name?.trim() ?: "",
+                        it.description?.trim() ?: "",
+                        it.picture ?: "",
+                        it.code ?: "",
+                        it.safetyCard ?: "",
+                        it.productInfo ?: "",
+                        it.unit ?: "",
+                        it.line?.trim() ?: "")
+                }
+                .filter {
+                    productDao.findProductByExternalId(
+                        it.externalId
+                    ) == null
                 }
                 .toTypedArray()
-            productDao.clearProducts()
+            // TODO delete removed
             productDao.insertAll(*products)
         }
     }
 
     private fun syncUsers() {
         if (demoMode) {
+            userDao.clearUsers()
+            userDao.insertAll(
+                User(1, "Matti Meikäläinen", "123456789012345"),
+                User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000")
+            )
         } else {
             val users = giptoolService
-                .listUsers()
+                .listUsers(vendingMachineId)
                 .execute()
                 .body()!!
                 .users
@@ -451,17 +556,72 @@ abstract class PanelModel {
                     User(
                         it.id,
                         it.name.trim(),
-                        it.cardCode.trim()
+                        it.cardCode?.trim() ?: ""
                     )
                 }
                 .toTypedArray()
+            // TODO persistent
             userDao.clearUsers()
             userDao.insertAll(*users)
         }
     }
 
     private fun syncProductTransactions() {
+        if (demoMode) {
+            return
+        }
+        transaction {
+            val txs = productTransactionDao.listNonUploadedTransactions()
+            for (tx in txs) {
+                val giptoolTx = GiptoolProductTransaction()
+                giptoolTx.transactionNumber = tx.id
+                giptoolTx.vendingMachineId = vendingMachineId
+                giptoolTx.userId = currentUser!!.id
+                val items = productTransactionDao.listItemsByTransaction(tx.id!!)
+                for (item in items) {
+                    val product = productDao.findProductById(item.productId)
+                    if (product != null) {
+                        val giptoolTxItem = GiptoolProductTransactionItem()
+                        giptoolTxItem.productId = product.externalId
+                        giptoolTxItem.line = product.line
+                        giptoolTxItem.count = item.count
+                        giptoolTxItem.expenditure = item.expenditure
+                        giptoolTxItem.reference = item.reference
+                        giptoolTx.items.add(giptoolTxItem)
+                    }
+                }
+                val res = giptoolService.sendProductTransaction(giptoolTx)
+                    .execute()
+                if (res.isSuccessful) {
+                    productTransactionDao.markUploaded(tx.id!!)
+                } else {
+                    Log.e(javaClass.name, "Error when uploading product transaction: ${res.message()}")
+                }
+            }
+        }
+    }
 
+    private fun syncLogInAttempts() {
+        if (demoMode) {
+            return
+        }
+        transaction {
+            val attempts = logInAttemptDao.listNonUploadedAttempts()
+            for (attempt in attempts) {
+                val giptoolAttempt = GiptoolLogInAttempt()
+                giptoolAttempt.attemptNumber = attempt.id
+                giptoolAttempt.vendingMachineId = vendingMachineId
+                giptoolAttempt.cardCode = attempt.cardCode
+                giptoolAttempt.successful = attempt.successful
+                val res = giptoolService.sendLogInAttempt(giptoolAttempt)
+                    .execute()
+                if (res.isSuccessful) {
+                    logInAttemptDao.markUploaded(attempt.id!!)
+                } else {
+                    Log.e(javaClass.name, "Error when uploading login attempt: ${res.message()}")
+                }
+            }
+        }
     }
 
     companion object {

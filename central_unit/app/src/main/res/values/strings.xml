@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="PluralsCandidate">
     <string name="app_name">ACGPanel</string>
-
     <string name="welcomeText">Kosketa ruutua aloittaaksesi ›</string>
     <string name="arrowDown">Nuoli alas</string>
     <string name="showIdCard">Näytä ID-kortti</string>
@@ -29,17 +28,12 @@
     <string name="select_another">Ota lisää</string>
     <string name="basket_item_placeholder">\???</string>
     <string name="notifications_name">ACGPanel notifications</string>
-    <string name="mcu_communication_title">MCU COMMUNICATION</string>
-    <string name="mcu_communication_desc">Mcu communication running in background</string>
-    <string name="server_sync_title">SERVER SYNC</string>
-    <string name="server_sync_desc">Server synchronization running in background</string>
+    <string name="mcu_communication_title">Laiteviestintä</string>
+    <string name="mcu_communication_desc">Laiteviestintä käynnissä</string>
+    <string name="server_sync_title">Serverisynkronointi</string>
+    <string name="server_sync_desc">Serverisynkronointi käynnissä</string>
     <string name="title_activity_acg_panel_settings">ACGPanel asetukset</string>
-
-    <!-- Strings related to Settings -->
-
-    <!-- Example General settings -->
     <string name="pref_header_general">Yleiset</string>
-
     <string name="pref_key_vending_machine_id">vending_machine_id</string>
     <string name="pref_title_vending_machine_id">Automaatin tunnus</string>
     <string name="pref_default_vending_machine_id">0</string>
@@ -55,9 +49,13 @@
     <string name="edit">Muokkaa</string>
     <string name="product">Tuote</string>
     <string name="default_unit">kpl</string>
-    <string name="pref_demo_mode">demo_mode</string>
+    <string name="pref_key_demo_mode">demo_mode</string>
     <string name="pref_title_demo_mode">Esittelytila</string>
     <string name="input_expenditure">Syötä kustannuspaikka</string>
     <string name="input_reference">Syötä lisäviite</string>
+    <string name="not_logged_in_warning">⚠ Näytä korttia jatkaaksesi</string>
+    <string name="invalid_card">⛔ KORTTI EI KELPAA</string>
+    <string name="pref_key_server_address">server_address</string>
+    <string name="pref_server_address">Palvelimen osoite</string>
 
 </resources>

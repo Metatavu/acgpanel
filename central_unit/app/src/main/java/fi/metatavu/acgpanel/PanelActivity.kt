@@ -6,9 +6,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
+import android.view.inputmethod.InputMethodManager
 import fi.metatavu.acgpanel.model.PanelModelImpl
 
 private const val ANDROID_LAUNCHER = "com.android.launcher3"
@@ -30,6 +32,9 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
 
     private val activityManager: ActivityManager
         get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+
+    private val inputMethodManager: InputMethodManager
+        get() = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
     private val rootView: View
         get() = findViewById(android.R.id.content)!!
@@ -53,6 +58,16 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     override fun onDestroy() {
         model.removeLogOutListener(onLogout)
         super.onDestroy()
+    }
+
+    protected fun enableSoftKeyboard(view: View) {
+        view.setOnFocusChangeListener { v, focused ->
+            if (focused) {
+                inputMethodManager.showSoftInput(v, InputMethodManager.SHOW_FORCED)
+            } else {
+                inputMethodManager.hideSoftInputFromWindow(v.windowToken, 0)
+            }
+        }
     }
 
     private fun initiateUnlock() {
@@ -93,6 +108,11 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         model.refresh()
         return super.dispatchTouchEvent(ev)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        model.refresh()
+        return super.dispatchKeyEvent(event)
     }
 
     abstract val unlockButton : View

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.TypedArray
 import android.os.Bundle
+import android.os.Handler
+import android.renderscript.ScriptGroup
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
@@ -14,6 +16,7 @@ import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -97,6 +100,11 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
 
 class ProductBrowserActivity : PanelActivity() {
 
+    private val logInListener = {
+        show_profile_button.visibility = View.VISIBLE
+        show_profile_button.text = model.currentUser!!.userName
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_browser)
@@ -124,7 +132,9 @@ class ProductBrowserActivity : PanelActivity() {
         search_box.setOnKeyListener { _, _, keyEvent ->
             val productPage = model.productPages.firstOrNull()
             val product = productPage?.products?.firstOrNull()
-            if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER && product != null) {
+            if (keyEvent.action == KeyEvent.ACTION_UP
+                    && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
+                    && product != null) {
                 selectProduct(product)
                 true
             } else {
@@ -141,12 +151,33 @@ class ProductBrowserActivity : PanelActivity() {
         } else {
             show_profile_button.visibility = View.INVISIBLE
         }
+        model.addLogInListener(logInListener)
+    }
+
+    override fun onDestroy() {
+        model.removeLogInListener(logInListener)
+        super.onDestroy()
     }
 
     private fun selectProduct(it: Product) {
         model.selectNewBasketItem(it)
         val intent = Intent(this, ProductSelectionActivity::class.java)
+        Handler(mainLooper).postDelayed({
+            search_box.text.clear()
+            model.searchTerm = ""
+        }, 50)
         startActivity(intent)
+    }
+
+    override fun onBackPressed() {
+        if (search_box.text.isNotEmpty()) {
+            search_box.text.clear()
+            model.searchTerm = ""
+            search_box.requestFocus()
+        } else {
+            model.logOut()
+            super.onBackPressed()
+        }
     }
 
     override fun onResume() {
@@ -155,6 +186,9 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {
+        if (layoutManager.childCount == 0) {
+            return
+        }
         val itemWidth = layoutManager.getChildAt(0)!!.width
         val distance = if (edge) {
             val difference = basket_items_view.width - itemWidth

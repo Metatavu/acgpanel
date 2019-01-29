@@ -105,7 +105,6 @@ abstract class MessageReader {
             }
             if (checksum != msgChecksum) {
                 throw InvalidMessageException()
-                Log.e(javaClass.name, "Invalid checksum")
             }
             if (next(allowCc = true) != END_OF_MESSAGE) {
                 throw InvalidMessageException()

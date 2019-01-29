@@ -1,7 +1,6 @@
 package fi.metatavu.acgpanel
 
 import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -20,23 +19,39 @@ class ProductSelectionActivity : PanelActivity() {
     private val inputMethodManager: InputMethodManager
         get() = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
+    private val logInListener = {
+        not_logged_in_warning.visibility = View.INVISIBLE
+        ok_button.isEnabled = true
+    }
+
+    private val failedLoginListener = {
+        UnauthorizedDialog(this).show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_selection)
-        count_input.setOnKeyListener listener@{ view, _, keyEvent ->
+        if (model.loggedIn) {
+            not_logged_in_warning.visibility = View.INVISIBLE
+        } else {
+            not_logged_in_warning.visibility = View.VISIBLE
+        }
+        model.addLogInListener(logInListener)
+        model.addFailedLogInListener(failedLoginListener)
+        count_input.setOnKeyListener { view, _, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_UP &&
                     keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                proceed(view)
-                return@listener true
+                if (model.loggedIn) {
+                    proceed(view)
+                }
             }
-            return@listener false
+            false
         }
         val basketItem = model.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
             product_name.text = product.name
             product_description.text = product.description
-            count_input.transformationMethod = null
             count_input.text.clear()
             if (basketItem.count != 1) {
                 count_input.text.insert(0, basketItem.count.toString())
@@ -46,11 +61,26 @@ class ProductSelectionActivity : PanelActivity() {
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
         }
+        if (!model.loggedIn) {
+            ok_button.isEnabled = false
+        }
+    }
+
+    override fun onDestroy() {
+        model.removeFailedLogInListener(failedLoginListener)
+        model.removeLogInListener(logInListener)
+        super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
         count_input.requestFocus()
+        model.canLogInViaRfid = true
+    }
+
+    override fun onPause() {
+        model.canLogInViaRfid = false
+        super.onPause()
     }
 
     private fun showEditDialog(title: String, onConfirm: (String) -> Unit) {
@@ -71,29 +101,29 @@ class ProductSelectionActivity : PanelActivity() {
             dialog.cancel()
         }
         val dialog = builder.create()
-        input.setOnKeyListener listener@{ view, _, keyEvent ->
+        input.setOnKeyListener { _, _, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_UP) {
                 if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).callOnClick()
-                    return@listener true
                 }
                 if (keyEvent.keyCode == KeyEvent.KEYCODE_ESCAPE) {
                     dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick()
-                    return@listener true
                 }
             }
-            return@listener false
+            false
         }
         dialog.show()
 
     }
 
+    @Suppress("UNUSED")
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
         showEditDialog(getString(R.string.input_expenditure)) {
             expenditure_input.text = it
         }
     }
 
+    @Suppress("UNUSED")
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
         showEditDialog(getString(R.string.input_reference)) {
             reference_input.text = it
@@ -111,6 +141,7 @@ class ProductSelectionActivity : PanelActivity() {
         startActivity(intent)
     }
 
+    @Suppress("UNUSED")
     fun showDetails(@Suppress("UNUSED_PARAMETER") view: View) {
         val intent = Intent(this, ProductDetailsActivity::class.java)
         startActivity(intent)
