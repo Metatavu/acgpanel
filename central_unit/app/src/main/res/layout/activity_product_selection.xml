@@ -34,7 +34,7 @@
         android:background="@drawable/etra_border"
         android:hint="1"
         android:singleLine="true"
-        android:inputType="number"
+        android:inputType="numberPassword"
         android:imeOptions="actionNext"
         app:layout_constraintLeft_toLeftOf="@id/count_label"
         app:layout_constraintTop_toBottomOf="@id/count_label"

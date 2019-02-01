@@ -88,11 +88,16 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
                 if (renderer != null) {
                     renderer!!.close()
                 }
-                renderer = PdfRenderer(fd)
-                numPages = renderer!!.pageCount
-                if (page == 0) {
-                    newPage()
-                } else {
+                try {
+                    renderer = PdfRenderer(fd)
+                    numPages = renderer!!.pageCount
+                    if (page == 0) {
+                        newPage()
+                    } else {
+                        page = 0
+                    }
+                } catch (ex: Exception) {
+                    numPages = 0
                     page = 0
                 }
             }

@@ -8,7 +8,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import java.io.IOException
-import java.lang.Exception
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.concurrent.thread
 
@@ -359,7 +358,7 @@ abstract class PanelModel {
                     ProductTransactionItem(
                         null,
                         id,
-                        it.product.externalId,
+                        it.product.id!!,
                         it.count,
                         it.expenditure,
                         it.reference
@@ -381,14 +380,12 @@ abstract class PanelModel {
 
     fun serverSync() {
         try {
-            transaction {
-                demoModeCleanup()
-                syncUsers()
-                syncProducts()
-                syncProductTransactions()
-                syncLogInAttempts()
-                unsafeRefreshProductPages()
-            }
+            demoModeCleanup()
+            syncUsers()
+            syncProducts()
+            syncProductTransactions()
+            syncLogInAttempts()
+            unsafeRefreshProductPages()
         } catch (e: IOException) {
             // device offline, do nothing
         } catch (e: Exception) {
@@ -438,7 +435,7 @@ abstract class PanelModel {
         if (usingRfid && !canLogInViaRfid) {
             return
         }
-        if (truncatedCode == "") {
+        if (truncatedCode == "" || truncatedCode.length < 5) {
             return
         }
         thread(start = true) {
@@ -451,12 +448,24 @@ abstract class PanelModel {
                     }
                     refresh()
                 }, 0)
+                thread(start = true) {
+                    transaction {
+                        logInAttemptDao.insertAll(LogInAttempt(null, user.id, truncatedCode, true, false))
+                    }
+                    syncLogInAttempts()
+                }
             } else {
                 schedule(Runnable {
                     for (listener in failedLoginEventListeners) {
                         listener()
                     }
                 }, 0)
+                thread(start = true) {
+                    transaction {
+                        logInAttemptDao.insertAll(LogInAttempt(null, null, truncatedCode, false, false))
+                    }
+                    syncLogInAttempts()
+                }
             }
         }
     }
@@ -499,6 +508,9 @@ abstract class PanelModel {
                 schedule(Runnable {
                     completeProductTransaction {
                         logOut()
+                        thread(start = true) {
+                            syncProductTransactions()
+                        }
                     }
                 }, 0)
             }
@@ -565,31 +577,35 @@ abstract class PanelModel {
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
-            val products = giptoolService
-                .listProducts(vendingMachineId)
-                .execute()
-                .body()!!
-                .products
-                .map {
-                    Product(null,
-                        it.externalId!!,
-                        it.name?.trim() ?: "",
-                        it.description?.trim() ?: "",
-                        it.picture ?: "",
-                        it.code ?: "",
-                        it.safetyCard ?: "",
-                        it.productInfo ?: "",
-                        it.unit ?: "",
-                        it.line?.trim() ?: "")
-                }
-                .filter {
-                    productDao.findProductByExternalId(
-                        it.externalId
-                    ) == null
-                }
-                .toTypedArray()
-            // TODO delete removed
-            productDao.insertAll(*products)
+            transaction {
+                val products = giptoolService
+                    .listProducts(vendingMachineId)
+                    .execute()
+                    .body()!!
+                    .products
+                    .map {
+                        Product(
+                            null,
+                            it.externalId!!,
+                            it.name?.trim() ?: "",
+                            it.description?.trim() ?: "",
+                            it.picture ?: "",
+                            it.code ?: "",
+                            it.safetyCard ?: "",
+                            it.productInfo ?: "",
+                            it.unit ?: "",
+                            it.line?.trim() ?: ""
+                        )
+                    }
+                    .filter {
+                        productDao.findProductByExternalId(
+                            it.externalId
+                        ) == null
+                    }
+                    .toTypedArray()
+                // TODO delete removed
+                productDao.insertAll(*products)
+            }
         }
     }
 
@@ -618,26 +634,31 @@ abstract class PanelModel {
                 User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000")
             )
         } else {
-            val users = giptoolService
-                .listUsers(vendingMachineId)
-                .execute()
-                .body()!!
-                .users
-                .map {
-                    User(
-                        it.id,
-                        it.name.trim(),
-                        it.cardCode?.trim() ?: ""
-                    )
+            transaction {
+                val body = giptoolService
+                    .listUsers(vendingMachineId)
+                    .execute()
+                    .body()
+                if (body != null) {
+                    val users = body.users.map {
+                        User(
+                            it.id,
+                            it.name.trim(),
+                            it.cardCode?.trim() ?: ""
+                        )
+                        }
+                        .filter {
+                            userDao.findUserById(
+                                it.id
+                            ) == null
+                        }
+                        .toTypedArray()
+                    // TODO delete removed
+                    userDao.insertAll(*users)
+                } else {
+                    Log.e(javaClass.name, "Got empty response from server")
                 }
-                .filter {
-                    userDao.findUserById(
-                        it.id
-                    ) == null
-                }
-                .toTypedArray()
-            // TODO delete removed
-            userDao.insertAll(*users)
+            }
         }
     }
 

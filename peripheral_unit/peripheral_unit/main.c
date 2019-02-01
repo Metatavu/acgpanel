@@ -128,17 +128,24 @@ int16_t cuCommRead(void) {
 
 #endif // not TEST
 
+uint8_t wdtPause = 0;
+
 void bdCommWrite(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
   while (!(UCSR1A & (1<<UDRE1))) {
-    wdt_reset();
+    if (!wdtPause) {
+      wdt_reset();
+    }
   }
   UDR1 = c;
 }
 
 void bdCommFlush(void) {
+  timerSet(1000);
   while (!(UCSR1A & (1<<UDRE1))) {
-    wdt_reset();
+    if (timerFinished()) {
+      return;
+    }
   }    
 }
 
@@ -151,9 +158,24 @@ int16_t bdCommRead(void) {
 }
 
 int16_t bdCommReadBlocking(void) {
-  timerSet(200);
+  timerSet(1000);
   while (!(UCSR1A & (1<<RXC1))) {
-    wdt_reset();
+    if (!wdtPause) {
+      wdt_reset();
+    }
+    if (timerFinished()) {
+      return -1;
+    }
+  }
+  return UDR1;
+}
+
+int16_t bdCommReadShort(void) {
+  timerSet(100);
+  while (!(UCSR1A & (1<<RXC1))) {
+    if (!wdtPause) {
+      wdt_reset();
+    }
     if (timerFinished()) {
       return -1;
     }
@@ -305,6 +327,7 @@ void init(void) {
 }
 
 int16_t sentMessageNumber = 0u;
+int16_t receivedMessageNumber = 0u;
 int16_t oldMessagesReceived = 0u;
 uint8_t shelf = 0;
 uint8_t compartment = 0;
@@ -316,9 +339,15 @@ void processBdMessage(void) {
   if ((byte = bdCommReadBlocking()) != -1) {
     msgShelf += byte - '0';
   }    
+  if (byte == -1) {
+    return;
+  }
   if ((byte = bdCommReadBlocking()) != -1) {
     msgShelf *= 10;
     msgShelf += byte - '0';
+  }
+  if (byte == -1) {
+    return;
   }
   if (msgShelf != shelf) {
     return;
@@ -329,12 +358,43 @@ void processBdMessage(void) {
   if (bdCommReadBlocking() != 'E') {
     return;
   }
+  while (bdCommReadBlocking() != -1) {
+  }
   sentMessageNumber = (sentMessageNumber + 1) & 0x7FFF;
   char payload[10];
   sprintf(payload, "%u;%u", shelf, compartment);
-  for (uint8_t i=0; i<6; i++) {
+  for (uint8_t i=0; i<3; i++) {
     cuCommSendMsg(5, sentMessageNumber, payload);
     timerWait(100);
+  }
+
+  for (int16_t i=0; i<6; i++) {
+    int16_t bdByte;
+    timerWait(100);
+    bdCommOutput();
+    timerWait(5);
+    cuCommWrite(0x00); // keep CU comm open
+    bdCommWrite(0x02); // STX
+    bdCommWrite('0' + shelf / 10);
+    bdCommWrite('0' + shelf % 10);
+    bdCommWrite('R');
+    bdCommWrite('E');
+    bdCommWrite('S');
+    bdCommWrite(0x0D); // CR
+    bdCommFlush();
+    timerWait(5);
+    bdCommInput();
+    if ((bdByte = bdCommReadBlocking()) != 0x02) {
+      continue;
+    }
+    if (bdCommReadShort() != '0' + shelf / 10) continue;
+    if (bdCommReadShort() != '0' + shelf % 10) continue;
+    if (bdCommReadShort() != 'R') continue;
+    if (bdCommReadShort() != 'S') continue;
+    while (bdCommRead() != -1) {
+      // don't reset watchdog
+    }
+    break;
   }
 }
 
@@ -434,12 +494,14 @@ void processCuMessage(void) {
   if (byte != END_OF_MESSAGE) return;
 
   /*
-  if (isBefore(messagenumber, lastMessageNumber)) {
+  if (messagenumber == receivedMessageNumber || 
+      isBefore(messagenumber, receivedMessageNumber)) {
     if (oldMessagesReceived < MAX_OLD_MESSAGES) {
       oldMessagesReceived++;
       return;
     } else {
       oldMessagesReceived = 0;
+      receivedMessageNumber = messagenumber;
     }
   }
   */
@@ -476,16 +538,12 @@ void processCuMessage(void) {
       bdCommFlush();
       timerWait(5);
       bdCommInput();
-      while ((bdByte = bdCommReadBlocking()) != 0x02) {
-        if (bdByte == -1) {
-          continue;
-        }
-      }
-      if (bdCommReadBlocking() != '0' + shelf / 10) continue;
-      if (bdCommReadBlocking() != '0' + shelf % 10) continue;
-      if (bdCommReadBlocking() != 'O') continue;
-      if (bdCommReadBlocking() != 'K') continue;
-      if (bdCommReadBlocking() != 'O') continue;
+      if ((bdByte = bdCommReadBlocking()) != 0x02) continue;
+      if (bdCommReadShort() != '0' + shelf / 10) continue;
+      if (bdCommReadShort() != '0' + shelf % 10) continue;
+      if (bdCommReadShort() != 'O') continue;
+      if (bdCommReadShort() != 'K') continue;
+      if (bdCommReadShort() != 'O') continue;
       while (bdCommRead() != -1) {
         // don't reset watchdog
       }
@@ -523,6 +581,7 @@ void processCrMessage(void) {
     }
   }
   code[i] = '\0';
+  while (crCommRead() != -1);
   sentMessageNumber = (sentMessageNumber+1) & 0x7FFF;
   for (uint8_t i=0; i<5; i++) {
     cuCommSendMsg(4, sentMessageNumber, code);
@@ -537,8 +596,11 @@ void loop(void) {
     if (bdCommRead() == START_OF_BD_MESSAGE) {
       processBdMessage();
     }
-    if (cuCommRead() == START_OF_CU_MESSAGE) {
+    if ((byte = cuCommRead()) == START_OF_CU_MESSAGE) {
       processCuMessage();
+    }
+    if (byte == 0x03) {
+      for (;;); // reset
     }
     if ((byte = crCommRead()) != -1) {
       processCrMessage();

@@ -216,6 +216,8 @@ abstract class MessageWriter {
 class DisconnectException : Exception("Device disconnected")
 
 const val MCU_COMMUNICATION_SERVICE_ID = 1
+const val REPEAT_INTERVAL = 20
+const val MAX_RETRIES = 6
 
 class McuCommunicationService : Service() {
     private val usbManager: UsbManager
@@ -265,32 +267,51 @@ class McuCommunicationService : Service() {
         }
     }
 
+    private var outgoing: Message? = null
+    private var outgoingTimer: Int = 0
+    private var outgoingRetries = 0
+
+    private fun isBefore(a: Int, b: Int): Boolean =
+        if (a < 0x4000) {
+            (a < b) || (a >= (b + 0x4000));
+        } else {
+            (a < b) && (a >= (b - 0x4000));
+        }
+
     private fun process() {
         var sentMessageNumber = 0
         var recvMessageNumber = -1
         // TODO reliability for message sending
         while (jobThread != null) {
             try {
+                val out = outgoing
+                if (out != null) {
+                    if (outgoingTimer <= 0) {
+                        Log.e(javaClass.name, "Retrying...")
+                        messageWriter.writeMessage(out)
+                        outgoingTimer = REPEAT_INTERVAL
+                        outgoingRetries++
+                        if (outgoingRetries > MAX_RETRIES) {
+                            outgoing = null
+                        }
+                    } else {
+                        outgoingTimer--
+                    }
+                }
                 val action = model.nextAction()
                 when (action) {
                     is OpenLockAction -> {
-                        for (i in 0..6) {
-                            messageWriter.writeMessage(
-                                OpenLock(sentMessageNumber,
-                                         action.shelf,
-                                         action.compartment)
-                            )
-                            Thread.sleep(100)
-                        }
-                        sentMessageNumber = (sentMessageNumber + 1) and 0x7FFF
+                        outgoing = OpenLock(sentMessageNumber,
+                                     action.shelf,
+                                     action.compartment)
+                        outgoingTimer = 0
+                        outgoingRetries = 0
                     }
                 }
-
                 val msg = messageReader.readMessage()
                 if (msg != null) {
-                    Log.d(javaClass.name, "Received message $msg")
-                    // TODO wrap around
-                    if (msg.number <= recvMessageNumber) {
+                    Log.e(javaClass.name, "Received message $msg")
+                    if (msg.number == recvMessageNumber || isBefore(msg.number, recvMessageNumber)) {
                         continue
                     } else {
                         recvMessageNumber = msg.number
@@ -298,7 +319,11 @@ class McuCommunicationService : Service() {
                 }
                 when (msg) {
                     is Acknowledgement -> {
-                        Log.d(javaClass.name, "Got acknowledgement: $msg")
+                        val og = outgoing
+                        if (og != null && msg.target >= og.number) {
+                            sentMessageNumber = (og.number + 1) and 0x7FFF
+                            outgoing = null
+                        }
                     }
                     is ReadCard -> {
                         for (i in 0..3) {

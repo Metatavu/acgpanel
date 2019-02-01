@@ -50,8 +50,15 @@ class ProductSelectionActivity : PanelActivity() {
         val basketItem = model.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
+            if (product.safetyCard != "") {
+                info_button.visibility = View.VISIBLE
+            } else {
+                info_button.visibility = View.INVISIBLE
+            }
             product_name.text = product.name
-            product_description.text = product.description
+            product_description.text = product.productInfo
+            count_input.text.clear()
+            count_input.transformationMethod = null
             count_input.text.clear()
             if (basketItem.count != 1) {
                 count_input.text.insert(0, basketItem.count.toString())
