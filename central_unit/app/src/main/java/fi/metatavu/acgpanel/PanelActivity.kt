@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
 import android.view.inputmethod.InputMethodManager
+import eu.chainfire.libsuperuser.Shell
 import fi.metatavu.acgpanel.model.PanelModelImpl
 
 private const val ANDROID_LAUNCHER = "com.android.launcher3"

@@ -277,11 +277,16 @@ abstract class PanelModel {
     abstract val demoMode: Boolean
     abstract val maintenancePasscode: String
 
-    private val logoutTimerCallback: Runnable = Runnable { logOut() }
+    private val logoutTimerCallback: Runnable = Runnable {
+        if (nextLockToOpen < 0 || nextLockToOpen > basket.size) {
+            logOut()
+        }
+    }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val deviceErrorListeners: MutableList<(String) -> Unit> = mutableListOf()
+    private val lockOpenListeners: MutableList<() -> Unit> = mutableListOf()
     private val actionQueue = ArrayBlockingQueue<Action>(BUFFER_SIZE)
 
     var searchTerm = ""
@@ -289,7 +294,7 @@ abstract class PanelModel {
     var isDeviceErrorMode = false
 
     var currentUser: User? = null
-    private var nextLockToOpen = -1
+    var nextLockToOpen = -1
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
     val basket: List<BasketItem>
@@ -426,6 +431,15 @@ abstract class PanelModel {
         deviceErrorListeners.remove(listener)
     }
 
+    fun addLockOpenListener(listener: () -> Unit) {
+        lockOpenListeners.add(listener)
+    }
+
+    fun removeLockOpenListener(listener: () -> Unit) {
+        lockOpenListeners.remove(listener)
+    }
+
+
     fun nextAction(): Action? {
         return actionQueue.poll()
     }
@@ -486,6 +500,7 @@ abstract class PanelModel {
         currentUser = null
         selectedBasketItem = null
         searchTerm = ""
+        nextLockToOpen = -1
         mutableBasket.clear()
         refreshProductPages {  }
     }
@@ -501,6 +516,11 @@ abstract class PanelModel {
     }
 
     fun openLock(first: Boolean = true) {
+        schedule(Runnable {
+            for (listener in lockOpenListeners) {
+                listener()
+            }
+        }, 0)
         if (first) {
             nextLockToOpen = 0
         } else {

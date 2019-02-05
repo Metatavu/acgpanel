@@ -18,22 +18,20 @@ with serial.Serial(port, 9600, timeout=0.1) as s:
     print("ready")
     while True:
         i = s.read(100)
-        ib = bytes(x for x in i if x != 0)
-        if ib:
-            print(ib)
+        if i:
+            print(i)
         if msvcrt.kbhit():
             key = msvcrt.getch()
             if key == b'q':
                 break
+            elif key == b'x':
+                s.write(b'\x00')
+                print(s.read(100))
             elif key == b'p':
-                msgtype = 6
-                payload = b'ID001'
+                s.write(b'\x01\x02ID002\r')
+            elif key == b'r':
+                s.write(b'\x01\x0201RES\r')
+                print(s.read(100))
             else:
-                msgtype = 1
-                payload = b'1;' + key
-            msgnocs = b'\02' + (f"{msgtype};0;{len(payload)};{payload.decode('ascii')};".encode('ascii'))
-            cs = checksum(msgnocs)
-            msg = f"{msgnocs.decode('ascii')}{cs};\n".encode('ascii')
-            print(msg)
-            s.write(msg)
-            print(s.read(100))
+                s.write(b"\x01\x0201OPE00" + key + b"\r")
+                print(s.read(100))

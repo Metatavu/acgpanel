@@ -8,11 +8,6 @@ void cuCommInit(void);
 void cuCommWrite(uint8_t c);
 int16_t cuCommRead(void);
 
-// messaging routines
-void cuCommWriteString(int16_t length, char *string);
-void cuCommWriteChkSum(int16_t length, char *part, uint8_t *checksum);
-void cuCommSendMsg(int16_t type, int16_t number, char* payload);
-
 // timing routines
 void timerInit(void);
 void timerSet(uint16_t millis);

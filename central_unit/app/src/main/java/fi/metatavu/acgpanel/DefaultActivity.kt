@@ -16,6 +16,7 @@ import android.hardware.usb.UsbDevice
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.PowerManager
+import eu.chainfire.libsuperuser.Shell
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
 
@@ -120,6 +121,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onResume() {
         super.onResume()
         model.canLogInViaRfid = true
+        Shell.SU.run(arrayOf("am", "kill", "all", "com.android.launcher3"))
         // allow instant login for better usability
         model.addLogInListener(loginListener)
         model.addFailedLogInListener(failedLoginListener)

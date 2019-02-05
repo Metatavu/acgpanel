@@ -27,6 +27,7 @@
         />
 
     <TextView
+        android:id="@+id/status_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -45,6 +46,7 @@
         android:textSize="30dp"
         android:background="@color/colorPrimary"
         android:textColor="@android:color/white"
+        android:stateListAnimator="@null"
         />
 
     <Button
@@ -53,6 +55,28 @@
         android:layout_height="100dp"
         android:background="@android:color/transparent"
         android:layout_gravity="end|right"
+        />
+
+    <TextView
+        android:id="@+id/alarm_overlay_back"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/error"
+        android:textColor="@color/errorContrast"
+        android:text="@string/door_open_alarm"
+        android:textSize="100sp"
+        android:gravity="center"
+        />
+
+    <TextView
+        android:id="@+id/alarm_overlay_front"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/errorContrast"
+        android:textColor="@color/error"
+        android:text="@string/door_open_alarm"
+        android:textSize="100sp"
+        android:gravity="center"
         />
 
 </FrameLayout>
