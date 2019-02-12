@@ -37,25 +37,37 @@
         android:textSize="20dp"
         />
 
+    <TextView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginRight="140dp"
+        android:textStyle="bold"
+        android:textSize="19dp"
+        android:gravity="center"
+        android:text="@string/edit"
+        android:background="@color/colorPrimaryLight"
+        android:elevation="6dp"
+        />
+
     <Button
         android:id="@+id/product_modify_button"
-        android:layout_width="150dp"
+        android:layout_width="match_parent"
         android:layout_height="150dp"
-        android:background="@android:color/transparent"
-        android:text="@string/edit"
-        android:textStyle="bold"
-        android:textSize="24dp"
         android:layout_gravity="end"
-        android:layout_marginRight="150dp"
+        android:layout_marginRight="125dp"
+        android:background="@android:color/transparent"
         />
 
     <ImageButton
         android:id="@+id/product_delete_button"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_gravity="end"
-        android:background="@android:color/transparent"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginRight="20dp"
         android:src="@drawable/delete_icon"
+        android:background="@color/colorPrimaryLight"
+        android:elevation="6dp"
         />
 
 </FrameLayout>

@@ -56,7 +56,9 @@ class ProductSelectionActivity : PanelActivity() {
                 info_button.visibility = View.INVISIBLE
             }
             product_name.text = product.name
-            product_description.text = product.productInfo
+            product_description.text = "Tuotekoodi: ${product.code}\n\n" +
+                                       "Linja: ${product.line}\n\n" +
+                                       "Kuvaus:\n${product.productInfo}"
             count_input.text.clear()
             count_input.transformationMethod = null
             count_input.text.clear()
@@ -64,7 +66,9 @@ class ProductSelectionActivity : PanelActivity() {
                 count_input.text.insert(0, basketItem.count.toString())
             }
             count_units.text = product.unit
+            expenditure_input.isEnabled = !model.lockUserExpenditure
             expenditure_input.text = basketItem.expenditure
+            reference_input.isEnabled = !model.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
         }
@@ -125,15 +129,19 @@ class ProductSelectionActivity : PanelActivity() {
 
     @Suppress("UNUSED")
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
-        showEditDialog(getString(R.string.input_expenditure)) {
-            expenditure_input.text = it
+        if (!model.lockUserExpenditure) {
+            showEditDialog(getString(R.string.input_expenditure)) {
+                expenditure_input.text = it
+            }
         }
     }
 
     @Suppress("UNUSED")
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
-        showEditDialog(getString(R.string.input_reference)) {
-            reference_input.text = it
+        if (!model.lockUserReference) {
+            showEditDialog(getString(R.string.input_reference)) {
+                reference_input.text = it
+            }
         }
     }
 

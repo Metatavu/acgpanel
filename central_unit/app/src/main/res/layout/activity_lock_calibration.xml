@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".LockCalibrationActivity">
+
+    <TextView
+        android:id="@+id/prompt_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_margin="50dp"
+        android:gravity="center_vertical"
+        android:text="Ohjeteksti"
+        android:textSize="50sp"
+        />
+
+    <EditText
+        android:id="@+id/prompt_input"
+        android:layout_width="300dp"
+        android:layout_height="90dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="40dp"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:textSize="60sp"
+        />
+
+    <Button
+        android:id="@+id/prompt_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="40dp"
+        android:padding="10dp"
+        android:text="Seuraava"
+        android:textSize="40sp"
+        android:textColor="@color/lightText"
+        android:background="@drawable/bg_dark"
+        android:onClick="next"
+        />
+
+</FrameLayout>

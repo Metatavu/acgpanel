@@ -24,7 +24,7 @@
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:title="@string/pref_server_address" />
+        android:title="@string/pref_title_server_address" />
 
     <CheckBoxPreference
         android:key="@string/pref_key_demo_mode"
@@ -36,6 +36,27 @@
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:title="@string/pref_maintenance_passcode" />
+        android:title="@string/pref_title_maintenance_passcode" />
+
+    <EditTextPreference
+        android:inputType="text"
+        android:key="@string/pref_key_browser_credentials"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/pref_title_browser_credentials" />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_enable_browser"
+        android:title="@string/pref_title_enable_browser" />
+
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_user_expenditure"
+        android:title="@string/pref_title_user_expenditure" />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_user_reference"
+        android:title="@string/pref_title_user_reference" />
 
 </PreferenceScreen>

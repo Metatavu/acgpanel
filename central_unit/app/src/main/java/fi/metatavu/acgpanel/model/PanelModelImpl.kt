@@ -1,12 +1,15 @@
 package fi.metatavu.acgpanel.model
 
+import android.arch.persistence.db.SupportSQLiteDatabase
 import android.arch.persistence.room.Database
 import android.arch.persistence.room.Room
 import android.arch.persistence.room.RoomDatabase
+import android.arch.persistence.room.migration.Migration
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
+import android.util.Log
 import fi.metatavu.acgpanel.PanelApplication
 import fi.metatavu.acgpanel.R
 import okhttp3.Credentials
@@ -14,6 +17,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
+import java.time.Duration
 
 @Database(entities = [
     User::class,
@@ -21,8 +25,9 @@ import retrofit2.converter.gson.GsonConverterFactory
     ProductTransaction::class,
     ProductTransactionItem::class,
     LogInAttempt::class,
-    SystemProperties::class
-], version = 1)
+    SystemProperties::class,
+    CompartmentMapping::class
+], version = 4, exportSchema = false)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -40,6 +45,7 @@ object PanelModelImpl : PanelModel() {
             AndroidPanelDatabase::class.java,
             DATABASE_NAME
         )
+        .fallbackToDestructiveMigration()
         .addMigrations(
         )
         .build()
@@ -52,6 +58,9 @@ object PanelModelImpl : PanelModel() {
         .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
         .client(
             OkHttpClient.Builder()
+                .readTimeout(Duration.ofMinutes(30))
+                .connectTimeout(Duration.ofMinutes(30))
+                .callTimeout(Duration.ofMinutes(30))
                 .addInterceptor {
                     it.proceed(
                         it.request()
@@ -102,6 +111,12 @@ object PanelModelImpl : PanelModel() {
 
     override val demoMode: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), false)
+
+    override val lockUserExpenditure: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_user_expenditure), false)
+
+    override val lockUserReference: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_user_reference), false)
 
     override val maintenancePasscode: String
         get() {

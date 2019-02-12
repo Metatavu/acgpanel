@@ -24,6 +24,14 @@
         <item>@id/product4_image</item>
         <item>@id/product5_image</item>
     </integer-array>
+    <integer-array name="product_view_line_ids">
+        <item>@id/product0_line</item>
+        <item>@id/product1_line</item>
+        <item>@id/product2_line</item>
+        <item>@id/product3_line</item>
+        <item>@id/product4_line</item>
+        <item>@id/product5_line</item>
+    </integer-array>
     <integer-array name="product_view_button_ids">
         <item>@id/product0_button</item>
         <item>@id/product1_button</item>

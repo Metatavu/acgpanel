@@ -67,6 +67,10 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
 
     override fun onResume() {
         model.addDeviceErrorListener(onDeviceError)
+        if (model.isMaintenanceMode) {
+            Shell.SU.run(arrayOf("am", "kill", "all", "com.android.launcher3"))
+            model.isMaintenanceMode = false
+        }
         super.onResume()
     }
 
@@ -98,9 +102,9 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
                 return
             }
         }
-        // TODO configurable code
         val dialog = UnlockDialog(this, model.maintenancePasscode)
         dialog.setFinishListener {
+            model.isMaintenanceMode = true
             val activityManager = activityManager
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {

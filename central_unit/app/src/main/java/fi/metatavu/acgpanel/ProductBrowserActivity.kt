@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.TypedArray
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.renderscript.ScriptGroup
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
@@ -36,6 +37,7 @@ class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productP
     private val parentViewIds = context.resources.obtainTypedArray(R.array.product_view_ids)
     private val textViewIds = context.resources.obtainTypedArray(R.array.product_view_text_ids)
     private val imageViewIds = context.resources.obtainTypedArray(R.array.product_view_image_ids)
+    private val lineViewIds = context.resources.obtainTypedArray(R.array.product_view_line_ids)
     private val buttonIds = context.resources.obtainTypedArray(R.array.product_view_button_ids)
 
     private fun <T: View> getView(arr: TypedArray, i: Int): T
@@ -47,6 +49,7 @@ class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productP
                 val product = item.products[i]
                 getView<View>(parentViewIds, i).visibility = View.VISIBLE
                 getView<TextView>(textViewIds, i).text = product.name
+                getView<TextView>(lineViewIds, i).text = product.line
                 getView<Button>(buttonIds, i).setOnClickListener {
                     onProductClick(product)
                 }
@@ -100,9 +103,18 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
 
 class ProductBrowserActivity : PanelActivity() {
 
+    private val handler = Handler(Looper.getMainLooper())
+
     private val logInListener = {
+        val user = model.currentUser
         show_profile_button.visibility = View.VISIBLE
-        show_profile_button.text = model.currentUser!!.userName
+        show_profile_button.text = user?.userName ?: ""
+        if (user?.canShelve ?: false) {
+            bottom_bar.background = getDrawable(R.color.error)
+            show_profile_button.text = "HYLLYTYS: ${user?.userName}"
+        } else {
+            bottom_bar.background = getDrawable(R.color.colorPrimaryDark)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,7 +122,11 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
-            selectProduct(it)
+            if (model.currentUser?.canShelve ?: false) {
+                model.openProductLock(it)
+            } else {
+                selectProduct(it)
+            }
         }
         basket_items_view.adapter = adapter
         adapter.submitList(model.productPages)
@@ -135,8 +151,18 @@ class ProductBrowserActivity : PanelActivity() {
             if (keyEvent.action == KeyEvent.ACTION_UP
                     && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
                     && product != null) {
-                selectProduct(product)
-                true
+                if (model.currentUser?.canShelve ?: false) {
+                    model.openProductLock(product)
+                    search_box.text.clear()
+                    model.searchTerm = ""
+                    model.refreshProductPages {
+                        adapter.submitList(model.productPages)
+                    }
+                    true
+                } else {
+                    selectProduct(product)
+                    true
+                }
             } else {
                 false
             }
@@ -148,6 +174,12 @@ class ProductBrowserActivity : PanelActivity() {
         if (user != null) {
             show_profile_button.visibility = View.VISIBLE
             show_profile_button.text = user.userName
+            if (user.canShelve) {
+                bottom_bar.background = getDrawable(R.color.error)
+                show_profile_button.text = "HYLLYTYS: ${user.userName}"
+            } else {
+                bottom_bar.background = getDrawable(R.color.colorPrimaryDark)
+            }
         } else {
             show_profile_button.visibility = View.INVISIBLE
         }
@@ -201,6 +233,8 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     fun menu(@Suppress("UNUSED_PARAMETER") target: View) {
+        model.searchTerm = ""
+        model.refreshProductPages {  }
         val intent = Intent(this, MenuActivity::class.java)
         finish()
         startActivity(intent)

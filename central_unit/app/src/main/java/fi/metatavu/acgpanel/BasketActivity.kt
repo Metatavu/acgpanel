@@ -137,6 +137,12 @@ class BasketActivity : PanelActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        if (!basketAccepted) {
+            super.onBackPressed()
+        }
+    }
+
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
         model.clearBasket()
         finish()

@@ -21,7 +21,7 @@ class ProfileDialog(activity: Activity, private val model: PanelModel) : Dialog(
         setContentView(R.layout.dialog_profile)
 
         content_name.text = model.currentUser?.userName
-        content_card_code.text = model.currentUser?.cardCode
+        content_expenditure.text = model.currentUser?.expenditure
 
         logout_button.setOnClickListener {
             val listener = logoutListener

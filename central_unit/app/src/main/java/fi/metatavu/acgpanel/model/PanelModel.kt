@@ -15,10 +15,13 @@ import kotlin.concurrent.thread
 data class User(
     @PrimaryKey var id: Long?,
     var userName: String,
-    var cardCode: String
+    var cardCode: String,
+    var expenditure: String,
+    var reference: String,
+    var canShelve: Boolean
 )
 
-@Entity
+@Entity(indices = [Index(value=arrayOf("externalId", "line"), unique=true)])
 data class Product(
     @PrimaryKey var id: Long?,
     var externalId: Long,
@@ -29,7 +32,8 @@ data class Product(
     var safetyCard: String,
     var productInfo: String,
     var unit: String,
-    var line: String
+    var line: String,
+    var barcode: String
 )
 
 @Entity
@@ -64,6 +68,13 @@ data class SystemProperties(
     var containsDemoData: Boolean
 )
 
+@Entity
+data class CompartmentMapping(
+    @PrimaryKey var line: String,
+    var shelf: Int,
+    var compartment: Int
+)
+
 data class BasketItem(
     val product: Product,
     val count: Int,
@@ -96,6 +107,7 @@ class GiptoolProduct {
     var productInfo: String? = null
     var unit: String? = null
     var line: String? = null
+    var barcode: String? = null
 }
 
 class GiptoolProducts {
@@ -106,6 +118,9 @@ class GiptoolUser {
     var id: Long? = null
     var name: String = ""
     var cardCode: String? = null
+    var expenditure: String? = null
+    var reference: String? = null
+    var canShelve: Boolean? = null
 }
 
 class GiptoolUsers {
@@ -151,20 +166,26 @@ interface GiptoolService {
 @Dao
 interface ProductDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(vararg products: Product)
 
-    @Query("SELECT * FROM product LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product ORDER BY line LIMIT 6 OFFSET :offset")
     fun getProductPage(offset: Long): List<Product>
 
     @Query("SELECT COUNT(*) FROM product")
     fun getProductCount(): Long
 
-    @Query("SELECT * FROM product WHERE code = :searchTerm OR line = :searchTerm LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product WHERE code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm ORDER BY line LIMIT 6 OFFSET :offset")
     fun getProductPageSearch(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT COUNT(*) FROM product WHERE code = :searchTerm OR line = :searchTerm")
+    @Query("SELECT * FROM product WHERE LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm ORDER BY line LIMIT 6 OFFSET :offset")
+    fun getProductPageSearchAlphabetic(searchTerm: String, offset: Long): List<Product>
+
+    @Query("SELECT COUNT(*) FROM product WHERE code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm")
     fun getProductCountSearch(searchTerm: String): Long
+
+    @Query("SELECT COUNT(*) FROM product WHERE LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm")
+    fun getProductCountSearchAlphabetic(searchTerm: String): Long
 
     @Query("SELECT * FROM product WHERE id=:id")
     fun findProductById(id: Long): Product?
@@ -180,7 +201,7 @@ interface ProductDao {
 @Dao
 interface UserDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(vararg users: User)
 
     @Query("SELECT * FROM user WHERE cardCode = :cardCode")
@@ -248,11 +269,18 @@ interface SystemPropertiesDao {
     @Query("SELECT * FROM systemproperties WHERE id=1")
     fun getSystemProperties(): SystemProperties?
 
+    @Query("SELECT * FROM compartmentmapping WHERE line=:line")
+    fun getCompartmentMapping(line: String): CompartmentMapping?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun mapCompartments(vararg compartmentMappings: CompartmentMapping)
+
 }
 
+// TODO replace with event handlers
 sealed class Action
-
-data class OpenLockAction(val shelf: Int, val compartment: Int) : Action()
+data class OpenLockAction(val shelf: Int, val compartment: Int, val reset: Boolean = false) : Action()
+data class AssignShelfAction(val shelf: Int): Action()
 
 private const val SESSION_TIMEOUT_MS = 5*60*1000L
 
@@ -275,6 +303,8 @@ abstract class PanelModel {
     abstract val vendingMachineId: String
     abstract val password: String
     abstract val demoMode: Boolean
+    abstract val lockUserExpenditure: Boolean
+    abstract val lockUserReference: Boolean
     abstract val maintenancePasscode: String
 
     private val logoutTimerCallback: Runnable = Runnable {
@@ -292,6 +322,7 @@ abstract class PanelModel {
     var searchTerm = ""
     var canLogInViaRfid = false
     var isDeviceErrorMode = false
+    var isMaintenanceMode = false
 
     var currentUser: User? = null
     var nextLockToOpen = -1
@@ -311,7 +342,10 @@ abstract class PanelModel {
             val item = selectedBasketItem
             return when (item) {
                 is SelectedBasketItem.Existing -> basket[item.index]
-                is SelectedBasketItem.New -> BasketItem(item.product, 1, "", "")
+                is SelectedBasketItem.New -> BasketItem(item.product,
+                    1,
+                    currentUser?.expenditure ?: "",
+                    currentUser?.reference ?: "")
                 null -> null
             }
         }
@@ -388,10 +422,11 @@ abstract class PanelModel {
             demoModeCleanup()
             syncUsers()
             syncProducts()
+            unsafeRefreshProductPages()
             syncProductTransactions()
             syncLogInAttempts()
-            unsafeRefreshProductPages()
         } catch (e: IOException) {
+            Log.i(javaClass.name, "Device offline: $e")
             // device offline, do nothing
         } catch (e: Exception) {
             Log.e(javaClass.name, "Error when syncing to server: $e")
@@ -515,34 +550,73 @@ abstract class PanelModel {
         }
     }
 
-    fun openLock(first: Boolean = true) {
-        schedule(Runnable {
-            for (listener in lockOpenListeners) {
-                listener()
-            }
-        }, 0)
-        if (first) {
-            nextLockToOpen = 0
+    fun openSpecificLock(shelf: Int, compartment: Int, reset: Boolean = false) {
+        actionQueue.add(OpenLockAction(shelf, compartment, reset))
+    }
+
+    fun calibrationAssignShelf(shelf: Int) {
+        actionQueue.add(AssignShelfAction(shelf))
+    }
+
+    fun calibrationAssignLine(line: String, shelf: Int, compartment: Int) {
+        systemPropertiesDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
+    }
+
+    private fun productPosition(product: Product): Pair<Int, Int> {
+        val mapping = systemPropertiesDao.getCompartmentMapping(product.line)
+        var shelf: Int
+        var compartment: Int
+        if (mapping != null) {
+            shelf = mapping.shelf
+            compartment = mapping.compartment
         } else {
-            if (nextLockToOpen == basket.size) {
-                schedule(Runnable {
-                    completeProductTransaction {
-                        logOut()
-                        thread(start = true) {
-                            syncProductTransactions()
+            val fallback = mapLockNumber(
+                product.line.toInt()
+            )
+            shelf = fallback.first
+            compartment = fallback.second
+        }
+        return Pair(shelf, compartment)
+    }
+
+    private fun unsafeOpenProductLock(product: Product, reset: Boolean = false) {
+        val (shelf, compartment) = productPosition(product)
+        openSpecificLock(shelf, compartment, reset)
+    }
+
+    fun openProductLock(product: Product) {
+        thread(start = true) {
+            unsafeOpenProductLock(product)
+        }
+    }
+
+    fun openLock(first: Boolean = true) {
+        thread(start = true) {
+            if (first) {
+                nextLockToOpen = 0
+            } else {
+                if (nextLockToOpen == basket.size) {
+                    schedule(Runnable {
+                        completeProductTransaction {
+                            logOut()
+                            thread(start = true) {
+                                syncProductTransactions()
+                            }
                         }
+                    }, 0)
+                }
+            }
+            val i = nextLockToOpen
+            if (i != -1 && i < basket.size) {
+                val item = basket[i]
+                unsafeOpenProductLock(item.product, reset = first)
+                schedule(Runnable {
+                    nextLockToOpen++
+                    for (listener in lockOpenListeners) {
+                        listener()
                     }
                 }, 0)
             }
-        }
-        val i = nextLockToOpen
-        if (i != -1 && i < basket.size) {
-            val item = basket[i]
-            val (shelf, compartment) = mapLockNumber(
-                item.product.line.toInt()
-            )
-            actionQueue.add(OpenLockAction(shelf, compartment))
-            nextLockToOpen++
         }
     }
 
@@ -558,6 +632,7 @@ abstract class PanelModel {
 
     fun triggerDeviceError(message: String) {
         if (!isDeviceErrorMode) {
+            isDeviceErrorMode = true
             schedule(Runnable{
                 for (listener in deviceErrorListeners) {
                     listener(message)
@@ -571,6 +646,11 @@ abstract class PanelModel {
             val productCount = productDao.getProductCount()
             (0 until productCount step 6).map {
                 ProductPage(productDao.getProductPage(it))
+            }
+        } else if (searchTerm.contains(Regex("\\D"))) {
+            val productCount = productDao.getProductCountSearchAlphabetic("%${searchTerm.toLowerCase()}%")
+            (0 until productCount step 6).map {
+                ProductPage(productDao.getProductPageSearchAlphabetic("%${searchTerm.toLowerCase()}%", it))
             }
         } else {
             val productCount = productDao.getProductCountSearch(searchTerm)
@@ -593,37 +673,34 @@ abstract class PanelModel {
                     "",
                     "",
                     "kpl",
-                    "1%02d".format((it-1)%12+1))
+                    "1%02d".format((it-1)%12+1),
+                    "")
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
+            val products = giptoolService
+                .listProducts(vendingMachineId)
+                .execute()
+                .body()!!
+                .products
+                .map {
+                    Product(
+                        null,
+                        it.externalId!!,
+                        it.name?.trim() ?: "",
+                        it.description?.trim() ?: "",
+                        it.picture ?: "",
+                        it.code?.trim() ?: "",
+                        it.safetyCard ?: "",
+                        it.productInfo ?: "",
+                        it.unit ?: "",
+                        it.line?.trim() ?: "",
+                        it.barcode?.trim() ?: ""
+                    )
+                }
+                .toTypedArray()
+            // TODO delete removed
             transaction {
-                val products = giptoolService
-                    .listProducts(vendingMachineId)
-                    .execute()
-                    .body()!!
-                    .products
-                    .map {
-                        Product(
-                            null,
-                            it.externalId!!,
-                            it.name?.trim() ?: "",
-                            it.description?.trim() ?: "",
-                            it.picture ?: "",
-                            it.code ?: "",
-                            it.safetyCard ?: "",
-                            it.productInfo ?: "",
-                            it.unit ?: "",
-                            it.line?.trim() ?: ""
-                        )
-                    }
-                    .filter {
-                        productDao.findProductByExternalId(
-                            it.externalId
-                        ) == null
-                    }
-                    .toTypedArray()
-                // TODO delete removed
                 productDao.insertAll(*products)
             }
         }
@@ -650,34 +727,32 @@ abstract class PanelModel {
         if (demoMode) {
             userDao.clearUsers()
             userDao.insertAll(
-                User(1, "Matti Meikäläinen", "123456789012345"),
-                User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000")
+                User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true),
+                User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000", "000", "000", false)
             )
         } else {
-            transaction {
-                val body = giptoolService
-                    .listUsers(vendingMachineId)
-                    .execute()
-                    .body()
-                if (body != null) {
-                    val users = body.users.map {
-                        User(
-                            it.id,
-                            it.name.trim(),
-                            it.cardCode?.trim() ?: ""
-                        )
-                        }
-                        .filter {
-                            userDao.findUserById(
-                                it.id
-                            ) == null
-                        }
-                        .toTypedArray()
-                    // TODO delete removed
-                    userDao.insertAll(*users)
-                } else {
-                    Log.e(javaClass.name, "Got empty response from server")
+            val body = giptoolService
+                .listUsers(vendingMachineId)
+                .execute()
+                .body()
+            if (body != null) {
+                val users = body.users.map {
+                    User(
+                        it.id,
+                        it.name.trim(),
+                        it.cardCode?.trim() ?: "",
+                        it.expenditure?.trim() ?: "",
+                        it.reference?.trim() ?: "",
+                        it.canShelve ?: false
+                    )
                 }
+                    .toTypedArray()
+                // TODO delete removed
+                transaction {
+                    userDao.insertAll(*users)
+                }
+            } else {
+                Log.e(javaClass.name, "Got empty response from server")
             }
         }
     }

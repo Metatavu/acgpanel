@@ -18,7 +18,7 @@
     <string name="profile">Profiili</string>
     <string name="logout">Kirjaudu ulos</string>
     <string name="profile_name">Nimi</string>
-    <string name="profile_card_code">Korttikoodi</string>
+    <string name="profile_expenditure">Kustannuspaikka</string>
     <string name="browse_products_without_login">Selaa tuotteita kirjautumatta</string>
     <string name="accept_vend">Hyväksy otto</string>
     <string name="num_products">%1$d tuotetta</string>
@@ -56,10 +56,17 @@
     <string name="not_logged_in_warning">⚠ Näytä korttia jatkaaksesi</string>
     <string name="invalid_card">⛔ KORTTI EI KELPAA</string>
     <string name="pref_key_server_address">server_address</string>
-    <string name="pref_server_address">Palvelimen osoite</string>
+    <string name="pref_title_server_address">Palvelimen osoite</string>
     <string name="pref_key_maintenance_passcode">maintenance_passcode</string>
-    <string name="pref_maintenance_passcode">Huoltokoodi</string>
-    <string name="device_error">Laitevika. Ota yhteyttä huoltoon.</string>
+    <string name="pref_title_maintenance_passcode">Huoltokoodi</string>
+    <string name="device_error">Laitevika. Jos ongelma ei poistu, ota yhteyttä huoltoon.</string>
     <string name="door_open_alarm">⚠️ Luukut ovat auki!</string>
-
+    <string name="pref_key_user_expenditure">user_expenditure</string>
+    <string name="pref_title_user_expenditure">Lukitse käyttäjäkohtainen kustannuspaikka</string>
+    <string name="pref_key_user_reference">user_reference</string>
+    <string name="pref_title_user_reference">Lukitse käyttäjäkohtainen lisäviite</string>
+    <string name="pref_key_browser_credentials">browser_credentials</string>
+    <string name="pref_title_browser_credentials">Selaimen tunnukset</string>
+    <string name="pref_key_enable_browser">enable_browser</string>
+    <string name="pref_title_enable_browser">Käytä karttaselainta</string>
 </resources>

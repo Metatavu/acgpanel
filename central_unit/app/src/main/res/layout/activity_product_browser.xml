@@ -7,45 +7,6 @@
     android:layout_height="match_parent"
     tools:context=".ProductBrowserActivity">
 
-    <View
-        android:layout_width="wrap_content"
-        android:layout_height="60dp"
-        android:background="@color/colorPrimaryDark"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
-    <Button
-        android:onClick="menu"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginBottom="6dp"
-        android:background="@android:color/transparent"
-        android:text="@string/menu"
-        android:textSize="25dp"
-        android:textColor="@android:color/white"
-        android:textAllCaps="false"
-        android:drawableStart="@drawable/valikko_icon"
-        android:drawablePadding="10dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/show_profile_button"
-        android:onClick="showProfileDialog"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="10dp"
-        android:layout_marginBottom="6dp"
-        android:background="@android:color/transparent"
-        android:text="@string/profileName"
-        android:textSize="25dp"
-        android:textColor="@android:color/white"
-        android:textAllCaps="false"
-        android:drawableEnd="@drawable/profile_icon"
-        android:drawablePadding="10dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
     <Button
         android:layout_width="100dp"
         android:layout_height="match_parent"
@@ -102,6 +63,51 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
+    <View
+        android:id="@+id/bottom_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:background="@color/colorPrimaryDark"
+        android:elevation="1dp"
+        android:outlineProvider="none"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <Button
+        android:onClick="menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="6dp"
+        android:background="@android:color/transparent"
+        android:text="@string/menu"
+        android:textSize="25dp"
+        android:textColor="@android:color/white"
+        android:textAllCaps="false"
+        android:drawableStart="@drawable/valikko_icon"
+        android:drawablePadding="10dp"
+        android:elevation="1dp"
+        android:outlineProvider="none"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/show_profile_button"
+        android:onClick="showProfileDialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="6dp"
+        android:background="@android:color/transparent"
+        android:text="@string/profileName"
+        android:textSize="25dp"
+        android:textColor="@android:color/white"
+        android:textAllCaps="false"
+        android:drawableEnd="@drawable/profile_icon"
+        android:drawablePadding="10dp"
+        android:elevation="1dp"
+        android:outlineProvider="none"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/unlock_button"

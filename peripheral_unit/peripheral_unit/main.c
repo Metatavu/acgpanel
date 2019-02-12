@@ -17,6 +17,7 @@
 
 #define TARGET_BOX_DRIVER 1
 #define TARGET_CARD_READER 2
+#define TARGET_WIEGAND 3
 
 #define MESSAGE_WAIT_TIME 200
 
@@ -24,6 +25,8 @@
 #define BAUD_RATE_CU 9600
 #define BAUD_RATE_BD 9600
 #define BAUD_RATE_CR 9600
+
+#define MS 10
 
 volatile uint8_t lastTarget = 0;
 
@@ -111,11 +114,15 @@ void wdtInit(void) {
   SREG = sreg;
 }
 
+void wieInit(void) {
+}
+
 void timerInit(void) {
 #ifdef TEST
   uint16_t numCycles = 100;
 #else
-  uint16_t numCycles = F_OSC / 1000;
+  // 10kHz timer
+  uint16_t numCycles = F_OSC / (MS * 1000);
 #endif
   uint8_t sreg = SREG;
   cli();
@@ -133,6 +140,53 @@ void timerInit(void) {
   SREG = sreg;
 }
 
+int16_t wieLastVal = -1;
+
+uint8_t wieBuffer = 0;
+uint8_t wieCounter = 0;
+uint8_t wieFlushTimer = 0;
+
+void cuCommWriteNybbleHex(uint8_t val) {
+  val = val & 0x0F;
+  if (val < 10) {
+    cuCommWrite('0' + val);
+  } else {
+    cuCommWrite('A' + (val - 10));
+  }
+}
+  
+void wieRead(void) {    
+  int16_t value;
+  // Wiegand
+  if ((PINE & (1<<PE2)) && !(PINE & (1<<PE3))) {
+    value = 1;
+  } else if (!(PINE & (1<<PE2)) && (PINE & (1<<PE3))) {
+    value = 0;
+  } else {
+    value = -1;
+  }
+  if (value == wieLastVal) {
+    return;
+  }
+  wieLastVal = value;
+  if (value == -1) {
+    return;
+  }
+  wieFlushTimer = 20*MS;
+  if (source_timer <= 0) {
+    source_timer = 100*MS;
+    cuCommWrite(TARGET_WIEGAND);
+  }
+  wieBuffer <<= 1;
+  wieBuffer |= value;
+  wieCounter++;
+  if (wieCounter >= 4) {
+    cuCommWriteNybbleHex(wieBuffer);
+    wieCounter = 0;
+    wieBuffer = 0;
+  }
+}
+
 ISR(TIMER1_COMPA_vect)
 {
   if (source_timer > 0) {
@@ -146,20 +200,21 @@ ISR(TIMER1_COMPA_vect)
   } else {
     bdCommInput();
   }
-}
-
-void init(void) {
-  wdtInit();
-  cuCommInit();
-  bdCommInit();
-  crCommInit();
-  timerInit();
-  sei();
+  if (wieFlushTimer > 0) {
+    wieFlushTimer--;
+  } else {
+    if (wieCounter != 0) {
+      cuCommWriteNybbleHex(wieBuffer);
+      wieCounter = 0;
+      wieBuffer = 0;
+    }
+  }
+  wieRead();
 }
 
 ISR(USART2_RX_vect) {
   if (target_timer <= 0) {
-    target_timer = 100;
+    target_timer = 100*MS;
     target = UDR2;
   } else {
     switch (target) {
@@ -169,7 +224,7 @@ ISR(USART2_RX_vect) {
       case TARGET_BOX_DRIVER:
         bdCommOutput();
         bdCommWrite(UDR2);
-        rs485_enable_timer = 5;
+        rs485_enable_timer = 5*MS;
         break;
       case TARGET_CARD_READER:
         crCommWrite(UDR2);
@@ -183,7 +238,7 @@ ISR(USART1_RX_vect) {
     return;
   }
   if (source_timer <= 0) {
-    source_timer = 100;
+    source_timer = 100*MS;
     cuCommWrite(TARGET_BOX_DRIVER);
   }
   cuCommWrite(UDR1);
@@ -191,10 +246,20 @@ ISR(USART1_RX_vect) {
 
 ISR(USART3_RX_vect) {
   if (source_timer <= 0) {
-    source_timer = 100;
+    source_timer = 100*MS;
     cuCommWrite(TARGET_CARD_READER);
   }
   cuCommWrite(UDR3);
+}
+
+void init(void) {
+  wdtInit();
+  wieInit();
+  cuCommInit();
+  bdCommInit();
+  crCommInit();
+  timerInit();
+  sei();
 }
 
 #ifdef TEST

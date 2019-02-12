@@ -15,8 +15,14 @@ import kotlinx.android.synthetic.main.activity_default.*
 import android.hardware.usb.UsbDevice
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.os.Looper
 import android.os.PowerManager
+import android.view.KeyEvent
 import eu.chainfire.libsuperuser.Shell
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
 
@@ -28,6 +34,13 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     private val failedLoginListener = {
         UnauthorizedDialog(this).show()
     }
+
+    private val reboot = Runnable {
+        Log.e(javaClass.name, "SHUTDOWN INITIATED")
+        Shell.SU.run(arrayOf("reboot", "-p"))
+    }
+
+    private val rebootExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private val powerManager: PowerManager
         get() = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -121,7 +134,6 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onResume() {
         super.onResume()
         model.canLogInViaRfid = true
-        Shell.SU.run(arrayOf("am", "kill", "all", "com.android.launcher3"))
         // allow instant login for better usability
         model.addLogInListener(loginListener)
         model.addFailedLogInListener(failedLoginListener)

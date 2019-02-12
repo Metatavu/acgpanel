@@ -12,7 +12,7 @@ import fi.metatavu.acgpanel.model.PanelModelImpl
 import kotlin.concurrent.thread
 
 const val SERVER_SYNC_SERVICE_ID = 2
-const val SERVER_SYNC_INTERVAL_MS = 15L*60L*1000L
+const val SERVER_SYNC_INTERVAL_MS = 2L*60L*1000L
 
 class ServerSyncService : Service() {
     private val notificationManager: NotificationManager
@@ -21,19 +21,25 @@ class ServerSyncService : Service() {
     private val model = PanelModelImpl
 
     private var running = false
+    private var runningThread: Thread? = null
 
     private fun process() {
-        while (running) {
-            Log.d(javaClass.name, "Syncing with server...")
-            model.serverSync()
-            Thread.sleep(SERVER_SYNC_INTERVAL_MS)
+        try {
+            while (running) {
+                Log.d(javaClass.name, "Syncing with server...")
+                model.serverSync()
+                Thread.sleep(SERVER_SYNC_INTERVAL_MS)
+            }
+        } catch (ex: InterruptedException) {
+
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(javaClass.name, "Starting sync service")
+        runningThread?.interrupt()
         running = true
-        thread(start = true) { process() }
+        runningThread = thread(start = true) { process() }
         val channel = NotificationChannel(
             getString(R.string.app_name),
             getString(R.string.notifications_name),

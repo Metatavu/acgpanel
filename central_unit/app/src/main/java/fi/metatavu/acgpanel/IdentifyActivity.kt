@@ -64,6 +64,9 @@ class IdentifyActivity : PanelActivity() {
     }
 
     fun onIdentify(@Suppress("UNUSED_PARAMETER") view: View) {
+        if (model.demoMode) {
+            model.logIn("123456789012345")
+        }
     }
 
     override val unlockButton: View

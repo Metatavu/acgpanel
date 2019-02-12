@@ -65,7 +65,7 @@
         />
 
     <Button
-        android:onClick="notImplemented"
+        android:onClick="browseMap"
         android:layout_width="400dp"
         android:layout_height="200dp"
         android:text="@string/layout"

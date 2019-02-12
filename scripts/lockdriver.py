@@ -28,7 +28,7 @@ with serial.Serial(port, 9600, timeout=0.1) as s:
                 s.write(b'\x00')
                 print(s.read(100))
             elif key == b'p':
-                s.write(b'\x01\x02ID002\r')
+                s.write(b'\x01\x02ID001\r')
             elif key == b'r':
                 s.write(b'\x01\x0201RES\r')
                 print(s.read(100))

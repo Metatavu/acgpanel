@@ -12,40 +12,33 @@ import android.os.IBinder
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
 import fi.metatavu.acgpanel.R
+import fi.metatavu.acgpanel.model.AssignShelfAction
 import fi.metatavu.acgpanel.model.OpenLockAction
+import fi.metatavu.acgpanel.model.PanelModel
 import fi.metatavu.acgpanel.model.PanelModelImpl
 import java.lang.Exception
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import javax.xml.datatype.DatatypeConstants.HOURS
 import kotlin.concurrent.thread
 
 sealed class Message {
 }
 
-class Ping: Message() {
-    override fun equals(other: Any?): Boolean {
-        return this === other
-    }
-    override fun hashCode(): Int {
-        return System.identityHashCode(this)
-    }
-}
-class Pong: Message() {
-    override fun equals(other: Any?): Boolean {
-        return this === other
-    }
-    override fun hashCode(): Int {
-        return System.identityHashCode(this)
-    }
-}
+class Ping: Message()
+class Pong: Message()
 data class OpenLock(val shelf: Int, val compartment: Int): Message()
 data class OpenLockConfirmation(val shelf: Int): Message()
 data class ReadCard(val cardId: String): Message()
 data class LockClosed(val shelf: Int): Message()
 data class ResetLock(val shelf: Int): Message()
 data class ResetLockConfirmation(val shelf: Int): Message()
+data class AssignShelf(val shelf: Int): Message()
+class AssignShelfConfirmation(): Message()
 
 private class NoResponseException : Exception("No response from device")
 
@@ -58,8 +51,11 @@ private const val NINE = '9'.toByte()
 private const val A = 'A'.toByte()
 private const val Z = 'Z'.toByte()
 private const val RESTART_INTERVAL_MS = 1000L
+private const val RESTART_MAX_TRIES = 10
 private const val READ_TIMEOUT_MS = 1000L
 private const val READ_TIMEOUT_MAX_FAILURES = 5
+private const val PING_INTERVAL_MS = 120L*1000L
+private const val MAX_BAD_PINGS = 3
 
 abstract class MessageReader {
 
@@ -74,39 +70,67 @@ abstract class MessageReader {
     }
 
     fun readMessage(): Message? =
-        when (next()) {
-            0x00.toByte() -> {
-                while (available()) {
-                    read()
+        try {
+            when (next()) {
+                0x00.toByte() -> {
+                    while (available()) {
+                        read()
+                    }
+                    Pong()
                 }
-                Pong()
+                0x01.toByte() -> {
+                    next() // STX
+                    if (next() == 'O'.toByte()) {
+                        if (next() == 'K'.toByte()) {
+                            while (available()) {
+                                read()
+                            }
+                            AssignShelfConfirmation()
+                        }
+                        while (available()) {
+                            read()
+                        }
+                        null
+                    } else {
+                        val shelf = (lastByte - ZERO) * 10 + (next() - ZERO)
+                        val code = String(byteArrayOf(next(), next(), next()), StandardCharsets.US_ASCII)
+                        while (available()) {
+                            read()
+                        }
+                        when (code) {
+                            "OKO" -> OpenLockConfirmation(shelf)
+                            "RE\r" -> LockClosed(shelf)
+                            "RS\r" -> ResetLockConfirmation(shelf)
+                            else -> null
+                        }
+                    }
+                }
+                0x02.toByte() -> {
+                    next() // skip first 'B'
+                    val bytes = mutableListOf<Byte>()
+                    while (next() != '='.toByte()) {
+                        bytes.add(lastByte)
+                    }
+                    while (available()) {
+                        read()
+                    }
+                    ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
+                }
+                0x03.toByte() -> {
+                    val bytes = mutableListOf<Byte>()
+                    while (available()) {
+                        bytes.add(next())
+                    }
+                    Thread.sleep(60) // the last character arrives after slight delay
+                    while (available()) {
+                        bytes.add(next())
+                    }
+                    ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
+                }
+                else -> null
             }
-            0x01.toByte() -> {
-                next() // STX
-                val shelf = (next() - ZERO) * 10 + (next() - ZERO)
-                val code = String(byteArrayOf(next(), next(), next()), StandardCharsets.US_ASCII)
-                while (available()) {
-                    read()
-                }
-                when (code) {
-                    "OKO" -> OpenLockConfirmation(shelf)
-                    "RE\r" -> LockClosed(shelf)
-                    "RS\r" -> ResetLockConfirmation(shelf)
-                    else -> null
-                }
-            }
-            0x02.toByte() -> {
-                next() // skip first 'B'
-                val bytes = mutableListOf<Byte>()
-                while (next() != '='.toByte()) {
-                    bytes.add(lastByte)
-                }
-                while (available()) {
-                    read()
-                }
-                ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
-            }
-            else -> null
+        } catch (e: TimeoutException) {
+            null
         }
     }
 
@@ -153,6 +177,17 @@ abstract class MessageWriter {
                 write(0x0D)
                 flush()
             }
+            is AssignShelf -> {
+                write(0x01)
+                write(0x02)
+                write('I'.toByte())
+                write('D'.toByte())
+                write(ZERO)
+                write(((msg.shelf / 10) + ZERO).toByte())
+                write(((msg.shelf % 10) + ZERO).toByte())
+                write(0x0D)
+                flush()
+            }
         }
     }
 
@@ -169,8 +204,7 @@ class McuCommunicationService : Service() {
     private val notificationManager: NotificationManager
         get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val model = PanelModelImpl
-
+    private val model: PanelModel = PanelModelImpl
     private var jobThread: Thread? = null
     private var serial: UsbSerialDevice? = null
     private val inBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
@@ -205,13 +239,15 @@ class McuCommunicationService : Service() {
             val ser = serial
             if (ser != null) {
                 ser.write(outBuffer.toByteArray())
-                Log.d(javaClass.name, "Outgoing: ${outBuffer.map{ it.toUByte().toString(16)}.joinToString()}")
+                Log.d(javaClass.name, "Outgoing: " +
+                        "${outBuffer.toByteArray().toString(StandardCharsets.ISO_8859_1)}")
                 outBuffer.clear()
             }
         }
     }
 
-    private var pingCounter = 0
+    private var lastPing = Instant.now()
+    private var badPings = 0
 
     private fun process() {
         while (jobThread != null) {
@@ -219,6 +255,14 @@ class McuCommunicationService : Service() {
                 val action = model.nextAction()
                 when (action) {
                     is OpenLockAction -> {
+                        if (action.reset) {
+                            messageWriter.writeMessage(ResetLock(action.shelf))
+                            var resetResp = messageReader.readMessage()
+                            if (resetResp !is ResetLockConfirmation) {
+                                Log.e(javaClass.name, "BoxDriver didn't respond to reset")
+                            }
+                            Thread.sleep(50)
+                        }
                         messageWriter.writeMessage(OpenLock(action.shelf, action.compartment))
                         var resp = messageReader.readMessage()
                         if (resp !is OpenLockConfirmation) {
@@ -230,7 +274,18 @@ class McuCommunicationService : Service() {
                                 if (resp !is ResetLockConfirmation) {
                                     throw NoResponseException()
                                 }
+                                Thread.sleep(50)
+                                messageWriter.writeMessage(OpenLock(action.shelf, action.compartment))
+                                messageReader.readMessage()
+                                Log.e(javaClass.name, "Lock ${action.shelf}/${action.compartment} was open")
                             }
+                        }
+                    }
+                    is AssignShelfAction -> {
+                        messageWriter.writeMessage(AssignShelf(action.shelf))
+                        var resp = messageReader.readMessage()
+                        if (resp !is AssignShelfConfirmation) {
+                            throw NoResponseException()
                         }
                     }
                 }
@@ -246,19 +301,28 @@ class McuCommunicationService : Service() {
                             }
                         }
                         is LockClosed -> {
-                            Handler(mainLooper).post {
+                            Handler(mainLooper).postDelayed({
                                 model.openLock(first = false)
-                            }
+                            }, 100)
                         }
                     }
-                } else {
-                    if (pingCounter == 0) {
-                        messageWriter.writeMessage(Ping())
-                        messageReader.readMessage()
-                        pingCounter = 1000
-                    }
-                    Thread.sleep(50)
                 }
+                if (lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
+                    Log.i(javaClass.name, "Pinging device...")
+                    lastPing = Instant.now()
+                    messageWriter.writeMessage(Ping())
+                    if (messageReader.readMessage() !is Pong) {
+                        badPings++
+                        if (badPings > MAX_BAD_PINGS) {
+                            jobThread = null
+                            serial!!.close()
+                            return
+                        }
+                    } else {
+                        badPings = 0
+                    }
+                }
+                Thread.sleep(1)
             } catch (ex: TimeoutException) {
                 Log.d(javaClass.name, "Timeout: $ex")
             } catch (ex: Exception) {
@@ -270,25 +334,29 @@ class McuCommunicationService : Service() {
         }
     }
 
-    private fun tryStart() {
+    private fun tryStart(): Boolean {
         stop()
         val deviceList = usbManager.deviceList.values
         val device = deviceList.firstOrNull { it.vendorId == DEVICE_VENDOR_ID }
         if (device != null) {
             if (!usbManager.hasPermission(device)) {
-                return
+                return false
             }
             val connection = usbManager.openDevice(device)
             if (connection == null) {
-                return
+                return false
             }
             serial = UsbSerialDevice.createUsbSerialDevice(device, connection)
             serial!!.open()
             serial!!.read {
                 inBuffer.addAll(it.asIterable())
-                Log.d(javaClass.name, "Incoming: ${inBuffer.map{ it.toString(16)}.joinToString()}")
+                Log.d(javaClass.name, "Incoming: " +
+                        "${inBuffer.toByteArray().toString(StandardCharsets.ISO_8859_1)}")
             }
             jobThread = thread(start = true) { process() }
+            return true
+        } else {
+            return false
         }
     }
 
@@ -307,9 +375,21 @@ class McuCommunicationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val handler = Handler()
         lateinit var autorestarter: Runnable
+        var numFailures = 0
         autorestarter = Runnable {
             if (jobThread == null) {
-                tryStart()
+                Log.i(javaClass.name, "Trying to restart")
+                val success = tryStart()
+                if (success) {
+                    Log.i(javaClass.name, "Restart succeeded")
+                    numFailures = 0
+                } else {
+                    Log.i(javaClass.name, "Restart failed, $numFailures/$RESTART_MAX_TRIES")
+                    numFailures++
+                    if (numFailures > RESTART_MAX_TRIES && !model.demoMode) {
+                        model.triggerDeviceError("Couldn't connect to device")
+                    }
+                }
             }
             handler.postDelayed(autorestarter, RESTART_INTERVAL_MS)
         }
