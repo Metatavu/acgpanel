@@ -15,12 +15,13 @@
 
     <ImageButton
         android:onClick="close"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:layout_gravity="top|end"
         android:background="@android:color/transparent"
         android:src="@drawable/delete_icon"
-        android:tint="@android:color/holo_red_light"
+        android:scaleType="fitCenter"
+        android:tint="@color/brightAttention"
         />
 
     <ImageButton

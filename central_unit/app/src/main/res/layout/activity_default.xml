@@ -10,6 +10,17 @@
     tools:context=".DefaultActivity">
 
     <TextView
+        android:id="@+id/version_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:textColor="@color/lightText"
+        android:textSize="8sp"
+        />
+
+    <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/lightBackground"

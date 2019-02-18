@@ -1,18 +1,24 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    >
     <TableLayout
-        android:layout_gravity="center"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:ignore="UselessParent">
+    android:layout_width="match_parent"
+    android:layout_height="540dp"
+    >
         <TableRow>
             <FrameLayout
                 android:id="@+id/product0"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product0_text"
@@ -62,7 +68,10 @@
                 android:id="@+id/product1"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product1_text"
@@ -112,7 +121,10 @@
                 android:id="@+id/product2"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product2_text"
@@ -164,7 +176,10 @@
                 android:id="@+id/product3"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product3_text"
@@ -214,7 +229,10 @@
                 android:id="@+id/product4"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product4_text"
@@ -264,7 +282,10 @@
                 android:id="@+id/product5"
                 android:layout_width="250dp"
                 android:layout_height="250dp"
-                android:layout_margin="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 >
                 <TextView
                     android:id="@+id/product5_text"
@@ -312,4 +333,4 @@
             </FrameLayout>
         </TableRow>
     </TableLayout>
-</FrameLayout>
+</LinearLayout>

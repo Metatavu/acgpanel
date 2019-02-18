@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.util.Log
 import fi.metatavu.acgpanel.model.PanelModelImpl
@@ -48,6 +49,8 @@ class ServerSyncService : Service() {
         val notification = Notification.Builder(this, channel.id)
             .setContentTitle(getString(R.string.server_sync_title))
             .setContentText(getString(R.string.server_sync_desc))
+            .setSmallIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setLargeIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
             .build()
         startForeground(SERVER_SYNC_SERVICE_ID, notification)
         return Service.START_STICKY

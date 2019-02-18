@@ -15,16 +15,15 @@ import kotlinx.android.synthetic.main.activity_default.*
 import android.hardware.usb.UsbDevice
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.os.Looper
 import android.os.PowerManager
 import android.view.KeyEvent
-import eu.chainfire.libsuperuser.Shell
-import java.util.concurrent.Executors
-import java.util.concurrent.RejectedExecutionException
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
+import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
+
+    private val rebootTickCounter = TimedTickCounter(3, Duration.ofSeconds(1)) {
+        powerManager.reboot("")
+    }
 
     private val loginListener = {
         val intent = Intent(this, ProductBrowserActivity::class.java)
@@ -34,13 +33,6 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     private val failedLoginListener = {
         UnauthorizedDialog(this).show()
     }
-
-    private val reboot = Runnable {
-        Log.e(javaClass.name, "SHUTDOWN INITIATED")
-        Shell.SU.run(arrayOf("reboot", "-p"))
-    }
-
-    private val rebootExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private val powerManager: PowerManager
         get() = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -63,6 +55,13 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
                 ensureMcuPermission()
             }
         }
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DEL) {
+            rebootTickCounter.tick()
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     @SuppressLint("PrivateApi")
@@ -108,6 +107,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
+        version_number.text = packageManager.getPackageInfo(packageName, 0)!!.versionName
         registerReceiver(receiver, IntentFilter(ACTION_USB_PERMISSION))
         val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
         startService(mcuCommServiceIntent)
@@ -123,19 +123,34 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     }
 
     override fun onDestroy() {
+        model.removeLogInListener(loginListener)
+        model.removeFailedLogInListener(failedLoginListener)
         super.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setupLogin()
     }
 
     override fun onStart() {
         super.onStart()
         ensureMcuPermission()
+        setupLogin()
     }
 
     override fun onResume() {
         super.onResume()
+        setupLogin()
+    }
+
+    private fun setupLogin() {
+        model.logOut()
         model.canLogInViaRfid = true
         // allow instant login for better usability
+        model.removeLogInListener(loginListener)
         model.addLogInListener(loginListener)
+        model.removeFailedLogInListener(failedLoginListener)
         model.addFailedLogInListener(failedLoginListener)
     }
 

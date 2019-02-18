@@ -29,7 +29,7 @@ fun drawProducts(pairs: List<Pair<Product, ImageView>>) {
     for ((product, view) in pairs) {
         picasso
             .load("$PRODUCT_IMAGE_PREFIX${product.image}")
-            .placeholder(R.drawable.image_placeholder)
+            //.placeholder(R.drawable.image_placeholder)
             .error(R.drawable.image_placeholder)
             .noFade()
             .into(view)

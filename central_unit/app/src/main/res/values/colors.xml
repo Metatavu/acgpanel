@@ -12,6 +12,7 @@
 
     <color name="error">#FF0000</color>
     <color name="errorContrast">#FFFFFF</color>
+    <color name="brightAttention">#FF8080</color>
 
     <color name="black_overlay" tools:ignore="UnusedResources">#66000000</color>
 </resources>

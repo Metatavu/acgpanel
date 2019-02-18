@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.IBinder
@@ -54,8 +55,8 @@ private const val RESTART_INTERVAL_MS = 1000L
 private const val RESTART_MAX_TRIES = 10
 private const val READ_TIMEOUT_MS = 1000L
 private const val READ_TIMEOUT_MAX_FAILURES = 5
-private const val PING_INTERVAL_MS = 120L*1000L
-private const val MAX_BAD_PINGS = 3
+private const val PING_INTERVAL_MS = 5L*1000L
+private const val MAX_BAD_PINGS = 1
 
 abstract class MessageReader {
 
@@ -69,35 +70,39 @@ abstract class MessageReader {
         return lastByte
     }
 
-    fun readMessage(): Message? =
+    fun readMessage(): Message? {
         try {
             when (next()) {
                 0x00.toByte() -> {
                     while (available()) {
                         read()
                     }
-                    Pong()
+                    return Pong()
                 }
                 0x01.toByte() -> {
-                    next() // STX
+                    while (next() != 0x02.toByte()) {
+                        if (!available()) {
+                            return null
+                        }
+                    }
                     if (next() == 'O'.toByte()) {
                         if (next() == 'K'.toByte()) {
                             while (available()) {
                                 read()
                             }
-                            AssignShelfConfirmation()
+                            return AssignShelfConfirmation()
                         }
                         while (available()) {
                             read()
                         }
-                        null
+                        return null
                     } else {
                         val shelf = (lastByte - ZERO) * 10 + (next() - ZERO)
                         val code = String(byteArrayOf(next(), next(), next()), StandardCharsets.US_ASCII)
                         while (available()) {
                             read()
                         }
-                        when (code) {
+                        return when (code) {
                             "OKO" -> OpenLockConfirmation(shelf)
                             "RE\r" -> LockClosed(shelf)
                             "RS\r" -> ResetLockConfirmation(shelf)
@@ -114,7 +119,7 @@ abstract class MessageReader {
                     while (available()) {
                         read()
                     }
-                    ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
+                    return ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
                 }
                 0x03.toByte() -> {
                     val bytes = mutableListOf<Byte>()
@@ -125,14 +130,20 @@ abstract class MessageReader {
                     while (available()) {
                         bytes.add(next())
                     }
-                    ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
+                    return ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
                 }
-                else -> null
+                else -> {
+                    while (available()) {
+                        read()
+                    }
+                    return null
+                }
             }
         } catch (e: TimeoutException) {
-            null
+            return null
         }
     }
+}
 
 abstract class MessageWriter {
 
@@ -307,7 +318,8 @@ class McuCommunicationService : Service() {
                         }
                     }
                 }
-                if (lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
+                if (!model.locksOpen &&
+                    lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
                     Log.i(javaClass.name, "Pinging device...")
                     lastPing = Instant.now()
                     messageWriter.writeMessage(Ping())
@@ -402,6 +414,8 @@ class McuCommunicationService : Service() {
         val notification = Notification.Builder(this, channel.id)
             .setContentTitle(getString(R.string.mcu_communication_title))
             .setContentText(getString(R.string.mcu_communication_desc))
+            .setSmallIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setLargeIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
             .build()
         startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
         return Service.START_STICKY

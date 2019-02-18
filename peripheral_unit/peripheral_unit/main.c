@@ -172,9 +172,9 @@ void wieRead(void) {
   if (value == -1) {
     return;
   }
-  wieFlushTimer = 20*MS;
+  wieFlushTimer = 8*MS;
   if (source_timer <= 0) {
-    source_timer = 100*MS;
+    source_timer = 20*MS;
     cuCommWrite(TARGET_WIEGAND);
   }
   wieBuffer <<= 1;
@@ -234,6 +234,11 @@ ISR(USART2_RX_vect) {
 }
 
 ISR(USART1_RX_vect) {
+  uint8_t val = UDR1;
+  // filter out spurious non-ASCII chars
+  if (val >= 0x80) {
+    return;
+  }
   if (rs485_enable_timer > 0) {
     return;
   }
@@ -241,7 +246,7 @@ ISR(USART1_RX_vect) {
     source_timer = 100*MS;
     cuCommWrite(TARGET_BOX_DRIVER);
   }
-  cuCommWrite(UDR1);
+  cuCommWrite(val);
 }
 
 ISR(USART3_RX_vect) {

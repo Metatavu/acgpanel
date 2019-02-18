@@ -2,35 +2,43 @@ package fi.metatavu.acgpanel
 
 import android.app.Activity
 import android.app.ActivityManager
-import android.bluetooth.BluetoothClass
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
 import android.view.inputmethod.InputMethodManager
-import eu.chainfire.libsuperuser.Shell
 import fi.metatavu.acgpanel.model.PanelModelImpl
-
-private const val ANDROID_LAUNCHER = "com.android.launcher3"
+import java.time.Duration
 
 abstract class PanelActivity(private val lockOnStart: Boolean = false)
         : Activity() {
 
     protected val model = PanelModelImpl
 
-    private var lastUnlockClickTime = Long.MIN_VALUE
-    private var unlockClickCount = 0
-    private val maxUnlockClickDelay = 1000
-    private val unlockClicksRequired = 10
+    private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
+        val dialog = UnlockDialog(this, model.maintenancePasscode)
+        dialog.setFinishListener {
+            model.isMaintenanceMode = true
+            val activityManager = activityManager
+            @Suppress("DEPRECATION")
+            if (activityManager.isInLockTaskMode) {
+                stopLockTask()
+            }
+            finishAffinity()
+            val intent = Intent(this, AppDrawerActivity::class.java)
+            startActivity(intent)
+        }
+        dialog.show()
+    }
+
     private val onLogout = {
         if (this !is DefaultActivity) {
             finish()
         }
     }
+
     private val onDeviceError = { msg: String ->
         DeviceErrorDialog(this, msg, model).show()
     }
@@ -67,10 +75,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
 
     override fun onResume() {
         model.addDeviceErrorListener(onDeviceError)
-        if (model.isMaintenanceMode) {
-            Shell.SU.run(arrayOf("am", "kill", "all", "com.android.launcher3"))
-            model.isMaintenanceMode = false
-        }
+        model.isMaintenanceMode = false
         super.onResume()
     }
 
@@ -90,39 +95,8 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     }
 
     private fun initiateUnlock() {
-        val now = System.currentTimeMillis()
-        val lastTime = lastUnlockClickTime
-        lastUnlockClickTime = now
-        if (now - lastTime > maxUnlockClickDelay) {
-            unlockClickCount = 1
-            return
-        } else {
-            unlockClickCount++
-            if (unlockClickCount < unlockClicksRequired) {
-                return
-            }
-        }
-        val dialog = UnlockDialog(this, model.maintenancePasscode)
-        dialog.setFinishListener {
-            model.isMaintenanceMode = true
-            val activityManager = activityManager
-            @Suppress("DEPRECATION")
-            if (activityManager.isInLockTaskMode) {
-                stopLockTask()
-            }
-            finishAffinity()
-            val info = packageManager.getPackageInfo(ANDROID_LAUNCHER, PackageManager.GET_ACTIVITIES)
-            val activity = info.activities.firstOrNull()
-            if (activity != null) {
-                val name = ComponentName(activity.applicationInfo.packageName, activity.name)
-                val intent = Intent(Intent.ACTION_MAIN)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                intent.component = name
-                startActivity(intent)
-            }
-        }
-        dialog.show()
-   }
+        unlockTickCounter.tick()
+    }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         model.refresh()

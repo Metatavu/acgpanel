@@ -4,7 +4,9 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -22,6 +24,10 @@ class ProductSelectionActivity : PanelActivity() {
     private val logInListener = {
         not_logged_in_warning.visibility = View.INVISIBLE
         ok_button.isEnabled = true
+        expenditure_input.isEnabled = !model.lockUserExpenditure
+        expenditure_input.text = model.currentUser?.expenditure ?: ""
+        reference_input.isEnabled = !model.lockUserReference
+        reference_input.text = model.currentUser?.reference ?: ""
     }
 
     private val failedLoginListener = {
@@ -62,6 +68,20 @@ class ProductSelectionActivity : PanelActivity() {
             count_input.text.clear()
             count_input.transformationMethod = null
             count_input.text.clear()
+            count_input.addTextChangedListener(object: TextWatcher{
+                override fun afterTextChanged(s: Editable?) {
+                    val text = s?.toString()
+                    val value = text?.toIntOrNull()
+                    ok_button.isEnabled =
+                            model.loggedIn && (
+                                (value != null && value >= 1) ||
+                                text == "")
+                }
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                }
+            })
             if (basketItem.count != 1) {
                 count_input.text.insert(0, basketItem.count.toString())
             }

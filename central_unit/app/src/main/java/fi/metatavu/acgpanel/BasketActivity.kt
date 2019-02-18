@@ -37,7 +37,8 @@ class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productVi
                         context.getString(
                             R.string.basket_product_title,
                             item.product.name,
-                            item.count
+                            item.count,
+                            item.product.unit.trim()
                         )
             }
             product_description.text =
@@ -153,8 +154,10 @@ class BasketActivity : PanelActivity() {
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.openLock()
-        basketAccepted = true
+        if (!basketAccepted) {
+            model.acceptBasket()
+            basketAccepted = true
+        }
         cancel_button.isEnabled = false
         select_another_button.isEnabled = false
         val intent = Intent(this, TakeActivity::class.java)

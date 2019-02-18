@@ -2,6 +2,7 @@ package fi.metatavu.acgpanel
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.content.res.TypedArray
 import android.os.Bundle
 import android.os.Handler
@@ -27,7 +28,13 @@ import kotlinx.android.synthetic.main.activity_product_browser.*
 import kotlinx.coroutines.selects.select
 
 internal fun productPageView(context: Context): View {
-    return View.inflate(context, R.layout.view_product_page, null)!!
+    val dp = Resources.getSystem().displayMetrics.density
+    val view = View.inflate(context, R.layout.view_product_page, null)!!
+    view.layoutParams = RecyclerView.LayoutParams(
+        (930*dp).toInt(),
+        RecyclerView.LayoutParams.MATCH_PARENT
+    )
+    return view
 }
 
 const val PRODUCTS_PER_PAGE = 6
@@ -99,6 +106,7 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
             holder.populate(item) {}
         }
     }
+
 }
 
 class ProductBrowserActivity : PanelActivity() {
@@ -138,10 +146,8 @@ class ProductBrowserActivity : PanelActivity() {
                     adapter.submitList(model.productPages)
                 }
             }
-
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
             }
-
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
             }
         })

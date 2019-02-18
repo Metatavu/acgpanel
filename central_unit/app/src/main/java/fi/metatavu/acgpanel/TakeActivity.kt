@@ -7,7 +7,6 @@ import android.view.View
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.Interpolator
-import android.view.animation.LinearInterpolator
 import kotlinx.android.synthetic.main.activity_take.*
 
 class TakeActivity : PanelActivity() {
@@ -22,8 +21,8 @@ class TakeActivity : PanelActivity() {
     val onLockOpenListener = listener@{
         status_text.text = getString(
             R.string.complete_by_closing_door,
-            model.nextLockToOpen,
-            model.basket.size)
+            model.currentLock,
+            model.numLocks)
         handler.removeCallbacks(alarmCallback)
         handler.postDelayed(alarmCallback, ALARM_TIMEOUT)
         return@listener
@@ -74,7 +73,7 @@ class TakeActivity : PanelActivity() {
         get() = unlock_button
 
     companion object {
-        private val ALARM_TIMEOUT = 120L*1000L
+        private val ALARM_TIMEOUT = 80L*1000L
     }
 
 }

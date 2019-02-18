@@ -283,8 +283,97 @@ data class OpenLockAction(val shelf: Int, val compartment: Int, val reset: Boole
 data class AssignShelfAction(val shelf: Int): Action()
 
 private const val SESSION_TIMEOUT_MS = 5*60*1000L
+private const val LOCK_TIMEOUT_MS = 60L*1000L
+
+/*
+class ProductsModel(
+    val productDao: ProductDao
+) {
+
+    var productPages: List<ProductPage> = listOf()
+        private set
+
+    private fun syncProducts() {
+        if (demoMode) {
+            productDao.clearProducts()
+            val products = (1L..20L).map {
+                Product(it,
+                    it,
+                    "Tuote $it",
+                    "Kuvaus $it",
+                    "",
+                    "$it",
+                    "",
+                    "",
+                    "kpl",
+                    "1%02d".format((it-1)%12+1),
+                    "")
+            }
+            productDao.insertAll(*products.toTypedArray())
+        } else {
+            val products = giptoolService
+                .listProducts(vendingMachineId)
+                .execute()
+                .body()!!
+                .products
+                .map {
+                    Product(
+                        null,
+                        it.externalId!!,
+                        it.name?.trim() ?: "",
+                        it.description?.trim() ?: "",
+                        it.picture ?: "",
+                        it.code?.trim() ?: "",
+                        it.safetyCard ?: "",
+                        it.productInfo ?: "",
+                        it.unit ?: "",
+                        it.line?.trim() ?: "",
+                        it.barcode?.trim() ?: ""
+                    )
+                }
+                .toTypedArray()
+            // TODO delete removed
+            transaction {
+                productDao.insertAll(*products)
+            }
+        }
+    }
+
+    fun refreshProductPages(callback: () -> Unit) {
+        thread(start = true) {
+            unsafeRefreshProductPages()
+            schedule(Runnable {callback()}, 0)
+        }
+    }
+
+    private fun unsafeRefreshProductPages() {
+        productPages = if (searchTerm == "") {
+            val productCount = productDao.getProductCount()
+            (0 until productCount step 6).map {
+                ProductPage(productDao.getProductPage(it))
+            }
+        } else if (searchTerm.contains(Regex("\\D"))) {
+            val productCount = productDao.getProductCountSearchAlphabetic("%${searchTerm.toLowerCase()}%")
+            (0 until productCount step 6).map {
+                ProductPage(productDao.getProductPageSearchAlphabetic("%${searchTerm.toLowerCase()}%", it))
+            }
+        } else {
+            val productCount = productDao.getProductCountSearch(searchTerm)
+            (0 until productCount step 6).map {
+                ProductPage(productDao.getProductPageSearch(searchTerm, it))
+            }
+        }
+    }
+
+
+
+}
+
+*/
 
 abstract class PanelModel {
+
+    // TODO refactor to smaller units and delegate
 
     private sealed class SelectedBasketItem {
         class New(val product: Product) : SelectedBasketItem()
@@ -307,10 +396,12 @@ abstract class PanelModel {
     abstract val lockUserReference: Boolean
     abstract val maintenancePasscode: String
 
-    private val logoutTimerCallback: Runnable = Runnable {
+    private val logoutTimerCallback = Runnable {
         if (nextLockToOpen < 0 || nextLockToOpen > basket.size) {
             logOut()
         }
+    }
+    private val lockOpenTimerCallback = Runnable {
     }
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
@@ -325,11 +416,16 @@ abstract class PanelModel {
     var isMaintenanceMode = false
 
     var currentUser: User? = null
-    var nextLockToOpen = -1
+    private var nextLockToOpen = -1
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
     val basket: List<BasketItem>
         get() = mutableBasket
+    private val locksToOpen: MutableList<Pair<Int, Int>> = mutableListOf()
+    val currentLock
+        get() = nextLockToOpen
+    val numLocks
+        get() = locksToOpen.size
 
     init {
         thread(start = true) {
@@ -372,14 +468,25 @@ abstract class PanelModel {
                     .withReference(reference)
             }
             is SelectedBasketItem.New -> {
-                mutableBasket.add(
-                    BasketItem(
-                        item.product,
-                        count ?: 1,
-                        expenditure,
-                        reference
+                val existingIndex = mutableBasket.indexOfFirst {
+                    it.product.id == item.product.id &&
+                    it.expenditure == expenditure &&
+                    it.reference == reference
+                }
+                if (existingIndex >= 0) {
+                    val old = mutableBasket[existingIndex]
+                    mutableBasket[existingIndex] = old
+                        .withCount(old.count + (count ?: 1))
+                } else {
+                    mutableBasket.add(
+                        BasketItem(
+                            item.product,
+                            count ?: 1,
+                            expenditure,
+                            reference
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -474,7 +581,6 @@ abstract class PanelModel {
         lockOpenListeners.remove(listener)
     }
 
-
     fun nextAction(): Action? {
         return actionQueue.poll()
     }
@@ -535,6 +641,7 @@ abstract class PanelModel {
         currentUser = null
         selectedBasketItem = null
         searchTerm = ""
+        locksToOpen.clear()
         nextLockToOpen = -1
         mutableBasket.clear()
         refreshProductPages {  }
@@ -591,42 +698,49 @@ abstract class PanelModel {
     }
 
     fun openLock(first: Boolean = true) {
-        thread(start = true) {
-            if (first) {
-                nextLockToOpen = 0
-            } else {
-                if (nextLockToOpen == basket.size) {
-                    schedule(Runnable {
-                        completeProductTransaction {
-                            logOut()
-                            thread(start = true) {
-                                syncProductTransactions()
-                            }
-                        }
-                    }, 0)
-                }
-            }
-            val i = nextLockToOpen
-            if (i != -1 && i < basket.size) {
-                val item = basket[i]
-                unsafeOpenProductLock(item.product, reset = first)
+        if (first) {
+            nextLockToOpen = 0
+        } else {
+            if (nextLockToOpen >= locksToOpen.size) {
+                unSchedule(lockOpenTimerCallback)
                 schedule(Runnable {
-                    nextLockToOpen++
-                    for (listener in lockOpenListeners) {
-                        listener()
+                    completeProductTransaction {
+                        logOut()
+                        thread(start = true) {
+                            syncProductTransactions()
+                        }
                     }
                 }, 0)
             }
         }
+        val i = nextLockToOpen
+        if (i != -1 && i < locksToOpen.size) {
+            val (shelf, compartment) = locksToOpen[i]
+            unSchedule(lockOpenTimerCallback)
+            schedule(lockOpenTimerCallback, LOCK_TIMEOUT_MS)
+            openSpecificLock(shelf, compartment, reset = first)
+            schedule(Runnable {
+                nextLockToOpen++
+                for (listener in lockOpenListeners) {
+                    listener()
+                }
+            }, 0)
+        }
     }
 
-    var productPages: List<ProductPage> = listOf()
-        private set
+    val locksOpen: Boolean
+        get() = nextLockToOpen >= 0
 
-    fun refreshProductPages(callback: () -> Unit) {
+    fun acceptBasket() {
         thread(start = true) {
-            unsafeRefreshProductPages()
-            schedule(Runnable {callback()}, 0)
+            locksToOpen.clear()
+            for (item in basket) {
+                val pos = productPosition(item.product)
+                if (!locksToOpen.contains(pos)) {
+                    locksToOpen.add(pos)
+                }
+            }
+            openLock(first = true)
         }
     }
 
@@ -638,6 +752,16 @@ abstract class PanelModel {
                     listener(message)
                 }
             }, 0)
+        }
+    }
+
+    var productPages: List<ProductPage> = listOf()
+        private set
+
+    fun refreshProductPages(callback: () -> Unit) {
+        thread(start = true) {
+            unsafeRefreshProductPages()
+            schedule(Runnable {callback()}, 0)
         }
     }
 
