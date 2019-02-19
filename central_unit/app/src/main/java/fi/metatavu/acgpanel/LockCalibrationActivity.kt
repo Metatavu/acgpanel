@@ -41,7 +41,7 @@ class LockCalibrationActivity : Activity() {
                         "Ohjain $shelf/$numShelves\n" +
                                 "Luukku $compartment/12\n" +
                                 "\nSyötä auenneen luukun linjanumero. Jos mikään luukku ei" +
-                                " auennut, jätä kenttä tyhjäksi. Sulje luukku."
+                                " auennut, jätä kenttä tyhjäksi. Älä sulje vielä luukkua."
                     )
                     if (line != "") {
                         model.calibrationAssignLine(line, shelf, compartment)
@@ -49,7 +49,8 @@ class LockCalibrationActivity : Activity() {
                 }
             }
             prompt(
-                "Kalibrointi on valmis. Jos haluat liittää usean linjan samaan" +
+                "Kalibrointi on valmis. Voit nyt sulkea luukut." +
+                        " Jos haluat liittää usean linjan samaan" +
                         " luukkuun, aja kalibrointi uudestaan."
             )
             runOnUiThread { finish() }
@@ -94,5 +95,6 @@ class LockCalibrationActivity : Activity() {
         super.onPause()
         queue.clear()
         process?.interrupt()
+        finish()
     }
 }

@@ -6,6 +6,7 @@ import android.arch.persistence.room.Room
 import android.arch.persistence.room.RoomDatabase
 import android.arch.persistence.room.migration.Migration
 import android.content.SharedPreferences
+import android.database.Cursor
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
@@ -27,7 +28,7 @@ import java.time.Duration
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class
-], version = 4, exportSchema = false)
+], version = 5, exportSchema = false)
 abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao

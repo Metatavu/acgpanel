@@ -1,6 +1,7 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
+import android.database.Cursor
 import android.util.Log
 import retrofit2.Call
 import retrofit2.http.Body
@@ -18,7 +19,8 @@ data class User(
     var cardCode: String,
     var expenditure: String,
     var reference: String,
-    var canShelve: Boolean
+    var canShelve: Boolean,
+    var removed: Boolean
 )
 
 @Entity(indices = [Index(value=arrayOf("externalId", "line"), unique=true)])
@@ -33,7 +35,8 @@ data class Product(
     var productInfo: String,
     var unit: String,
     var line: String,
-    var barcode: String
+    var barcode: String,
+    var removed: Boolean
 )
 
 @Entity
@@ -166,25 +169,28 @@ interface GiptoolService {
 @Dao
 interface ProductDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(vararg products: Product)
+    @Query("UPDATE product SET removed = 1")
+    fun markAllRemoved()
 
-    @Query("SELECT * FROM product ORDER BY line LIMIT 6 OFFSET :offset")
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAll(vararg products: Product): List<Long>
+
+    @Query("SELECT * FROM product WHERE removed = 0 ORDER BY line LIMIT 6 OFFSET :offset")
     fun getProductPage(offset: Long): List<Product>
 
-    @Query("SELECT COUNT(*) FROM product")
+    @Query("SELECT COUNT(*) FROM product WHERE removed = 0")
     fun getProductCount(): Long
 
-    @Query("SELECT * FROM product WHERE code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm ORDER BY line LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product WHERE removed = 0 AND (code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm) ORDER BY line LIMIT 6 OFFSET :offset")
     fun getProductPageSearch(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT * FROM product WHERE LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm ORDER BY line LIMIT 6 OFFSET :offset")
+    @Query("SELECT * FROM product WHERE removed = 0 AND (LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm) ORDER BY line LIMIT 6 OFFSET :offset")
     fun getProductPageSearchAlphabetic(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT COUNT(*) FROM product WHERE code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm")
+    @Query("SELECT COUNT(*) FROM product WHERE removed = 0 AND (code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm)")
     fun getProductCountSearch(searchTerm: String): Long
 
-    @Query("SELECT COUNT(*) FROM product WHERE LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm")
+    @Query("SELECT COUNT(*) FROM product WHERE removed = 0 AND (LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm)")
     fun getProductCountSearchAlphabetic(searchTerm: String): Long
 
     @Query("SELECT * FROM product WHERE id=:id")
@@ -201,10 +207,13 @@ interface ProductDao {
 @Dao
 interface UserDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(vararg users: User)
+    @Query("UPDATE user SET removed = 1")
+    fun markAllRemoved()
 
-    @Query("SELECT * FROM user WHERE cardCode = :cardCode")
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAll(vararg users: User): List<Long>
+
+    @Query("SELECT * FROM user WHERE removed = 0 AND cardCode = :cardCode")
     fun findUserByCardCode(cardCode: String): User?
 
     @Query("DELETE FROM user")
@@ -286,9 +295,14 @@ private const val SESSION_TIMEOUT_MS = 5*60*1000L
 private const val LOCK_TIMEOUT_MS = 60L*1000L
 
 /*
-class ProductsModel(
-    val productDao: ProductDao
-) {
+abstract class ProductsModel() {
+    abstract val productDao: ProductDao
+    abstract val demoMode: Boolean
+    abstract val giptoolService: GiptoolService
+    abstract val vendingMachineId: String
+    abstract fun schedule(callback: Runnable, timeout: Long)
+    abstract fun transaction(tx: () -> Unit)
+    var searchTerm = ""
 
     var productPages: List<ProductPage> = listOf()
         private set
@@ -365,10 +379,7 @@ class ProductsModel(
         }
     }
 
-
-
 }
-
 */
 
 abstract class PanelModel {
@@ -798,7 +809,8 @@ abstract class PanelModel {
                     "",
                     "kpl",
                     "1%02d".format((it-1)%12+1),
-                    "")
+                    "",
+                    false)
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
@@ -819,12 +831,14 @@ abstract class PanelModel {
                         it.productInfo ?: "",
                         it.unit ?: "",
                         it.line?.trim() ?: "",
-                        it.barcode?.trim() ?: ""
+                        it.barcode?.trim() ?: "",
+                        false
                     )
                 }
                 .toTypedArray()
             // TODO delete removed
             transaction {
+                productDao.markAllRemoved()
                 productDao.insertAll(*products)
             }
         }
@@ -851,8 +865,8 @@ abstract class PanelModel {
         if (demoMode) {
             userDao.clearUsers()
             userDao.insertAll(
-                User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true),
-                User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000", "000", "000", false)
+                User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true, false),
+                User(2, "Teppo Testikäyttäjä", "4BA9ACED00000000", "000", "000", false, false)
             )
         } else {
             val body = giptoolService
@@ -867,12 +881,14 @@ abstract class PanelModel {
                         it.cardCode?.trim() ?: "",
                         it.expenditure?.trim() ?: "",
                         it.reference?.trim() ?: "",
-                        it.canShelve ?: false
+                        it.canShelve ?: false,
+                        false
                     )
                 }
                     .toTypedArray()
                 // TODO delete removed
                 transaction {
+                    userDao.markAllRemoved()
                     userDao.insertAll(*users)
                 }
             } else {

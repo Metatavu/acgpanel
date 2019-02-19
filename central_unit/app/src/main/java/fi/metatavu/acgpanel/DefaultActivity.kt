@@ -14,6 +14,8 @@ import fi.metatavu.acgpanel.device.McuCommunicationService
 import kotlinx.android.synthetic.main.activity_default.*
 import android.hardware.usb.UsbDevice
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.PowerManager
 import android.view.KeyEvent
@@ -103,6 +105,9 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     private val usbManager: UsbManager
         get() = getSystemService(Context.USB_SERVICE) as UsbManager
 
+    private val activityManager: ActivityManager
+        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+
     @SuppressLint("WakelockTimeout")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,6 +147,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onResume() {
         super.onResume()
         setupLogin()
+        killOthers()
     }
 
     private fun setupLogin() {
@@ -152,6 +158,15 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         model.addLogInListener(loginListener)
         model.removeFailedLogInListener(failedLoginListener)
         model.addFailedLogInListener(failedLoginListener)
+    }
+
+    private fun killOthers() {
+        val packages = packageManager.getInstalledApplications(0)
+        for (p in packages) {
+            if (!p.packageName.contains("fdroid")) {
+                activityManager.killBackgroundProcesses(p.packageName)
+            }
+        }
     }
 
     override fun onPause() {

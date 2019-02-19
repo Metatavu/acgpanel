@@ -9,7 +9,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.android.synthetic.main.activity_web_map.*
 
-class WebMapActivity : Activity() {
+class WebMapActivity : PanelActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,11 +19,9 @@ class WebMapActivity : Activity() {
             .getString(getString(R.string.pref_key_browser_credentials), "")
         webmap.loadUrl("http://tuotetiedot.metatavu.io/VendingMachineSearch/?$creds")
         webmap.webViewClient = object: WebViewClient() {
-
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 return false;
             }
-
             override fun onLoadResource(view: WebView?, url: String?) {
                 if (url?.contains(creds) != true) {
                     super.onLoadResource(view, "$url&$creds")
@@ -31,8 +29,10 @@ class WebMapActivity : Activity() {
                     super.onLoadResource(view, url)
                 }
             }
-
         }
     }
+
+    override val unlockButton: View
+        get() = unlock_button
 
 }

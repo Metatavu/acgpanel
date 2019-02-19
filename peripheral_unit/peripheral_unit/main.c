@@ -114,6 +114,14 @@ void wdtInit(void) {
   SREG = sreg;
 }
 
+typedef void (*Function)(void);
+
+void reset(void) {
+  Function bootloader;
+  bootloader = (Function)0x7E00;
+  bootloader();
+}
+
 void wieInit(void) {
 }
 
@@ -213,21 +221,31 @@ ISR(TIMER1_COMPA_vect)
 }
 
 ISR(USART2_RX_vect) {
+  uint8_t input = UDR2;
   if (target_timer <= 0) {
     target_timer = 100*MS;
-    target = UDR2;
+    target = input;
   } else {
     switch (target) {
       case 0:
-        cuCommWrite(UDR2);
+        {
+          switch (input) {
+            case 0:
+              cuCommWrite(0);
+              break;
+            case 1:
+              reset();
+              break;
+          }
+        }
         break;
       case TARGET_BOX_DRIVER:
         bdCommOutput();
-        bdCommWrite(UDR2);
+        bdCommWrite(input);
         rs485_enable_timer = 5*MS;
         break;
       case TARGET_CARD_READER:
-        crCommWrite(UDR2);
+        crCommWrite(input);
         break;
     }
   }
@@ -279,64 +297,10 @@ int16_t pass(void) {
   return 0; // PUT BREAKPOINT HERE
 }
 
-void testAsyncTimer(void) {
-  timerSet(1000);
-  if (timer_left == 0) {
-    failReason = "Timer zero after timerSet";
-    fail();
-  }
-  for (int i=0; i<1000; i++) {
-    PORTA = PINB; // prevent optimization
-  }
-  if (timer_left == 1000) {
-    failReason = "Timer not changed after wait";
-    fail();
-  }
-  timerSet(1);
-  for (int i=0; i<1000; i++) {
-    PORTA = PINB; // prevent optimization
-  }
-  if (timer_left != 0) {
-    failReason = "Short timer not finished after wait";
-    fail();
-  }
-}
-
-void testTimerFinished(void) {
-  timerSet(0);
-  if (!timerFinished()) {
-    failReason = "Timer not finished after setting to 0";
-    fail();
-  }
-  timerSet(10000);
-  if (timerFinished()) {
-    failReason = "Timer finished immediately after starting";
-    fail();
-  }
-}
-
-void testKeepalive(void) {
-  testOutputBufLoc = 0;
-  loop();
-  if (testOutputBufLoc != 1) {
-    failReason = "No keep-alive byte sent";
-    fail();
-  }
-  if (testOutputBuf[0] != '\0') {
-    failReason = "Wrong keep-alive byte sent";
-    fail();
-  }
-}
-
 int16_t main(void)
 {
-  init();
-  testAsyncTimer();
-  testTimerFinished();
-  testKeepalive();
   pass();
-  return 0;
-}
+}  
 
 #else // TEST
 
