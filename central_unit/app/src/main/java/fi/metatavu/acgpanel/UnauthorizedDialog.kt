@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Dialog
 import android.os.Bundle
 import android.view.Window
-import fi.metatavu.acgpanel.model.PanelModel
 import kotlinx.android.synthetic.main.dialog_unauthorized.*
 
 class UnauthorizedDialog(activity: Activity) : Dialog(activity) {

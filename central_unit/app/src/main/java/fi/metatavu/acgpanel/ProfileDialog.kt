@@ -4,10 +4,10 @@ import android.app.Activity
 import android.app.Dialog
 import android.os.Bundle
 import android.view.Window
-import fi.metatavu.acgpanel.model.PanelModel
+import fi.metatavu.acgpanel.model.LoginModel
 import kotlinx.android.synthetic.main.dialog_profile.*
 
-class ProfileDialog(activity: Activity, private val model: PanelModel) : Dialog(activity) {
+class ProfileDialog(activity: Activity, private val model: LoginModel) : Dialog(activity) {
 
     private var logoutListener : (() -> Unit)? = null
 

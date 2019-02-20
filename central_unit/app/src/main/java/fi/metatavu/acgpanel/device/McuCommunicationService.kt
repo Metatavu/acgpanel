@@ -13,18 +13,13 @@ import android.os.IBinder
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
 import fi.metatavu.acgpanel.R
-import fi.metatavu.acgpanel.model.AssignShelfAction
-import fi.metatavu.acgpanel.model.OpenLockAction
-import fi.metatavu.acgpanel.model.PanelModel
-import fi.metatavu.acgpanel.model.PanelModelImpl
+import fi.metatavu.acgpanel.model.*
 import java.lang.Exception
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import javax.xml.datatype.DatatypeConstants.HOURS
 import kotlin.concurrent.thread
 
 sealed class Message {
@@ -70,6 +65,13 @@ abstract class MessageReader {
         return lastByte
     }
 
+    private fun chomp() {
+        Thread.sleep(10)
+        while (available()) {
+            read()
+        }
+    }
+
     fun readMessage(): Message? {
         try {
             when (next()) {
@@ -87,21 +89,15 @@ abstract class MessageReader {
                     }
                     if (next() == 'O'.toByte()) {
                         if (next() == 'K'.toByte()) {
-                            while (available()) {
-                                read()
-                            }
+                            chomp()
                             return AssignShelfConfirmation()
                         }
-                        while (available()) {
-                            read()
-                        }
+                        chomp()
                         return null
                     } else {
                         val shelf = (lastByte - ZERO) * 10 + (next() - ZERO)
                         val code = String(byteArrayOf(next(), next(), next()), StandardCharsets.US_ASCII)
-                        while (available()) {
-                            read()
-                        }
+                        chomp()
                         return when (code) {
                             "OKO" -> OpenLockConfirmation(shelf)
                             "RE\r" -> LockClosed(shelf)
@@ -116,9 +112,7 @@ abstract class MessageReader {
                     while (next() != '='.toByte()) {
                         bytes.add(lastByte)
                     }
-                    while (available()) {
-                        read()
-                    }
+                    chomp()
                     return ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
                 }
                 0x03.toByte() -> {
@@ -206,6 +200,17 @@ abstract class MessageWriter {
 
 class DisconnectException : Exception("Device disconnected")
 
+sealed class Action {
+    data class LockOpen(
+        val shelf: Int,
+        val compartment: Int,
+        val reset: Boolean
+    ): Action()
+    data class AssignShelf(
+        val shelf: Int
+    ): Action()
+}
+
 const val MCU_COMMUNICATION_SERVICE_ID = 1
 
 class McuCommunicationService : Service() {
@@ -215,12 +220,22 @@ class McuCommunicationService : Service() {
     private val notificationManager: NotificationManager
         get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val model: PanelModel = PanelModelImpl
-    private var jobThread: Thread? = null
-    private var serial: UsbSerialDevice? = null
     private val inBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
     private val outBuffer = ArrayBlockingQueue<Byte>(BUFFER_SIZE)
+    private val lockModel = getLockModel()
+    private val maintenanceModel = getMaintenanceModel()
+    private val demoModel = getDemoModel()
+    private val loginModel = getLoginModel()
+    private var jobThread: Thread? = null
+    private var serial: UsbSerialDevice? = null
     private var readFailures = 0
+    private val actions = ArrayBlockingQueue<Action>(BUFFER_SIZE)
+    private val onLockOpenRequest: (LockOpenRequest) -> Unit = {
+        actions.add(Action.LockOpen(it.shelf, it.compartment, it.reset))
+    }
+    private val onAssignShelfRequest: (AssignShelfRequest) -> Unit = {
+        actions.add(Action.AssignShelf(it.shelf))
+    }
 
     private val messageReader = object : MessageReader() {
         override fun read(): Byte {
@@ -263,9 +278,9 @@ class McuCommunicationService : Service() {
     private fun process() {
         while (jobThread != null) {
             try {
-                val action = model.nextAction()
+                val action = actions.poll()
                 when (action) {
-                    is OpenLockAction -> {
+                    is Action.LockOpen -> {
                         if (action.reset) {
                             messageWriter.writeMessage(ResetLock(action.shelf))
                             var resetResp = messageReader.readMessage()
@@ -292,7 +307,7 @@ class McuCommunicationService : Service() {
                             }
                         }
                     }
-                    is AssignShelfAction -> {
+                    is Action.AssignShelf -> {
                         messageWriter.writeMessage(AssignShelf(action.shelf))
                         var resp = messageReader.readMessage()
                         if (resp !is AssignShelfConfirmation) {
@@ -308,17 +323,17 @@ class McuCommunicationService : Service() {
                     when (msg) {
                         is ReadCard -> {
                             Handler(mainLooper).post {
-                                model.logIn(msg.cardId, usingRfid = true)
+                                loginModel.logIn(msg.cardId, usingRfid = true)
                             }
                         }
                         is LockClosed -> {
                             Handler(mainLooper).postDelayed({
-                                model.openLock(first = false)
+                                lockModel.openLock(first = false)
                             }, 100)
                         }
                     }
                 }
-                if (!model.locksOpen &&
+                if (!lockModel.locksOpen &&
                     lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
                     Log.i(javaClass.name, "Pinging device...")
                     lastPing = Instant.now()
@@ -339,7 +354,7 @@ class McuCommunicationService : Service() {
                 Log.d(javaClass.name, "Timeout: $ex")
             } catch (ex: Exception) {
                 Log.e(javaClass.name, "Lock/RFID module communication error: $ex")
-                model.triggerDeviceError(ex.message ?: "")
+                maintenanceModel.triggerDeviceError(ex.message ?: "")
                 jobThread = null
                 serial!!.close()
             }
@@ -363,7 +378,7 @@ class McuCommunicationService : Service() {
             serial!!.read {
                 inBuffer.addAll(it.asIterable())
                 Log.d(javaClass.name, "Incoming: " +
-                        "${inBuffer.toByteArray().toString(StandardCharsets.ISO_8859_1)}")
+                        it.toString(StandardCharsets.ISO_8859_1))
             }
             jobThread = thread(start = true) { process() }
             return true
@@ -398,8 +413,8 @@ class McuCommunicationService : Service() {
                 } else {
                     Log.i(javaClass.name, "Restart failed, $numFailures/$RESTART_MAX_TRIES")
                     numFailures++
-                    if (numFailures > RESTART_MAX_TRIES && !model.demoMode) {
-                        model.triggerDeviceError("Couldn't connect to device")
+                    if (numFailures > RESTART_MAX_TRIES && !demoModel.demoMode) {
+                        maintenanceModel.triggerDeviceError("Couldn't connect to device")
                     }
                 }
             }
@@ -418,11 +433,15 @@ class McuCommunicationService : Service() {
             .setLargeIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
             .build()
         startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
+        lockModel.addLockOpenRequestListener(onLockOpenRequest)
+        lockModel.addAssignShelfRequestListener(onAssignShelfRequest)
         return Service.START_STICKY
     }
 
     override fun onDestroy() {
         stop()
+        lockModel.removeLockOpenRequestListener(onLockOpenRequest)
+        lockModel.removeAssignShelfRequestListener(onAssignShelfRequest)
         super.onDestroy()
     }
 

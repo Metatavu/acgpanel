@@ -1,12 +1,9 @@
 package fi.metatavu.acgpanel.model
 
-import android.arch.persistence.db.SupportSQLiteDatabase
-import android.arch.persistence.room.Database
+import android.arch.persistence.room.Database as RoomDatabase
 import android.arch.persistence.room.Room
-import android.arch.persistence.room.RoomDatabase
-import android.arch.persistence.room.migration.Migration
+import android.arch.persistence.room.RoomDatabase as RoomRoomDatabase
 import android.content.SharedPreferences
-import android.database.Cursor
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
@@ -18,9 +15,11 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.time.Duration
+import kotlin.concurrent.thread
 
-@Database(entities = [
+@RoomDatabase(entities = [
     User::class,
     Product::class,
     ProductTransaction::class,
@@ -29,7 +28,7 @@ import java.time.Duration
     SystemProperties::class,
     CompartmentMapping::class
 ], version = 5, exportSchema = false)
-abstract class AndroidPanelDatabase : RoomDatabase() {
+private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
     abstract fun productTransactionDao(): ProductTransactionDao
@@ -37,24 +36,46 @@ abstract class AndroidPanelDatabase : RoomDatabase() {
     abstract fun systemPropertiesDao(): SystemPropertiesDao
 }
 
-internal const val DATABASE_NAME = "acgpanel.db"
+private const val DATABASE_NAME = "acgpanel.db"
 
-object PanelModelImpl : PanelModel() {
+private object Database {
+
     private val db: AndroidPanelDatabase =
         Room.databaseBuilder(
             PanelApplication.instance,
             AndroidPanelDatabase::class.java,
             DATABASE_NAME
         )
-        .fallbackToDestructiveMigration()
-        .addMigrations(
-        )
-        .build()
+            .fallbackToDestructiveMigration()
+            .addMigrations(
+            )
+            .build()
 
-    override val giptoolService: GiptoolService
-            = Retrofit.Builder()
-            //http://ilmoeuro-local.metatavu.io:5001/api/
-        .baseUrl(serverAddress)
+    val productDao: ProductDao
+        get() = db.productDao()
+
+    val userDao: UserDao
+        get() = db.userDao()
+
+    val productTransactionDao: ProductTransactionDao
+        get() = db.productTransactionDao()
+
+    val logInAttemptDao: LogInAttemptDao
+        get() = db.logInAttemptDao()
+
+    val systemPropertiesDao: SystemPropertiesDao
+        get() = db.systemPropertiesDao()
+
+    fun transaction(tx: () -> Unit) {
+        db.runInTransaction(tx)
+    }
+
+}
+
+private object Services {
+
+    val giptoolService: GiptoolService = Retrofit.Builder()
+        .baseUrl(Preferences.serverAddress)
         .addConverterFactory(GsonConverterFactory.create())
         .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
         .client(
@@ -66,10 +87,12 @@ object PanelModelImpl : PanelModel() {
                     it.proceed(
                         it.request()
                             .newBuilder()
-                            .header("Authorization", Credentials.basic(
-                                vendingMachineId,
-                                password
-                            ))
+                            .header(
+                                "Authorization", Credentials.basic(
+                                    Preferences.vendingMachineId,
+                                    Preferences.password
+                                )
+                            )
                             .build()
                     )
                 }
@@ -78,20 +101,9 @@ object PanelModelImpl : PanelModel() {
         .build()
         .create(GiptoolService::class.java)
 
-    override val productDao: ProductDao
-        get() = db.productDao()
+}
 
-    override val userDao: UserDao
-        get() = db.userDao()
-
-    override val productTransactionDao: ProductTransactionDao
-        get() = db.productTransactionDao()
-
-    override val logInAttemptDao: LogInAttemptDao
-        get() = db.logInAttemptDao()
-
-    override val systemPropertiesDao: SystemPropertiesDao
-        get() = db.systemPropertiesDao()
+private object Preferences {
 
     private fun preferences(): SharedPreferences {
         return PreferenceManager
@@ -102,24 +114,24 @@ object PanelModelImpl : PanelModel() {
         return PanelApplication.instance.getString(resId)
     }
 
-    override val vendingMachineId: String
+    val vendingMachineId: String
         get() = preferences()
-                    .getString(getString(R.string.pref_key_vending_machine_id), "")
+            .getString(getString(R.string.pref_key_vending_machine_id), "")
 
-    override val password: String
+    val password: String
         get() = preferences()
             .getString(getString(R.string.pref_key_password), "")
 
-    override val demoMode: Boolean
+    val demoMode: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), false)
 
-    override val lockUserExpenditure: Boolean
+    val lockUserExpenditure: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_expenditure), false)
 
-    override val lockUserReference: Boolean
+    val lockUserReference: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_reference), false)
 
-    override val maintenancePasscode: String
+    val maintenancePasscode: String
         get() {
             val code = preferences().getString(getString(R.string.pref_key_maintenance_passcode), "")
             if (code != "") {
@@ -128,23 +140,233 @@ object PanelModelImpl : PanelModel() {
                 return "0000"
             }
         }
-    
-    private val serverAddress: String
+
+    val serverAddress: String
         get() = preferences()
             .getString(getString(R.string.pref_key_server_address), "")
+}
+
+private object PanelScheduling {
 
     private val handler = Handler(Looper.getMainLooper())
 
-    override fun schedule(callback: Runnable, timeout: Long) {
+    fun schedule(callback: Runnable, timeout: Long) {
         handler.postDelayed(callback, timeout)
     }
 
-    override fun unSchedule(callback: Runnable) {
+    fun unSchedule(callback: Runnable) {
         handler.removeCallbacks(callback)
     }
 
-    override fun transaction(tx: () -> Unit) {
-        db.runInTransaction(tx)
+}
+
+private object ProductsModelImpl: ProductsModel() {
+
+    override val productDao: ProductDao
+        get() = Database.productDao
+
+    override val demoMode: Boolean
+        get() = Preferences.demoMode
+
+    override val giptoolService: GiptoolService
+        get() = Services.giptoolService
+
+    override val vendingMachineId: String
+        get() = Preferences.vendingMachineId
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun transaction(tx: () -> Unit) =
+        Database.transaction(tx)
+
+}
+
+fun getProductsModel(): ProductsModel = ProductsModelImpl
+
+private object BasketModelImpl: BasketModel() {
+
+    override val productDao: ProductDao
+        get() = Database.productDao
+
+    override val productTransactionDao: ProductTransactionDao
+        get() = Database.productTransactionDao
+
+    override val giptoolService: GiptoolService
+        get() = Services.giptoolService
+
+    override val vendingMachineId: String
+        get() = Preferences.vendingMachineId
+
+    override val demoMode: Boolean
+        get() = Preferences.demoMode
+
+    override val lockUserExpenditure: Boolean
+        get() = Preferences.lockUserExpenditure
+
+    override val lockUserReference: Boolean
+        get() = Preferences.lockUserReference
+
+    override val currentUser: User?
+        get() = getLoginModel().currentUser
+
+    public override fun syncProductTransactions() {
+        super.syncProductTransactions()
+    }
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun transaction(tx: () -> Unit) =
+        Database.transaction(tx)
+
+    override fun acceptBasket() {
+        LockModelImpl.openLines(basket.map{it.product.line})
     }
 
 }
+
+fun getBasketModel(): BasketModel = BasketModelImpl
+
+private object LockModelImpl: LockModel() {
+
+    override val systemPropertiesDao: SystemPropertiesDao
+        get() = Database.systemPropertiesDao
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun unSchedule(callback: Runnable) =
+        PanelScheduling.unSchedule(callback)
+
+    override fun transaction(tx: () -> Unit) =
+        Database.transaction(tx)
+
+    override fun syncProductTransactions() {
+        BasketModelImpl.syncProductTransactions()
+    }
+
+    override fun logOut() {
+        LoginModelImpl.logOut()
+    }
+
+    override fun completeProductTransaction(callback: () -> Unit) {
+        BasketModelImpl.completeProductTransaction(callback)
+    }
+
+}
+
+fun getLockModel(): LockModel = LockModelImpl
+
+private object LoginModelImpl: LoginModel() {
+
+    override val userDao: UserDao
+        get() = Database.userDao
+
+    override val logInAttemptDao: LogInAttemptDao
+        get() = Database.logInAttemptDao
+
+    override val giptoolService: GiptoolService
+        get() = Services.giptoolService
+
+    override val vendingMachineId: String
+        get() = Preferences.vendingMachineId
+
+    override val demoMode: Boolean
+        get() = Preferences.demoMode
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun unSchedule(callback: Runnable) =
+        PanelScheduling.unSchedule(callback)
+
+    override fun transaction(tx: () -> Unit) =
+        Database.transaction(tx)
+
+    override fun isLocksOpen(): Boolean =
+        LockModelImpl.locksOpen
+
+    override fun clearLocks() {
+        LockModelImpl.clearLines()
+    }
+
+    override fun clearProductSearch() {
+        ProductsModelImpl.searchTerm = ""
+        ProductsModelImpl.refreshProductPages {  }
+    }
+
+    override fun clearBasket() {
+        BasketModelImpl.clearBasket()
+    }
+
+}
+
+fun getLoginModel(): LoginModel = LoginModelImpl
+
+private object DemoModelImpl: DemoModel() {
+
+    override val productDao: ProductDao
+        get() = Database.productDao
+
+    override val userDao: UserDao
+        get() = Database.userDao
+
+    override val productTransactionDao: ProductTransactionDao
+        get() = Database.productTransactionDao
+
+    override val logInAttemptDao: LogInAttemptDao
+        get() = Database.logInAttemptDao
+
+    override val systemPropertiesDao: SystemPropertiesDao
+        get() = Database.systemPropertiesDao
+
+    override val demoMode: Boolean
+        get() = Preferences.demoMode
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun unSchedule(callback: Runnable) =
+        PanelScheduling.unSchedule(callback)
+
+    override fun transaction(tx: () -> Unit) =
+        Database.transaction(tx)
+
+}
+
+fun getDemoModel(): DemoModel = DemoModelImpl
+
+private object MaintenanceModelImpl: MaintenanceModel() {
+
+    override val maintenancePasscode: String
+        get() = Preferences.maintenancePasscode
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+}
+
+fun getMaintenanceModel(): MaintenanceModel = MaintenanceModelImpl
+
+private object ServerSyncModelImpl: ServerSyncModel() {
+
+    override fun serverSync() {
+         thread(start=true) {
+            try {
+                DemoModelImpl.demoModeCleanup()
+                LoginModelImpl.syncUsers()
+                ProductsModelImpl.syncProducts()
+                BasketModelImpl.syncProductTransactions()
+                LoginModelImpl.syncLogInAttempts()
+            } catch (ex: IOException) {
+                // device offline, do nothing
+            } catch (ex: Exception) {
+                Log.e(javaClass.name, "Error while syncing to server: $ex")
+            }
+        }
+    }
+
+}
+
+fun getServerSyncModel(): ServerSyncModel = ServerSyncModelImpl

@@ -4,10 +4,10 @@ import android.app.Activity
 import android.app.Dialog
 import android.os.Bundle
 import android.view.Window
-import fi.metatavu.acgpanel.model.PanelModel
+import fi.metatavu.acgpanel.model.MaintenanceModel
 import kotlinx.android.synthetic.main.dialog_device_error.*
 
-class DeviceErrorDialog(activity: Activity, val message: String, val model: PanelModel) : Dialog(activity) {
+class DeviceErrorDialog(activity: Activity, val message: String, val model: MaintenanceModel) : Dialog(activity) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)

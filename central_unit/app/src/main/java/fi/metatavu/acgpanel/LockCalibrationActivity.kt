@@ -6,14 +6,13 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-import fi.metatavu.acgpanel.model.PanelModel
-import fi.metatavu.acgpanel.model.PanelModelImpl
+import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_lock_calibration.*
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 
 class LockCalibrationActivity : Activity() {
-    val model: PanelModel = PanelModelImpl
+    val model = getLockModel()
     val queue = LinkedBlockingQueue<String>(1)
     var process: Thread? = null
     lateinit var handler: Handler
@@ -97,4 +96,5 @@ class LockCalibrationActivity : Activity() {
         process?.interrupt()
         finish()
     }
+
 }

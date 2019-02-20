@@ -22,8 +22,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
-import fi.metatavu.acgpanel.model.Product
-import fi.metatavu.acgpanel.model.ProductPage
+import fi.metatavu.acgpanel.model.*
 import kotlinx.android.synthetic.main.activity_product_browser.*
 import kotlinx.coroutines.selects.select
 
@@ -111,10 +110,13 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
 
 class ProductBrowserActivity : PanelActivity() {
 
-    private val handler = Handler(Looper.getMainLooper())
+    private val loginModel = getLoginModel()
+    private val lockModel = getLockModel()
+    private val basketModel = getBasketModel()
+    private val productsModel = getProductsModel()
 
     private val logInListener = {
-        val user = model.currentUser
+        val user = loginModel.currentUser
         show_profile_button.visibility = View.VISIBLE
         show_profile_button.text = user?.userName ?: ""
         if (user?.canShelve ?: false) {
@@ -130,20 +132,20 @@ class ProductBrowserActivity : PanelActivity() {
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
-            if (model.currentUser?.canShelve ?: false) {
-                model.openProductLock(it)
+            if (loginModel.currentUser?.canShelve ?: false) {
+                lockModel.openLineLock(it.line)
             } else {
                 selectProduct(it)
             }
         }
         basket_items_view.adapter = adapter
-        adapter.submitList(model.productPages)
+        adapter.submitList(productsModel.productPages)
         // TODO throttle/debounce
         search_box.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                model.searchTerm = s.toString()
-                model.refreshProductPages {
-                    adapter.submitList(model.productPages)
+                productsModel.searchTerm = s.toString()
+                productsModel.refreshProductPages {
+                    adapter.submitList(productsModel.productPages)
                 }
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -152,17 +154,17 @@ class ProductBrowserActivity : PanelActivity() {
             }
         })
         search_box.setOnKeyListener { _, _, keyEvent ->
-            val productPage = model.productPages.firstOrNull()
+            val productPage = productsModel.productPages.firstOrNull()
             val product = productPage?.products?.firstOrNull()
             if (keyEvent.action == KeyEvent.ACTION_UP
                     && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
                     && product != null) {
-                if (model.currentUser?.canShelve ?: false) {
-                    model.openProductLock(product)
+                if (loginModel.currentUser?.canShelve ?: false) {
+                    lockModel.openLineLock(product.line)
                     search_box.text.clear()
-                    model.searchTerm = ""
-                    model.refreshProductPages {
-                        adapter.submitList(model.productPages)
+                    productsModel.searchTerm = ""
+                    productsModel.refreshProductPages {
+                        adapter.submitList(productsModel.productPages)
                     }
                     true
                 } else {
@@ -176,7 +178,7 @@ class ProductBrowserActivity : PanelActivity() {
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(basket_items_view)
         basket_items_view.addItemDecoration(LinePagerIndicatorDecoration())
-        val user = model.currentUser
+        val user = loginModel.currentUser
         if (user != null) {
             show_profile_button.visibility = View.VISIBLE
             show_profile_button.text = user.userName
@@ -189,20 +191,20 @@ class ProductBrowserActivity : PanelActivity() {
         } else {
             show_profile_button.visibility = View.INVISIBLE
         }
-        model.addLogInListener(logInListener)
+        loginModel.addLogInListener(logInListener)
     }
 
     override fun onDestroy() {
-        model.removeLogInListener(logInListener)
+        loginModel.removeLogInListener(logInListener)
         super.onDestroy()
     }
 
     private fun selectProduct(it: Product) {
-        model.selectNewBasketItem(it)
+        basketModel.selectNewBasketItem(it)
         val intent = Intent(this, ProductSelectionActivity::class.java)
         Handler(mainLooper).postDelayed({
             search_box.text.clear()
-            model.searchTerm = ""
+            productsModel.searchTerm = ""
         }, 50)
         startActivity(intent)
     }
@@ -210,10 +212,10 @@ class ProductBrowserActivity : PanelActivity() {
     override fun onBackPressed() {
         if (search_box.text.isNotEmpty()) {
             search_box.text.clear()
-            model.searchTerm = ""
+            productsModel.searchTerm = ""
             search_box.requestFocus()
         } else {
-            model.logOut()
+            loginModel.logOut()
             super.onBackPressed()
         }
     }
@@ -239,8 +241,8 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     fun menu(@Suppress("UNUSED_PARAMETER") target: View) {
-        model.searchTerm = ""
-        model.refreshProductPages {  }
+        productsModel.searchTerm = ""
+        productsModel.refreshProductPages {  }
         val intent = Intent(this, MenuActivity::class.java)
         finish()
         startActivity(intent)
@@ -259,9 +261,9 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     fun showProfileDialog(@Suppress("UNUSED_PARAMETER") target: View) {
-        val dialog = ProfileDialog(this, model)
+        val dialog = ProfileDialog(this, loginModel)
         dialog.setLogoutListener {
-            model.logOut()
+            loginModel.logOut()
         }
         dialog.show()
     }

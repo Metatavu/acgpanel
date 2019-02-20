@@ -9,7 +9,7 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.util.Log
-import fi.metatavu.acgpanel.model.PanelModelImpl
+import fi.metatavu.acgpanel.model.getServerSyncModel
 import kotlin.concurrent.thread
 
 const val SERVER_SYNC_SERVICE_ID = 2
@@ -19,7 +19,7 @@ class ServerSyncService : Service() {
     private val notificationManager: NotificationManager
         get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val model = PanelModelImpl
+    private val model = getServerSyncModel()
 
     private var running = false
     private var runningThread: Thread? = null

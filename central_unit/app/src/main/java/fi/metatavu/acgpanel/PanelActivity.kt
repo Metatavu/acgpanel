@@ -9,18 +9,20 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
 import android.view.inputmethod.InputMethodManager
-import fi.metatavu.acgpanel.model.PanelModelImpl
+import fi.metatavu.acgpanel.model.getLoginModel
+import fi.metatavu.acgpanel.model.getMaintenanceModel
 import java.time.Duration
 
 abstract class PanelActivity(private val lockOnStart: Boolean = false)
         : Activity() {
 
-    protected val model = PanelModelImpl
+    private val maintenanceModel = getMaintenanceModel()
+    private val loginModel = getLoginModel()
 
     private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
-        val dialog = UnlockDialog(this, model.maintenancePasscode)
+        val dialog = UnlockDialog(this, maintenanceModel.maintenancePasscode)
         dialog.setFinishListener {
-            model.isMaintenanceMode = true
+            maintenanceModel.isMaintenanceMode = true
             val activityManager = activityManager
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {
@@ -40,7 +42,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     }
 
     private val onDeviceError = { msg: String ->
-        DeviceErrorDialog(this, msg, model).show()
+        DeviceErrorDialog(this, msg, maintenanceModel).show()
     }
 
     private val activityManager: ActivityManager
@@ -65,22 +67,22 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
             }
         }
         unlockButton.setOnClickListener { initiateUnlock(); }
-        model.addLogOutListener(onLogout)
+        loginModel.addLogOutListener(onLogout)
     }
 
     override fun onDestroy() {
-        model.removeLogOutListener(onLogout)
+        loginModel.removeLogOutListener(onLogout)
         super.onDestroy()
     }
 
     override fun onResume() {
-        model.addDeviceErrorListener(onDeviceError)
-        model.isMaintenanceMode = false
+        maintenanceModel.addDeviceErrorListener(onDeviceError)
+        maintenanceModel.isMaintenanceMode = false
         super.onResume()
     }
 
     override fun onPause() {
-        model.removeDeviceErrorListener(onDeviceError)
+        maintenanceModel.removeDeviceErrorListener(onDeviceError)
         super.onPause()
     }
 
@@ -99,12 +101,12 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        model.refresh()
+        loginModel.refresh()
         return super.dispatchTouchEvent(ev)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        model.refresh()
+        loginModel.refresh()
         return super.dispatchKeyEvent(event)
     }
 

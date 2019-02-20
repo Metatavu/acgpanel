@@ -5,11 +5,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.view.KeyEvent
 import android.view.View
+import fi.metatavu.acgpanel.model.getDemoModel
+import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_identify.*
 
 class IdentifyActivity : PanelActivity() {
 
     private var locked: Boolean = false
+    private val loginModel = getLoginModel()
+    private val demoModel = getDemoModel()
 
     private val onLogIn = onLogIn@{
         if (locked) {
@@ -18,7 +22,7 @@ class IdentifyActivity : PanelActivity() {
         locked = true
         greeting_text.text = getString(
             R.string.userGreeting,
-            model.currentUser?.userName
+            loginModel.currentUser?.userName
         )
 
         greeting.alpha = 0f
@@ -29,7 +33,7 @@ class IdentifyActivity : PanelActivity() {
             .setListener(null)
 
         Handler().postDelayed({
-            model.canLogInViaRfid = false
+            loginModel.canLogInViaRfid = false
             locked = false
             finish()
 
@@ -45,16 +49,16 @@ class IdentifyActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identify)
-        model.canLogInViaRfid = true
-        model.addLogInListener(onLogIn)
-        model.addFailedLogInListener(failedLoginListener)
+        loginModel.canLogInViaRfid = true
+        loginModel.addLogInListener(onLogIn)
+        loginModel.addFailedLogInListener(failedLoginListener)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        model.canLogInViaRfid = false
-        model.removeFailedLogInListener(failedLoginListener)
-        model.removeLogInListener(onLogIn)
+        loginModel.canLogInViaRfid = false
+        loginModel.removeFailedLogInListener(failedLoginListener)
+        loginModel.removeLogInListener(onLogIn)
     }
 
     fun browse(@Suppress("UNUSED_PARAMETER") view: View) {
@@ -64,8 +68,8 @@ class IdentifyActivity : PanelActivity() {
     }
 
     fun onIdentify(@Suppress("UNUSED_PARAMETER") view: View) {
-        if (model.demoMode) {
-            model.logIn("123456789012345")
+        if (demoModel.demoMode) {
+            loginModel.logIn("123456789012345")
         }
     }
 

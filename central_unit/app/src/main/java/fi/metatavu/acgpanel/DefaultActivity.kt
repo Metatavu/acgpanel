@@ -19,9 +19,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.PowerManager
 import android.view.KeyEvent
+import fi.metatavu.acgpanel.model.getLoginModel
 import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {
+
+    private val loginModel = getLoginModel()
 
     private val rebootTickCounter = TimedTickCounter(3, Duration.ofSeconds(1)) {
         powerManager.reboot("")
@@ -128,8 +131,8 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     }
 
     override fun onDestroy() {
-        model.removeLogInListener(loginListener)
-        model.removeFailedLogInListener(failedLoginListener)
+        loginModel.removeLogInListener(loginListener)
+        loginModel.removeFailedLogInListener(failedLoginListener)
         super.onDestroy()
     }
 
@@ -151,13 +154,13 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     }
 
     private fun setupLogin() {
-        model.logOut()
-        model.canLogInViaRfid = true
+        loginModel.logOut()
+        loginModel.canLogInViaRfid = true
         // allow instant login for better usability
-        model.removeLogInListener(loginListener)
-        model.addLogInListener(loginListener)
-        model.removeFailedLogInListener(failedLoginListener)
-        model.addFailedLogInListener(failedLoginListener)
+        loginModel.removeLogInListener(loginListener)
+        loginModel.addLogInListener(loginListener)
+        loginModel.removeFailedLogInListener(failedLoginListener)
+        loginModel.addFailedLogInListener(failedLoginListener)
     }
 
     private fun killOthers() {
@@ -170,9 +173,9 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     }
 
     override fun onPause() {
-        model.removeLogInListener(loginListener)
-        model.removeFailedLogInListener(failedLoginListener)
-        model.canLogInViaRfid = false
+        loginModel.removeLogInListener(loginListener)
+        loginModel.removeFailedLogInListener(failedLoginListener)
+        loginModel.canLogInViaRfid = false
         super.onPause()
     }
 

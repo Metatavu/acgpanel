@@ -10,6 +10,7 @@ import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
+import fi.metatavu.acgpanel.model.getBasketModel
 import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
 
@@ -97,20 +98,21 @@ class BasketActivity : PanelActivity() {
 
     private var basketAccepted = false
     private val adapter = BasketAdapter()
+    private val basketModel = getBasketModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_basket)
         updateNumProducts()
         basket_items_view.adapter = adapter
-        adapter.submitList(model.basket)
+        adapter.submitList(basketModel.basket)
         adapter.setDeleteClickListener {
-            model.deleteBasketItem(it)
+            basketModel.deleteBasketItem(it)
             updateNumProducts()
             adapter.notifyDataSetChanged()
         }
         adapter.setModifyClickListener {
-            model.selectExistingBasketItem(it)
+            basketModel.selectExistingBasketItem(it)
             val intent = Intent(this, ProductSelectionActivity::class.java)
             startActivity(intent)
         }
@@ -129,12 +131,12 @@ class BasketActivity : PanelActivity() {
     private fun updateNumProducts() {
         num_products_label.text = getString(
             R.string.num_products,
-            model.basket.size
+            basketModel.basket.size
         )
         if (basketAccepted) {
             ok_button.isEnabled = true
         } else {
-            ok_button.isEnabled = model.basket.isNotEmpty()
+            ok_button.isEnabled = basketModel.basket.isNotEmpty()
         }
     }
 
@@ -145,7 +147,7 @@ class BasketActivity : PanelActivity() {
     }
 
     fun cancel(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.clearBasket()
+        basketModel.clearBasket()
         finish()
     }
 
@@ -155,7 +157,7 @@ class BasketActivity : PanelActivity() {
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketAccepted) {
-            model.acceptBasket()
+            basketModel.acceptBasket()
             basketAccepted = true
         }
         cancel_button.isEnabled = false

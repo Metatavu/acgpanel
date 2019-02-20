@@ -7,9 +7,16 @@ import android.view.View
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.Interpolator
+import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
+import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_take.*
 
 class TakeActivity : PanelActivity() {
+
+    private val lockModel = getLockModel()
+    private val basketModel = getBasketModel()
+    private val loginModel = getLoginModel()
 
     val alarmCallback = Runnable {
         alarm_overlay_back.visibility = View.VISIBLE
@@ -18,11 +25,11 @@ class TakeActivity : PanelActivity() {
 
     var handler = Handler(Looper.getMainLooper())
 
-    val onLockOpenListener = listener@{
+    val onLockOpenedListener = listener@{
         status_text.text = getString(
             R.string.complete_by_closing_door,
-            model.currentLock,
-            model.numLocks)
+            lockModel.currentLock,
+            lockModel.numLocks)
         handler.removeCallbacks(alarmCallback)
         handler.postDelayed(alarmCallback, ALARM_TIMEOUT)
         return@listener
@@ -31,7 +38,7 @@ class TakeActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_take)
-        onLockOpenListener()
+        onLockOpenedListener()
     }
 
     override fun onStart() {
@@ -49,19 +56,19 @@ class TakeActivity : PanelActivity() {
 
     override fun onResume() {
         super.onResume()
-        model.addLockOpenListener(onLockOpenListener)
+        lockModel.addLockOpenedListener(onLockOpenedListener)
         handler.postDelayed(alarmCallback, ALARM_TIMEOUT)
     }
 
     override fun onPause() {
         handler.removeCallbacks(alarmCallback)
-        model.removeLockOpenListener(onLockOpenListener)
+        lockModel.removeLockOpenedListener(onLockOpenedListener)
         super.onPause()
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.completeProductTransaction {
-            model.logOut()
+        basketModel.completeProductTransaction {
+            loginModel.logOut()
         }
     }
 

@@ -12,9 +12,15 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
+import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
 
 class ProductSelectionActivity : PanelActivity() {
+
+    private val basketModel = getBasketModel()
+    private val loginModel = getLoginModel()
+
     override val unlockButton: Button
         get() = unlock_button
 
@@ -24,10 +30,10 @@ class ProductSelectionActivity : PanelActivity() {
     private val logInListener = {
         not_logged_in_warning.visibility = View.INVISIBLE
         ok_button.isEnabled = true
-        expenditure_input.isEnabled = !model.lockUserExpenditure
-        expenditure_input.text = model.currentUser?.expenditure ?: ""
-        reference_input.isEnabled = !model.lockUserReference
-        reference_input.text = model.currentUser?.reference ?: ""
+        expenditure_input.isEnabled = !basketModel.lockUserExpenditure
+        expenditure_input.text = loginModel.currentUser?.expenditure ?: ""
+        reference_input.isEnabled = !basketModel.lockUserReference
+        reference_input.text = loginModel.currentUser?.reference ?: ""
     }
 
     private val failedLoginListener = {
@@ -37,23 +43,23 @@ class ProductSelectionActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_selection)
-        if (model.loggedIn) {
+        if (loginModel.loggedIn) {
             not_logged_in_warning.visibility = View.INVISIBLE
         } else {
             not_logged_in_warning.visibility = View.VISIBLE
         }
-        model.addLogInListener(logInListener)
-        model.addFailedLogInListener(failedLoginListener)
+        loginModel.addLogInListener(logInListener)
+        loginModel.addFailedLogInListener(failedLoginListener)
         count_input.setOnKeyListener { view, _, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_UP &&
                     keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                if (model.loggedIn) {
+                if (loginModel.loggedIn) {
                     proceed(view)
                 }
             }
             false
         }
-        val basketItem = model.currentBasketItem
+        val basketItem = basketModel.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
             if (product.safetyCard != "") {
@@ -73,7 +79,7 @@ class ProductSelectionActivity : PanelActivity() {
                     val text = s?.toString()
                     val value = text?.toIntOrNull()
                     ok_button.isEnabled =
-                            model.loggedIn && (
+                            loginModel.loggedIn && (
                                 (value != null && value >= 1) ||
                                 text == "")
                 }
@@ -86,31 +92,31 @@ class ProductSelectionActivity : PanelActivity() {
                 count_input.text.insert(0, basketItem.count.toString())
             }
             count_units.text = product.unit
-            expenditure_input.isEnabled = !model.lockUserExpenditure
+            expenditure_input.isEnabled = !basketModel.lockUserExpenditure
             expenditure_input.text = basketItem.expenditure
-            reference_input.isEnabled = !model.lockUserReference
+            reference_input.isEnabled = !basketModel.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
         }
-        if (!model.loggedIn) {
+        if (!loginModel.loggedIn) {
             ok_button.isEnabled = false
         }
     }
 
     override fun onDestroy() {
-        model.removeFailedLogInListener(failedLoginListener)
-        model.removeLogInListener(logInListener)
+        loginModel.removeFailedLogInListener(failedLoginListener)
+        loginModel.removeLogInListener(logInListener)
         super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
         count_input.requestFocus()
-        model.canLogInViaRfid = true
+        loginModel.canLogInViaRfid = true
     }
 
     override fun onPause() {
-        model.canLogInViaRfid = false
+        loginModel.canLogInViaRfid = false
         super.onPause()
     }
 
@@ -149,7 +155,7 @@ class ProductSelectionActivity : PanelActivity() {
 
     @Suppress("UNUSED")
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
-        if (!model.lockUserExpenditure) {
+        if (!basketModel.lockUserExpenditure) {
             showEditDialog(getString(R.string.input_expenditure)) {
                 expenditure_input.text = it
             }
@@ -158,7 +164,7 @@ class ProductSelectionActivity : PanelActivity() {
 
     @Suppress("UNUSED")
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
-        if (!model.lockUserReference) {
+        if (!basketModel.lockUserReference) {
             showEditDialog(getString(R.string.input_reference)) {
                 reference_input.text = it
             }
@@ -166,7 +172,7 @@ class ProductSelectionActivity : PanelActivity() {
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
-        model.saveSelectedItem(
+        basketModel.saveSelectedItem(
             count_input.text.toString().toIntOrNull(),
             expenditure_input.text.toString(),
             reference_input.text.toString()

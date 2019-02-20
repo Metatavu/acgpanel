@@ -2,6 +2,7 @@ package fi.metatavu.acgpanel
 
 import android.os.Bundle
 import android.view.View
+import fi.metatavu.acgpanel.model.getBasketModel
 import kotlinx.android.synthetic.main.activity_product_details.*
 
 class ProductDetailsActivity : PanelActivity() {
@@ -11,7 +12,7 @@ class ProductDetailsActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_details)
-        val product = model.currentBasketItem?.product
+        val product = getBasketModel().currentBasketItem?.product
         if (product != null) {
             product_safety_card.url = "$PRODUCT_IMAGE_PREFIX/UserAssets/${product.safetyCard}"
         }
