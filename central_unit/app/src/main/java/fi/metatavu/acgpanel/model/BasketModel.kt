@@ -181,6 +181,10 @@ abstract class BasketModel {
         mutableBasket.removeAt(index)
     }
 
+    fun removeZeroCountItems() {
+        mutableBasket.removeIf { it.count < 1 }
+    }
+
     fun clearBasket() {
         mutableBasket.clear()
     }

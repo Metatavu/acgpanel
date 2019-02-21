@@ -69,4 +69,6 @@
     <string name="pref_title_browser_credentials">Selaimen tunnukset</string>
     <string name="pref_key_enable_browser">enable_browser</string>
     <string name="pref_title_enable_browser">Käytä karttaselainta</string>
+    <string name="quick_pick">Pikaotto</string>
+    <string name="count">Määrä</string>
 </resources>

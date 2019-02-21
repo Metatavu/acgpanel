@@ -73,7 +73,6 @@ class ProductSelectionActivity : PanelActivity() {
                                        "Kuvaus:\n${product.productInfo}"
             count_input.text.clear()
             count_input.transformationMethod = null
-            count_input.text.clear()
             count_input.addTextChangedListener(object: TextWatcher{
                 override fun afterTextChanged(s: Editable?) {
                     val text = s?.toString()
@@ -118,39 +117,6 @@ class ProductSelectionActivity : PanelActivity() {
     override fun onPause() {
         loginModel.canLogInViaRfid = false
         super.onPause()
-    }
-
-    private fun showEditDialog(title: String, onConfirm: (String) -> Unit) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle(title)
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        builder.setView(input)
-        builder.setPositiveButton(R.string.ok) { dialog, _ ->
-            onConfirm(input.text.toString())
-            inputMethodManager.hideSoftInputFromWindow(
-                window.decorView.windowToken,
-                InputMethodManager.HIDE_NOT_ALWAYS
-            )
-            dialog.dismiss()
-        }
-        builder.setNegativeButton(R.string.cancel) { dialog, _ ->
-            dialog.cancel()
-        }
-        val dialog = builder.create()
-        input.setOnKeyListener { _, _, keyEvent ->
-            if (keyEvent.action == KeyEvent.ACTION_UP) {
-                if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).callOnClick()
-                }
-                if (keyEvent.keyCode == KeyEvent.KEYCODE_ESCAPE) {
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick()
-                }
-            }
-            false
-        }
-        dialog.show()
-
     }
 
     @Suppress("UNUSED")

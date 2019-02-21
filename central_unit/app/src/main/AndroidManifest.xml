@@ -71,6 +71,9 @@
             android:launchMode="singleTask" />
         <activity android:name=".WebMapActivity"
             android:launchMode="singleTask"/>
+        <activity android:name=".QuickPickActivity"
+            android:windowSoftInputMode="stateHidden"
+            android:launchMode="singleTask"/>
 
         <service
             android:name=".device.McuCommunicationService"

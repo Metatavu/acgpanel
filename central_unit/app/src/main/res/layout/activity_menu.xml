@@ -20,6 +20,7 @@
         />
 
     <Button
+        android:id="@+id/browse_products_button"
         android:onClick="browseProducts"
         android:layout_width="400dp"
         android:layout_height="200dp"
@@ -28,28 +29,32 @@
         android:textSize="40dp"
         android:textStyle="bold"
         android:padding="50dp"
-        android:background="@color/lightBackground"
+        android:background="@drawable/bg_lighter"
         android:layout_gravity="center"
         android:layout_marginRight="210dp"
         android:layout_marginBottom="110dp"
+        android:elevation="8dp"
         />
 
     <Button
-        android:onClick="notImplemented"
+        android:id="@+id/quick_pick_button"
+        android:onClick="quickPick"
         android:layout_width="400dp"
         android:layout_height="200dp"
-        android:text="@string/orders"
+        android:text="@string/quick_pick"
         android:textAllCaps="false"
         android:textSize="40dp"
         android:textStyle="bold"
         android:padding="50dp"
-        android:background="@color/lightBackground"
+        android:background="@drawable/bg_lighter"
         android:layout_gravity="center"
         android:layout_marginLeft="210dp"
         android:layout_marginBottom="110dp"
+        android:elevation="8dp"
         />
 
     <Button
+        android:id="@+id/support_button"
         android:onClick="notImplemented"
         android:layout_width="400dp"
         android:layout_height="200dp"
@@ -58,13 +63,15 @@
         android:textSize="40dp"
         android:textStyle="bold"
         android:padding="50dp"
-        android:background="@color/lightBackground"
+        android:background="@drawable/bg_lighter"
         android:layout_gravity="center"
         android:layout_marginRight="210dp"
         android:layout_marginTop="110dp"
+        android:elevation="8dp"
         />
 
     <Button
+        android:id="@+id/layout_button"
         android:onClick="browseMap"
         android:layout_width="400dp"
         android:layout_height="200dp"
@@ -73,10 +80,11 @@
         android:textSize="40dp"
         android:textStyle="bold"
         android:padding="50dp"
-        android:background="@color/lightBackground"
+        android:background="@drawable/bg_lighter"
         android:layout_gravity="center"
         android:layout_marginLeft="210dp"
         android:layout_marginTop="110dp"
+        android:elevation="8dp"
         />
 
     <Button

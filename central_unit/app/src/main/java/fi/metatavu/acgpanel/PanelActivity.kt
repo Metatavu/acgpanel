@@ -2,13 +2,18 @@ package fi.metatavu.acgpanel
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.*
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getMaintenanceModel
 import java.time.Duration
@@ -18,6 +23,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
 
     private val maintenanceModel = getMaintenanceModel()
     private val loginModel = getLoginModel()
+    private val handler = Handler(Looper.getMainLooper())
 
     private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
         val dialog = UnlockDialog(this, maintenanceModel.maintenancePasscode)
@@ -108,6 +114,41 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         loginModel.refresh()
         return super.dispatchKeyEvent(event)
+    }
+
+    protected fun showEditDialog(title: String, onConfirm: (String) -> Unit) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(title)
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        builder.setView(input)
+        builder.setPositiveButton(R.string.ok) { dialog, _ ->
+            onConfirm(input.text.toString())
+            handler.postDelayed({
+                inputMethodManager.hideSoftInputFromWindow(
+                    window.decorView.windowToken,
+                    InputMethodManager.HIDE_NOT_ALWAYS
+                )
+            }, 50)
+            dialog.dismiss()
+        }
+        builder.setNegativeButton(R.string.cancel) { dialog, _ ->
+            dialog.cancel()
+        }
+        val dialog = builder.create()
+        input.setOnKeyListener { _, _, keyEvent ->
+            if (keyEvent.action == KeyEvent.ACTION_UP) {
+                if (keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).callOnClick()
+                }
+                if (keyEvent.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick()
+                }
+            }
+            false
+        }
+        dialog.show()
+
     }
 
     abstract val unlockButton : View

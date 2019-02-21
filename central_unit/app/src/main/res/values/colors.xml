@@ -7,12 +7,18 @@
     <color name="colorAccent">#0064A1</color>
     <color name="colorPrimaryLight">#DDF1FE</color>
 
+    <color name="lightZebraStripe1">#DDF1FE</color>
+    <color name="lightZebraStripe2">#FFFFFF</color>
+
     <color name="lightText">#FFFFFF</color>
     <color name="lightBackground">#FFFFFF</color>
 
     <color name="error">#FF0000</color>
     <color name="errorContrast">#FFFFFF</color>
     <color name="brightAttention">#FF8080</color>
+
+    <color name="highlight">#80FF80</color>
+    <color name="highlightDark">#40FF40</color>
 
     <color name="black_overlay" tools:ignore="UnusedResources">#66000000</color>
 </resources>
