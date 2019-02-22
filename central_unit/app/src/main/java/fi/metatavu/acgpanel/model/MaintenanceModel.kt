@@ -6,6 +6,7 @@ abstract class MaintenanceModel {
     abstract val maintenancePasscode: String
     var isMaintenanceMode = false
     var isDeviceErrorMode = false
+        private set
 
     private val deviceErrorListeners: MutableList<(String) -> Unit> = mutableListOf()
 
@@ -18,6 +19,10 @@ abstract class MaintenanceModel {
                 }
             }, 0)
         }
+    }
+
+    fun clearDeviceError() {
+        isDeviceErrorMode = false
     }
 
     fun addDeviceErrorListener(listener: (String) -> Unit) {

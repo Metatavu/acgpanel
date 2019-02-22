@@ -11,6 +11,7 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
@@ -18,7 +19,6 @@ import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_quick_pick.*
 import kotlinx.android.synthetic.main.view_quick_pick_item.view.*
-import kotlin.math.exp
 
 internal fun quickPickItemView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density
@@ -82,6 +82,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
             this@QuickPickItemViewHolder.index = index
             count_input.removeTextChangedListener(countListener)
             count_input.addTextChangedListener(countListener)
+            product_line.text = item.product.line
             product_name.text = item.product.name
             product_expenditure.text = item.expenditure
             if (basketModel.lockUserExpenditure) {
@@ -127,7 +128,7 @@ class QuickPickItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 
 }
 
-class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(BasketItemCallback()) {
+class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickPickItemCallback()) {
 
     private var deleteClickListener: (Int) -> Unit = {}
     private var countUpdatedListener: (Int, Int) -> Unit = {_, _ ->}
@@ -255,6 +256,14 @@ class QuickPickActivity : PanelActivity() {
         if (!basketAccepted) {
             super.onBackPressed()
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        if (event?.action == KeyEvent.ACTION_UP &&
+                event?.keyCode == KeyEvent.KEYCODE_ENTER) {
+            proceed(root)
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     fun menu(@Suppress("UNUSED_PARAMETER") view: View) {

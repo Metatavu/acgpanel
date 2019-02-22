@@ -2,6 +2,11 @@ package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
 import android.util.Log
+import retrofit2.Call
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Path
 import kotlin.concurrent.thread
 
 @Entity
@@ -23,26 +28,6 @@ data class LogInAttempt(
     var successful: Boolean,
     var uploaded: Boolean
 )
-
-class GiptoolUser {
-    var id: Long? = null
-    var name: String = ""
-    var cardCode: String? = null
-    var expenditure: String? = null
-    var reference: String? = null
-    var canShelve: Boolean? = null
-}
-
-class GiptoolUsers {
-    var users: MutableList<GiptoolUser> = mutableListOf()
-}
-
-class GiptoolLogInAttempt {
-    var attemptNumber: Long? = null
-    var vendingMachineId: String? = null
-    var cardCode: String = ""
-    var successful: Boolean = false
-}
 
 @Dao
 interface UserDao {
@@ -80,6 +65,35 @@ interface LogInAttemptDao {
 
 }
 
+class GiptoolUser {
+    var id: Long? = null
+    var name: String = ""
+    var cardCode: String? = null
+    var expenditure: String? = null
+    var reference: String? = null
+    var canShelve: Boolean? = null
+}
+
+class GiptoolUsers {
+    var users: MutableList<GiptoolUser> = mutableListOf()
+}
+
+class GiptoolLogInAttempt {
+    var attemptNumber: Long? = null
+    var vendingMachineId: String? = null
+    var cardCode: String = ""
+    var successful: Boolean = false
+}
+
+interface GiptoolUsersService {
+    @GET("users/vendingMachine/{vendingMachineId}")
+    fun listUsers(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolUsers>
+
+    @POST("logInAttempts/")
+    fun sendLogInAttempt(@Body productTransaction: GiptoolLogInAttempt): Call<GiptoolLogInAttempt>
+}
+
+
 abstract class LoginModel {
 
     protected abstract fun schedule(callback: Runnable, timeout: Long)
@@ -91,7 +105,7 @@ abstract class LoginModel {
     protected abstract fun clearBasket()
     protected abstract val userDao: UserDao
     protected abstract val logInAttemptDao: LogInAttemptDao
-    protected abstract val giptoolService: GiptoolService
+    protected abstract val usersService: GiptoolUsersService
     protected abstract val vendingMachineId: String
     protected abstract val demoMode: Boolean
 
@@ -203,7 +217,7 @@ abstract class LoginModel {
         clearLocks()
     }
 
-    internal fun syncUsers() {
+    protected open fun syncUsers() {
         if (demoMode) {
             userDao.clearUsers()
             userDao.insertAll(
@@ -219,7 +233,7 @@ abstract class LoginModel {
                 )
             )
         } else {
-            val body = giptoolService
+            val body = usersService
                 .listUsers(vendingMachineId)
                 .execute()
                 .body()
@@ -247,7 +261,7 @@ abstract class LoginModel {
         }
     }
 
-    internal fun syncLogInAttempts() {
+    protected open fun syncLogInAttempts() {
         if (demoMode) {
             return
         }
@@ -259,7 +273,7 @@ abstract class LoginModel {
                 giptoolAttempt.vendingMachineId = vendingMachineId
                 giptoolAttempt.cardCode = attempt.cardCode
                 giptoolAttempt.successful = attempt.successful
-                val res = giptoolService.sendLogInAttempt(giptoolAttempt)
+                val res = usersService.sendLogInAttempt(giptoolAttempt)
                     .execute()
                 if (res.isSuccessful) {
                     logInAttemptDao.markUploaded(attempt.id!!)
@@ -275,3 +289,4 @@ abstract class LoginModel {
     }
 
 }
+

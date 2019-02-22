@@ -13,9 +13,9 @@ import kotlinx.android.synthetic.main.activity_menu.*
 
 class MenuActivity : PanelActivity() {
 
-    val productsModel = getProductsModel()
-    val basketModel = getBasketModel()
-    val loginModel = getLoginModel()
+    private val productsModel = getProductsModel()
+    private val basketModel = getBasketModel()
+    private val loginModel = getLoginModel()
 
     override val unlockButton: Button
         get() = unlock_button
@@ -54,6 +54,7 @@ class MenuActivity : PanelActivity() {
     fun quickPick(@Suppress("UNUSED_PARAMETER") view: View) {
         productsModel.searchTerm = ""
         productsModel.refreshProductPages {
+            basketModel.clearBasket()
             for (page in productsModel.productPages) {
                 for (product in page.products) {
                     basketModel.selectNewBasketItem(product)

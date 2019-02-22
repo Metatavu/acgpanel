@@ -14,7 +14,7 @@ class DeviceErrorDialog(activity: Activity, val message: String, val model: Main
         setContentView(R.layout.dialog_device_error)
         message_label.text = message
         ok_button.setOnClickListener {
-            model.isDeviceErrorMode = false
+            model.clearDeviceError()
             dismiss()
         }
     }

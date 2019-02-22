@@ -2,6 +2,9 @@ package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
 import android.util.Log
+import retrofit2.Call
+import retrofit2.http.Body
+import retrofit2.http.POST
 import kotlin.concurrent.thread
 
 @Entity
@@ -20,26 +23,6 @@ data class ProductTransaction(
     var userId: Long,
     var uploaded: Boolean = false
 )
-
-data class BasketItem(
-    val product: Product,
-    val count: Int,
-    val expenditure: String,
-    val reference: String) {
-
-    fun withCount(count: Int): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
-    }
-
-    fun withExpenditure(expenditure: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
-    }
-
-    fun withReference(reference: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
-    }
-
-}
 
 @Dao
 interface ProductTransactionDao {
@@ -67,6 +50,46 @@ interface ProductTransactionDao {
 
 }
 
+class GiptoolProductTransactionItem {
+    var productId: Long? = null
+    var line: String = ""
+    var count: Int = 0
+    var expenditure: String = ""
+    var reference: String = ""
+}
+
+class GiptoolProductTransaction {
+    var transactionNumber: Long? = null
+    var userId: Long? = null
+    var vendingMachineId: String? = null
+    val items: MutableList<GiptoolProductTransactionItem> = mutableListOf()
+}
+
+interface GiptoolProductTransactionsService {
+    @POST("productTransactions/")
+    fun sendProductTransaction(@Body productTransaction: GiptoolProductTransaction): Call<GiptoolProductTransaction>
+}
+
+data class BasketItem(
+    val product: Product,
+    val count: Int,
+    val expenditure: String,
+    val reference: String) {
+
+    fun withCount(count: Int): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+    fun withExpenditure(expenditure: String): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+    fun withReference(reference: String): BasketItem {
+        return BasketItem(product, count, expenditure, reference)
+    }
+
+}
+
 abstract class BasketModel {
 
     private sealed class SelectedBasketItem {
@@ -78,7 +101,7 @@ abstract class BasketModel {
     protected abstract fun transaction(tx: () -> Unit)
     protected abstract val productDao: ProductDao
     protected abstract val productTransactionDao: ProductTransactionDao
-    protected abstract val giptoolService: GiptoolService
+    protected abstract val productTransactionsService: GiptoolProductTransactionsService
     protected abstract val vendingMachineId: String
     protected abstract val demoMode: Boolean
     abstract fun acceptBasket()
@@ -213,7 +236,7 @@ abstract class BasketModel {
                         giptoolTx.items.add(giptoolTxItem)
                     }
                 }
-                val res = giptoolService.sendProductTransaction(giptoolTx)
+                val res = productTransactionsService.sendProductTransaction(giptoolTx)
                     .execute()
                 if (res.isSuccessful) {
                     productTransactionDao.markUploaded(tx.id!!)
@@ -224,19 +247,4 @@ abstract class BasketModel {
         }
     }
 
-}
-
-class GiptoolProductTransactionItem {
-    var productId: Long? = null
-    var line: String = ""
-    var count: Int = 0
-    var expenditure: String = ""
-    var reference: String = ""
-}
-
-class GiptoolProductTransaction {
-    var transactionNumber: Long? = null
-    var userId: Long? = null
-    var vendingMachineId: String? = null
-    val items: MutableList<GiptoolProductTransactionItem> = mutableListOf()
 }

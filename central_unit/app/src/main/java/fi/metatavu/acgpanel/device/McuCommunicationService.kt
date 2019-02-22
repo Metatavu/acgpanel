@@ -274,6 +274,7 @@ class McuCommunicationService : Service() {
 
     private var lastPing = Instant.now()
     private var badPings = 0
+    private var serviceRunning = false
 
     private fun process() {
         while (jobThread != null) {
@@ -400,6 +401,10 @@ class McuCommunicationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (serviceRunning) {
+            return Service.START_STICKY
+        }
+        serviceRunning = true
         val handler = Handler()
         lateinit var autorestarter: Runnable
         var numFailures = 0

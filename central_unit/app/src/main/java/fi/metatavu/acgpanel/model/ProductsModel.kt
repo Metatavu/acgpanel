@@ -1,6 +1,9 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
+import retrofit2.Call
+import retrofit2.http.GET
+import retrofit2.http.Path
 import kotlin.concurrent.thread
 
 @Entity(indices = [Index(
@@ -35,22 +38,46 @@ interface ProductDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(vararg products: Product): List<Long>
 
-    @Query("SELECT * FROM product WHERE removed = 0 ORDER BY line LIMIT 6 OFFSET :offset")
+    @Query("""SELECT * FROM product
+              WHERE removed = 0
+              ORDER BY line LIMIT 6 OFFSET :offset""")
     fun getProductPage(offset: Long): List<Product>
 
     @Query("SELECT COUNT(*) FROM product WHERE removed = 0")
     fun getProductCount(): Long
 
-    @Query("SELECT * FROM product WHERE removed = 0 AND (code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm) ORDER BY line LIMIT 6 OFFSET :offset")
+    @Query("""SELECT * FROM product
+              WHERE removed = 0 AND
+              (code = :searchTerm OR
+                  line = :searchTerm OR
+                  line = ('0' || :searchTerm) OR
+                  line = ('00' || :searchTerm) OR
+                  line = ('000' || :searchTerm) OR
+                  barcode = :searchTerm)
+              ORDER BY line LIMIT 6 OFFSET :offset""")
     fun getProductPageSearch(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT * FROM product WHERE removed = 0 AND (LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm) ORDER BY line LIMIT 6 OFFSET :offset")
+    @Query("""SELECT * FROM product
+              WHERE removed = 0 AND
+              (LOWER(name) LIKE :searchTerm
+                  OR LOWER(description) LIKE :searchTerm)
+              ORDER BY line LIMIT 6 OFFSET :offset""")
     fun getProductPageSearchAlphabetic(searchTerm: String, offset: Long): List<Product>
 
-    @Query("SELECT COUNT(*) FROM product WHERE removed = 0 AND (code = :searchTerm OR line = :searchTerm OR barcode = :searchTerm)")
+    @Query("""SELECT COUNT(*) FROM product
+              WHERE removed = 0 AND
+              (code = :searchTerm OR
+                  line = :searchTerm OR
+                  line = ('0' || :searchTerm) OR
+                  line = ('00' || :searchTerm) OR
+                  line = ('000' || :searchTerm) OR
+                  barcode = :searchTerm)""")
     fun getProductCountSearch(searchTerm: String): Long
 
-    @Query("SELECT COUNT(*) FROM product WHERE removed = 0 AND (LOWER(name) LIKE :searchTerm OR LOWER(description) LIKE :searchTerm)")
+    @Query("""SELECT COUNT(*) FROM product
+              WHERE removed = 0 AND
+              (LOWER(name) LIKE :searchTerm
+                  OR LOWER(description) LIKE :searchTerm)""")
     fun getProductCountSearchAlphabetic(searchTerm: String): Long
 
     @Query("SELECT * FROM product WHERE id=:id")
@@ -81,10 +108,15 @@ class GiptoolProducts {
     var products: MutableList<GiptoolProduct> = mutableListOf()
 }
 
+interface GiptoolProductsService {
+    @GET("products/vendingMachine/{vendingMachineId}")
+    fun listProducts(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolProducts>
+}
+
 abstract class ProductsModel {
     protected abstract val productDao: ProductDao
     protected abstract val demoMode: Boolean
-    protected abstract val giptoolService: GiptoolService
+    protected abstract val productsService: GiptoolProductsService
     protected abstract val vendingMachineId: String
     protected abstract fun schedule(callback: Runnable, timeout: Long)
     protected abstract fun transaction(tx: () -> Unit)
@@ -93,7 +125,7 @@ abstract class ProductsModel {
     var productPages: List<ProductPage> = listOf()
         private set
 
-    internal fun syncProducts() {
+    protected open fun syncProducts() {
         if (demoMode) {
             productDao.clearProducts()
             val products = (1L..20L).map {
@@ -114,7 +146,7 @@ abstract class ProductsModel {
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
-            val products = giptoolService
+            val products = productsService
                 .listProducts(vendingMachineId)
                 .execute()
                 .body()!!

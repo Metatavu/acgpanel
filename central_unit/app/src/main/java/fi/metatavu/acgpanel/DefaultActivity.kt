@@ -19,6 +19,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.PowerManager
 import android.view.KeyEvent
+import eu.chainfire.libsuperuser.Shell
 import fi.metatavu.acgpanel.model.getLoginModel
 import java.time.Duration
 

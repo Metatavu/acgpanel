@@ -1,13 +1,26 @@
 package fi.metatavu.acgpanel.model
 
-import android.arch.persistence.room.Entity
-import android.arch.persistence.room.PrimaryKey
+import android.arch.persistence.room.*
 
 @Entity
 data class SystemProperties(
     @PrimaryKey var id: Long? = null,
     var containsDemoData: Boolean
 )
+
+@Dao
+interface SystemPropertiesDao {
+
+    @Insert
+    fun insert(systemProperties: SystemProperties)
+
+    @Query("DELETE FROM systemproperties")
+    fun clear()
+
+    @Query("SELECT * FROM systemproperties WHERE id=1")
+    fun getSystemProperties(): SystemProperties?
+
+}
 
 abstract class DemoModel {
 
@@ -21,7 +34,7 @@ abstract class DemoModel {
     protected abstract val systemPropertiesDao: SystemPropertiesDao
     abstract val demoMode: Boolean
 
-    internal fun demoModeCleanup() {
+    protected open fun demoModeCleanup() {
         transaction {
             val props = systemPropertiesDao.getSystemProperties()
             if (props != null) {

@@ -71,4 +71,5 @@
     <string name="pref_title_enable_browser">Käytä karttaselainta</string>
     <string name="quick_pick">Pikaotto</string>
     <string name="count">Määrä</string>
+    <string name="line">Linja</string>
 </resources>

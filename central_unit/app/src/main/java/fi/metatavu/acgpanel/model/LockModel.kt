@@ -1,7 +1,6 @@
 package fi.metatavu.acgpanel.model
 
-import android.arch.persistence.room.Entity
-import android.arch.persistence.room.PrimaryKey
+import android.arch.persistence.room.*
 import android.util.Log
 import java.lang.IllegalStateException
 import kotlin.concurrent.thread
@@ -12,6 +11,17 @@ data class CompartmentMapping(
     var shelf: Int,
     var compartment: Int
 )
+
+@Dao
+interface CompartmentMappingDao {
+
+    @Query("SELECT * FROM compartmentmapping WHERE line=:line")
+    fun getCompartmentMapping(line: String): CompartmentMapping?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun mapCompartments(vararg compartmentMappings: CompartmentMapping)
+
+}
 
 data class LockOpenRequest(
     val shelf: Int,
@@ -31,7 +41,7 @@ abstract class LockModel {
     protected abstract fun syncProductTransactions()
     protected abstract fun logOut()
     protected abstract fun completeProductTransaction(function: () -> Unit)
-    protected abstract val systemPropertiesDao: SystemPropertiesDao
+    protected abstract val compartmentMappingDao: CompartmentMappingDao
 
     private val lockOpenTimerCallback = Runnable {
     }
@@ -99,11 +109,11 @@ abstract class LockModel {
     }
 
     fun calibrationAssignLine(line: String, shelf: Int, compartment: Int) {
-        systemPropertiesDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
+        compartmentMappingDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
     }
 
     private fun linePosition(line: String): Pair<Int, Int> {
-        val mapping = systemPropertiesDao.getCompartmentMapping(line)
+        val mapping = compartmentMappingDao.getCompartmentMapping(line)
         var shelf: Int
         var compartment: Int
         if (mapping != null) {

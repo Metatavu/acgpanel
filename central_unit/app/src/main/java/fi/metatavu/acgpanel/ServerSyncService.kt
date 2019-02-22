@@ -37,8 +37,10 @@ class ServerSyncService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (runningThread != null) {
+            return Service.START_STICKY
+        }
         Log.d(javaClass.name, "Starting sync service")
-        runningThread?.interrupt()
         running = true
         runningThread = thread(start = true) { process() }
         val channel = NotificationChannel(
