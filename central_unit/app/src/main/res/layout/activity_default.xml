@@ -18,7 +18,7 @@
         app:layout_constraintTop_toTopOf="parent"
         android:textColor="@color/lightText"
         android:textSize="8sp"
-        />
+        tools:ignore="SmallSp" />
 
     <TextView
         android:layout_width="0dp"

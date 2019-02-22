@@ -26,7 +26,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -35,7 +35,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="68dp"
-                    />
+                    android:contentDescription="" />
                 <TextView
                     android:id="@+id/product0_line"
                     android:layout_width="58dp"
@@ -48,7 +48,7 @@
                     android:gravity="end"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -56,7 +56,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product0_button"
                     android:layout_width="match_parent"
@@ -79,7 +79,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -88,7 +88,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="68dp"
-                    />
+                    android:contentDescription="" />
                 <TextView
                     android:id="@+id/product1_line"
                     android:layout_width="58dp"
@@ -101,7 +101,7 @@
                     android:gravity="end"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -109,7 +109,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product1_button"
                     android:layout_width="match_parent"
@@ -132,7 +132,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -141,7 +141,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="68dp"
-                    />
+                    android:contentDescription="" />
                 <TextView
                     android:id="@+id/product2_line"
                     android:layout_width="58dp"
@@ -154,7 +154,7 @@
                     android:gravity="end"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -162,7 +162,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product2_button"
                     android:layout_width="match_parent"
@@ -187,7 +187,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -196,7 +196,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="68dp"
-                    />
+                    android:contentDescription="" />
                 <TextView
                     android:id="@+id/product3_line"
                     android:layout_width="58dp"
@@ -209,7 +209,7 @@
                     android:gravity="end"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -217,7 +217,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product3_button"
                     android:layout_width="match_parent"
@@ -240,7 +240,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -262,7 +262,7 @@
                     android:alpha="0.7"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -270,7 +270,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product4_button"
                     android:layout_width="match_parent"
@@ -293,7 +293,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21dp"
+                    android:textSize="21sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -302,7 +302,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginBottom="68dp"
-                    />
+                    android:contentDescription="" />
                 <TextView
                     android:id="@+id/product5_line"
                     android:layout_width="58dp"
@@ -315,7 +315,7 @@
                     android:gravity="end"
                     android:text="0000"
                     android:textSize="16sp"
-                    />
+                    tools:ignore="HardcodedText" />
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -323,7 +323,7 @@
                     android:src="@drawable/door_open_icon"
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
-                    />
+                    android:contentDescription="" />
                 <Button
                     android:id="@+id/product5_button"
                     android:layout_width="match_parent"

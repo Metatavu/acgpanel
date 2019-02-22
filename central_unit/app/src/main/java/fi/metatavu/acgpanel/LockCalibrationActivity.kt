@@ -3,7 +3,6 @@ package fi.metatavu.acgpanel
 import android.app.Activity
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 import fi.metatavu.acgpanel.model.getLockModel
@@ -13,12 +12,12 @@ import kotlin.concurrent.thread
 
 class LockCalibrationActivity : Activity() {
     val model = getLockModel()
-    val queue = LinkedBlockingQueue<String>(1)
-    var process: Thread? = null
+    private val queue = LinkedBlockingQueue<String>(1)
+    private var process: Thread? = null
     lateinit var handler: Handler
 
     // TODO move to model
-    fun newProcess() = thread(start = false, isDaemon = true) {
+    private fun newProcess() = thread(start = false, isDaemon = true) {
         try {
             val numShelves = prompt("Montako ohjausyksikköä kaapissa on?").toInt()
             for (shelf in 1..numShelves) {

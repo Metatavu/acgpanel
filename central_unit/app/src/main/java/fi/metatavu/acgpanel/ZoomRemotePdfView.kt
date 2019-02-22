@@ -40,10 +40,7 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
     }
 
     private fun ensureFileExists(): Boolean {
-        val file = file()
-        if (file == null) {
-            return false
-        }
+        val file = file() ?: return false
         cacheDir.mkdirs()
         try {
             if (!file.exists()) {

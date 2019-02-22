@@ -1,18 +1,13 @@
 package fi.metatavu.acgpanel
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
-import android.text.InputType
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.widget.Button
-import android.widget.EditText
 import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
@@ -24,9 +19,6 @@ class ProductSelectionActivity : PanelActivity() {
 
     override val unlockButton: Button
         get() = unlock_button
-
-    private val inputMethodManager: InputMethodManager
-        get() = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
     private val logInListener = {
         not_logged_in_warning.visibility = View.INVISIBLE

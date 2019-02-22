@@ -80,13 +80,13 @@ abstract class LockModel {
         assignShelfRequestListeners.remove(listener)
     }
 
-    fun mapLockNumber(lineNumber: Int): Pair<Int, Int> {
+    private fun mapLockNumber(lineNumber: Int): Pair<Int, Int> {
         val shelf = lineNumber.div(100)
         val aux = lineNumber.rem(100)
-        if (aux.rem(2) == 0) {
-            return Pair(shelf, aux.div(2))
+        return if (aux.rem(2) == 0) {
+            Pair(shelf, aux.div(2))
         } else {
-            return Pair(shelf, 7 + aux.div(2))
+            Pair(shelf, 7 + aux.div(2))
         }
     }
 
@@ -114,8 +114,8 @@ abstract class LockModel {
 
     private fun linePosition(line: String): Pair<Int, Int> {
         val mapping = compartmentMappingDao.getCompartmentMapping(line)
-        var shelf: Int
-        var compartment: Int
+        val shelf: Int
+        val compartment: Int
         if (mapping != null) {
             shelf = mapping.shelf
             compartment = mapping.compartment
@@ -185,7 +185,6 @@ abstract class LockModel {
         private set
 
     companion object {
-        private const val BUFFER_SIZE = 1024
         private const val LOCK_TIMEOUT_MS = 60L*1000L
     }
 

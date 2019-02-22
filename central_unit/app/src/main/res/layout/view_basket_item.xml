@@ -12,7 +12,7 @@
         android:layout_height="150dp"
         android:padding="10dp"
         android:src="@drawable/image_placeholder"
-        />
+        android:contentDescription="" />
 
     <TextView
         android:id="@+id/product_name"
@@ -23,7 +23,7 @@
         android:layout_marginTop="10dp"
         android:text="@string/basket_item_placeholder"
         android:textStyle="bold"
-        android:textSize="40dp"
+        android:textSize="40sp"
         />
 
     <TextView
@@ -34,7 +34,7 @@
         android:layout_marginRight="300dp"
         android:layout_marginTop="80dp"
         android:text="@string/basket_product_details"
-        android:textSize="20dp"
+        android:textSize="20sp"
         />
 
     <TextView
@@ -43,7 +43,7 @@
         android:layout_gravity="end|center_vertical"
         android:layout_marginRight="140dp"
         android:textStyle="bold"
-        android:textSize="19dp"
+        android:textSize="19sp"
         android:gravity="center"
         android:text="@string/edit"
         android:background="@color/colorPrimaryLight"
@@ -68,6 +68,6 @@
         android:src="@drawable/delete_icon"
         android:background="@color/colorPrimaryLight"
         android:elevation="6dp"
-        />
+        android:contentDescription="" />
 
 </FrameLayout>

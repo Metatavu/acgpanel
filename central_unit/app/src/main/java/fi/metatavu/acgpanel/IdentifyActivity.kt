@@ -3,7 +3,6 @@ package fi.metatavu.acgpanel
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.view.KeyEvent
 import android.view.View
 import fi.metatavu.acgpanel.model.getDemoModel
 import fi.metatavu.acgpanel.model.getLoginModel

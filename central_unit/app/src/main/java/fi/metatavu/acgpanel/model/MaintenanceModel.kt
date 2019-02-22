@@ -5,8 +5,7 @@ abstract class MaintenanceModel {
     protected abstract fun schedule(callback: Runnable, timeout: Long)
     abstract val maintenancePasscode: String
     var isMaintenanceMode = false
-    var isDeviceErrorMode = false
-        private set
+    private var isDeviceErrorMode = false
 
     private val deviceErrorListeners: MutableList<(String) -> Unit> = mutableListOf()
 

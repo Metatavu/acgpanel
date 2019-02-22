@@ -11,14 +11,12 @@ import android.text.InputType
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.View.*
+import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import eu.chainfire.libsuperuser.Shell
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getMaintenanceModel
 import java.time.Duration
-import kotlin.concurrent.thread
 
 abstract class PanelActivity(private val lockOnStart: Boolean = false)
         : Activity() {
@@ -94,6 +92,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
         super.onPause()
     }
 
+    @Suppress("unused")
     protected fun enableSoftKeyboard(view: View) {
         view.setOnFocusChangeListener { v, focused ->
             if (focused) {

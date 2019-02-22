@@ -18,7 +18,7 @@ class TakeActivity : PanelActivity() {
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
 
-    val alarmCallback = Runnable {
+    private val alarmCallback = Runnable {
         alarm_overlay_back.visibility = View.VISIBLE
         alarm_overlay_front.visibility = View.VISIBLE
     }
@@ -80,7 +80,7 @@ class TakeActivity : PanelActivity() {
         get() = unlock_button
 
     companion object {
-        private val ALARM_TIMEOUT = 80L*1000L
+        private const val ALARM_TIMEOUT = 80L*1000L
     }
 
 }

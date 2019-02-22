@@ -13,7 +13,7 @@
         android:layout_gravity="center"
         android:layout_marginBottom="120dp"
         android:src="@drawable/door_open_icon"
-        />
+        android:contentDescription="" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -22,7 +22,7 @@
         android:layout_marginTop="120dp"
         android:text="@string/pick_up_products"
         android:textStyle="bold"
-        android:textSize="60dp"
+        android:textSize="60sp"
         />
 
     <TextView
@@ -32,7 +32,7 @@
         android:layout_gravity="center"
         android:layout_marginTop="200dp"
         android:text="@string/complete_by_closing_door"
-        android:textSize="40dp"
+        android:textSize="40sp"
         />
 
     <Button
@@ -42,7 +42,7 @@
         android:layout_gravity="center"
         android:layout_marginTop="270dp"
         android:text="@string/modify_checkout"
-        android:textSize="30dp"
+        android:textSize="30sp"
         android:background="@color/colorPrimary"
         android:textColor="@android:color/white"
         android:stateListAnimator="@null"

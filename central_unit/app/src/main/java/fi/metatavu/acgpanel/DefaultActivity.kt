@@ -1,26 +1,24 @@
 package fi.metatavu.acgpanel
 
+import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.PowerManager
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import fi.metatavu.acgpanel.device.McuCommunicationService
-import kotlinx.android.synthetic.main.activity_default.*
-import android.hardware.usb.UsbDevice
-import android.annotation.SuppressLint
-import android.app.ActivityManager
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
-import android.os.PowerManager
-import android.view.KeyEvent
-import eu.chainfire.libsuperuser.Shell
 import fi.metatavu.acgpanel.model.getLoginModel
+import kotlinx.android.synthetic.main.activity_default.*
 import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockOnStart = false) {

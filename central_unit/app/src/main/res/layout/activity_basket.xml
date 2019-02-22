@@ -15,7 +15,7 @@
         android:layout_marginLeft="40dp"
         android:layout_marginTop="40dp"
         android:text="@string/vend"
-        android:textSize="60dp"
+        android:textSize="60sp"
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -66,7 +66,7 @@
         android:background="@drawable/bg_dark"
         android:text="@string/accept_vend"
         android:textColor="@android:color/white"
-        android:textSize="40dp"
+        android:textSize="40sp"
         />
 
     <Button
@@ -81,7 +81,7 @@
         android:background="@drawable/bg_light"
         android:text="@string/cancel"
         android:textColor="@android:color/white"
-        android:textSize="30dp"
+        android:textSize="30sp"
         />
 
     <Button
@@ -96,7 +96,7 @@
         android:background="@android:color/transparent"
         android:text="@string/select_another"
         android:textAllCaps="false"
-        android:textSize="40dp"
+        android:textSize="40sp"
         android:textStyle="bold"
         />
 

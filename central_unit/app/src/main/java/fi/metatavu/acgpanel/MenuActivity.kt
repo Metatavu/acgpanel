@@ -39,7 +39,7 @@ class MenuActivity : PanelActivity() {
     }
 
     fun browseMap(@Suppress("UNUSED_PARAMETER") view: View) {
-        var mapEnabled = PreferenceManager
+        val mapEnabled = PreferenceManager
             .getDefaultSharedPreferences(this)
             .getBoolean(getString(R.string.pref_key_enable_browser), false)
         if (mapEnabled) {

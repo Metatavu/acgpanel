@@ -24,8 +24,8 @@ import kotlin.concurrent.thread
 
 sealed class Message
 
-class Ping: Message()
-class Pong: Message()
+object Ping : Message()
+object Pong : Message()
 data class OpenLock(val shelf: Int, val compartment: Int): Message()
 data class OpenLockConfirmation(val shelf: Int): Message()
 data class ReadCard(val cardId: String): Message()
@@ -33,18 +33,11 @@ data class LockClosed(val shelf: Int): Message()
 data class ResetLock(val shelf: Int): Message()
 data class ResetLockConfirmation(val shelf: Int): Message()
 data class AssignShelf(val shelf: Int): Message()
-class AssignShelfConfirmation : Message()
+object AssignShelfConfirmation : Message()
 
 private class NoResponseException : Exception("No response from device")
 
-private fun bytes2string(bytes: Collection<Byte>): String {
-    return String(bytes.toByteArray(), Charsets.US_ASCII)
-}
-
 private const val ZERO = '0'.toByte()
-private const val NINE = '9'.toByte()
-private const val A = 'A'.toByte()
-private const val Z = 'Z'.toByte()
 private const val RESTART_INTERVAL_MS = 1000L
 private const val RESTART_MAX_TRIES = 10
 private const val READ_TIMEOUT_MS = 1000L
@@ -78,7 +71,7 @@ abstract class MessageReader {
                     while (available()) {
                         read()
                     }
-                    return Pong()
+                    return Pong
                 }
                 0x01.toByte() -> {
                     while (next() != 0x02.toByte()) {
@@ -89,7 +82,7 @@ abstract class MessageReader {
                     if (next() == 'O'.toByte()) {
                         if (next() == 'K'.toByte()) {
                             chomp()
-                            return AssignShelfConfirmation()
+                            return AssignShelfConfirmation
                         }
                         chomp()
                         return null
@@ -142,12 +135,6 @@ abstract class MessageWriter {
 
     abstract fun write(byte: Byte)
     abstract fun flush()
-
-    private fun writeString(str: String) {
-        for (byte in str.toByteArray(Charsets.US_ASCII)) {
-            write(byte)
-        }
-    }
 
     fun writeMessage(msg: Message) {
         when (msg) {
@@ -265,7 +252,8 @@ class McuCommunicationService : Service() {
             if (ser != null) {
                 ser.write(outBuffer.toByteArray())
                 Log.d(javaClass.name, "Outgoing: " +
-                        "${outBuffer.toByteArray().toString(StandardCharsets.ISO_8859_1)}")
+                        outBuffer.toByteArray().toString(StandardCharsets.ISO_8859_1)
+                )
                 outBuffer.clear()
             }
         }
@@ -283,7 +271,7 @@ class McuCommunicationService : Service() {
                     is Action.LockOpen -> {
                         if (action.reset) {
                             messageWriter.writeMessage(ResetLock(action.shelf))
-                            var resetResp = messageReader.readMessage()
+                            val resetResp = messageReader.readMessage()
                             if (resetResp !is ResetLockConfirmation) {
                                 Log.e(javaClass.name, "BoxDriver didn't respond to reset")
                             }
@@ -309,10 +297,7 @@ class McuCommunicationService : Service() {
                     }
                     is Action.AssignShelf -> {
                         messageWriter.writeMessage(AssignShelf(action.shelf))
-                        var resp = messageReader.readMessage()
-                        if (resp !is AssignShelfConfirmation) {
-                            throw NoResponseException()
-                        }
+                        messageReader.readMessage() ?: throw NoResponseException()
                     }
                 }
                 if (messageReader.available()) {
@@ -337,7 +322,7 @@ class McuCommunicationService : Service() {
                     lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
                     Log.i(javaClass.name, "Pinging device...")
                     lastPing = Instant.now()
-                    messageWriter.writeMessage(Ping())
+                    messageWriter.writeMessage(Ping)
                     if (messageReader.readMessage() !is Pong) {
                         badPings++
                         if (badPings > MAX_BAD_PINGS) {
@@ -369,10 +354,7 @@ class McuCommunicationService : Service() {
             if (!usbManager.hasPermission(device)) {
                 return false
             }
-            val connection = usbManager.openDevice(device)
-            if (connection == null) {
-                return false
-            }
+            val connection = usbManager.openDevice(device) ?: return false
             serial = UsbSerialDevice.createUsbSerialDevice(device, connection)
             serial!!.open()
             serial!!.read {

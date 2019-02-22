@@ -184,25 +184,29 @@ abstract class ProductsModel {
     }
 
     private fun unsafeRefreshProductPages() {
-        productPages = if (searchTerm == "") {
-            val productCount = productDao.getProductCount()
-            (0 until productCount step 6).map {
-                ProductPage(productDao.getProductPage(it))
+        productPages = when {
+            searchTerm == "" -> {
+                val productCount = productDao.getProductCount()
+                (0 until productCount step 6).map {
+                    ProductPage(productDao.getProductPage(it))
+                }
             }
-        } else if (searchTerm.contains(Regex("\\D"))) {
-            val productCount = productDao.getProductCountSearchAlphabetic("%${searchTerm.toLowerCase()}%")
-            (0 until productCount step 6).map {
-                ProductPage(
-                    productDao.getProductPageSearchAlphabetic(
-                        "%${searchTerm.toLowerCase()}%",
-                        it
+            searchTerm.contains(Regex("\\D")) -> {
+                val productCount = productDao.getProductCountSearchAlphabetic("%${searchTerm.toLowerCase()}%")
+                (0 until productCount step 6).map {
+                    ProductPage(
+                        productDao.getProductPageSearchAlphabetic(
+                            "%${searchTerm.toLowerCase()}%",
+                            it
+                        )
                     )
-                )
+                }
             }
-        } else {
-            val productCount = productDao.getProductCountSearch(searchTerm)
-            (0 until productCount step 6).map {
-                ProductPage(productDao.getProductPageSearch(searchTerm, it))
+            else -> {
+                val productCount = productDao.getProductCountSearch(searchTerm)
+                (0 until productCount step 6).map {
+                    ProductPage(productDao.getProductPageSearch(searchTerm, it))
+                }
             }
         }
     }

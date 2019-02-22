@@ -7,8 +7,6 @@ import android.content.res.Resources
 import android.content.res.TypedArray
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
-import android.renderscript.ScriptGroup
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
@@ -19,13 +17,11 @@ import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import fi.metatavu.acgpanel.model.*
 import kotlinx.android.synthetic.main.activity_product_browser.*
-import kotlinx.coroutines.selects.select
 
 internal fun productPageView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density

@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -35,8 +33,8 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
     var disableCountListener = false
     var index = -1
     var onCountUpdated: (Int, Int) -> Unit = {_,_ ->}
-    val basketModel = getBasketModel()
-    val countListener = object: TextWatcher {
+    private val basketModel = getBasketModel()
+    private val countListener = object: TextWatcher {
         override fun afterTextChanged(text: Editable?) {
             if (disableCountListener) {
                 return
@@ -89,8 +87,8 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                 product_expenditure.isEnabled = false
             } else {
                 product_expenditure.setOnClickListener {
-                    onExpenditureClick(index) {
-                        product_expenditure.text = it
+                    onExpenditureClick(index) { expenditure ->
+                        product_expenditure.text = expenditure
                     }
                 }
             }
@@ -99,8 +97,8 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                 product_reference.isEnabled = false
             } else {
                 product_reference.setOnClickListener {
-                    onReferenceClick(index) {
-                        product_reference.text = it
+                    onReferenceClick(index) { reference ->
+                        product_reference.text = reference
                     }
                 }
             }
@@ -174,7 +172,6 @@ class QuickPickActivity : PanelActivity() {
     private val adapter = QuickPickAdapter()
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
-    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
