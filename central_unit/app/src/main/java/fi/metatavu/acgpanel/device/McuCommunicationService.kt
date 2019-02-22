@@ -22,8 +22,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.concurrent.thread
 
-sealed class Message {
-}
+sealed class Message
 
 class Ping: Message()
 class Pong: Message()
@@ -34,7 +33,7 @@ data class LockClosed(val shelf: Int): Message()
 data class ResetLock(val shelf: Int): Message()
 data class ResetLockConfirmation(val shelf: Int): Message()
 data class AssignShelf(val shelf: Int): Message()
-class AssignShelfConfirmation(): Message()
+class AssignShelfConfirmation : Message()
 
 private class NoResponseException : Exception("No response from device")
 

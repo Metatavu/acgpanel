@@ -260,7 +260,7 @@ class QuickPickActivity : PanelActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         if (event?.action == KeyEvent.ACTION_UP &&
-                event?.keyCode == KeyEvent.KEYCODE_ENTER) {
+                event.keyCode == KeyEvent.KEYCODE_ENTER) {
             proceed(root)
         }
         return super.dispatchKeyEvent(event)

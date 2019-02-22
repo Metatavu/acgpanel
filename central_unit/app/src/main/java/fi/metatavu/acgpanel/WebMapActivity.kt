@@ -20,7 +20,7 @@ class WebMapActivity : PanelActivity() {
         webmap.loadUrl("http://tuotetiedot.metatavu.io/VendingMachineSearch/?$creds")
         webmap.webViewClient = object: WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                return false;
+                return false
             }
             override fun onLoadResource(view: WebView?, url: String?) {
                 if (url?.contains(creds) != true) {

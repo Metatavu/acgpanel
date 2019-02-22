@@ -1,5 +1,6 @@
 package fi.metatavu.acgpanel
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -40,6 +41,7 @@ class ProductSelectionActivity : PanelActivity() {
         UnauthorizedDialog(this).show()
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_selection)

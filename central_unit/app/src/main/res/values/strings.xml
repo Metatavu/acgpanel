@@ -11,7 +11,6 @@
     <string name="cancel">Peruuta</string>
     <string name="unlockCode">Syötä huoltokoodi</string>
     <string name="browse_products">Valitse tuotteet</string>
-    <string name="orders">Tilaukset</string>
     <string name="support">Apu 24/7</string>
     <string name="layout">Kartta</string>
     <string name="notImplemented">Toimintoa ei ole vielä toteutettu</string>
@@ -72,4 +71,6 @@
     <string name="quick_pick">Pikaotto</string>
     <string name="count">Määrä</string>
     <string name="line">Linja</string>
+    <string name="prompt_text">Ohjeteksti</string>
+    <string name="next">Seuraava</string>
 </resources>

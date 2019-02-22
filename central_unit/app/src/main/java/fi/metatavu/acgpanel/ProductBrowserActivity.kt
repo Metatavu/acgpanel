@@ -1,5 +1,6 @@
 package fi.metatavu.acgpanel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
@@ -115,24 +116,26 @@ class ProductBrowserActivity : PanelActivity() {
     private val basketModel = getBasketModel()
     private val productsModel = getProductsModel()
 
+    @SuppressLint("SetTextI18n")
     private val logInListener = {
         val user = loginModel.currentUser
         show_profile_button.visibility = View.VISIBLE
         show_profile_button.text = user?.userName ?: ""
-        if (user?.canShelve ?: false) {
+        if (user?.canShelve == true) {
             bottom_bar.background = getDrawable(R.color.error)
-            show_profile_button.text = "HYLLYTYS: ${user?.userName}"
+            show_profile_button.text = "HYLLYTYS: ${user.userName}"
         } else {
             bottom_bar.background = getDrawable(R.color.colorPrimaryDark)
         }
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
-            if (loginModel.currentUser?.canShelve ?: false) {
+            if (loginModel.currentUser?.canShelve == true) {
                 lockModel.openLineLock(it.line)
             } else {
                 selectProduct(it)
@@ -159,7 +162,7 @@ class ProductBrowserActivity : PanelActivity() {
             if (keyEvent.action == KeyEvent.ACTION_UP
                     && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
                     && product != null) {
-                if (loginModel.currentUser?.canShelve ?: false) {
+                if (loginModel.currentUser?.canShelve == true) {
                     lockModel.openLineLock(product.line)
                     search_box.text.clear()
                     productsModel.searchTerm = ""
