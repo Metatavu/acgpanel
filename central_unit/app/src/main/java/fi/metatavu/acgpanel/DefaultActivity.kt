@@ -12,6 +12,7 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.view.KeyEvent
@@ -21,7 +22,9 @@ import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_default.*
 import java.time.Duration
 
-class DefaultActivity : PanelActivity(lockOnStart = false) {
+class DefaultActivity : PanelActivity(lockAtStart = false) {
+
+    private val handler = Handler(Looper.getMainLooper())
 
     private val loginModel = getLoginModel()
 
@@ -127,6 +130,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
                 "fi.metatavu.acgpanel:wakeLock")
             wakeLock!!.acquire()
         }
+        setupLogin()
     }
 
     override fun onDestroy() {
@@ -149,26 +153,17 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onResume() {
         super.onResume()
         setupLogin()
-        killOthers()
     }
 
     private fun setupLogin() {
         loginModel.logOut()
         loginModel.canLogInViaRfid = true
+        handler.postDelayed({loginModel.canLogInViaRfid = true}, 100)
         // allow instant login for better usability
         loginModel.removeLogInListener(loginListener)
         loginModel.addLogInListener(loginListener)
         loginModel.removeFailedLogInListener(failedLoginListener)
         loginModel.addFailedLogInListener(failedLoginListener)
-    }
-
-    private fun killOthers() {
-        val packages = packageManager.getInstalledApplications(0)
-        for (p in packages) {
-            if (!p.packageName.contains("fdroid")) {
-                activityManager.killBackgroundProcesses(p.packageName)
-            }
-        }
     }
 
     override fun onPause() {

@@ -50,7 +50,7 @@
         android:layout_width="0dp"
         android:layout_height="30dp"
         android:layout_marginLeft="100dp"
-        android:layout_marginRight="530dp"
+        android:layout_marginRight="600dp"
         app:layout_constraintLeft_toLeftOf="@id/basket_items_container"
         app:layout_constraintRight_toRightOf="@id/basket_items_container"
         app:layout_constraintBottom_toTopOf="@id/basket_items_container"
@@ -63,7 +63,7 @@
     <TextView
         android:layout_width="180dp"
         android:layout_height="30dp"
-        android:layout_marginRight="330dp"
+        android:layout_marginRight="400dp"
         app:layout_constraintRight_toRightOf="@id/basket_items_container"
         app:layout_constraintBottom_toTopOf="@id/basket_items_container"
         android:textSize="20sp"
@@ -75,7 +75,7 @@
     <TextView
         android:layout_width="180dp"
         android:layout_height="30dp"
-        android:layout_marginRight="130dp"
+        android:layout_marginRight="200dp"
         app:layout_constraintRight_toRightOf="@id/basket_items_container"
         app:layout_constraintBottom_toTopOf="@id/basket_items_container"
         android:textSize="20sp"
@@ -87,7 +87,7 @@
     <TextView
         android:layout_width="65dp"
         android:layout_height="30dp"
-        android:layout_marginRight="55dp"
+        android:layout_marginRight="85dp"
         app:layout_constraintRight_toRightOf="@id/basket_items_container"
         app:layout_constraintBottom_toTopOf="@id/basket_items_container"
         android:textSize="20sp"

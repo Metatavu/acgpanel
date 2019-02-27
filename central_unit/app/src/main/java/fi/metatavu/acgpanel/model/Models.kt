@@ -268,9 +268,12 @@ private object LockModelImpl: LockModel() {
         LoginModelImpl.logOut()
     }
 
-    override fun completeProductTransaction(callback: () -> Unit) {
-        BasketModelImpl.completeProductTransaction(callback)
+    override fun completeProductTransaction(function: () -> Unit) {
+        BasketModelImpl.completeProductTransaction(function)
     }
+
+    override fun isShelvingMode(): Boolean =
+        LoginModelImpl.currentUser?.canShelve == true
 
 }
 

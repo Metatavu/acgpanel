@@ -73,4 +73,6 @@
     <string name="line">Linja</string>
     <string name="prompt_text">Ohjeteksti</string>
     <string name="next">Seuraava</string>
+    <string name="shelving">HYLLYTYS: %1$s</string>
+    <string name="unit_placeholder">kpl</string>
 </resources>

@@ -18,7 +18,7 @@ import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getMaintenanceModel
 import java.time.Duration
 
-abstract class PanelActivity(private val lockOnStart: Boolean = false)
+abstract class PanelActivity(private val lockAtStart: Boolean = false)
         : Activity() {
 
     private val maintenanceModel = getMaintenanceModel()
@@ -65,7 +65,7 @@ abstract class PanelActivity(private val lockOnStart: Boolean = false)
         isImmersive = true
         rootView.keepScreenOn = true
         rootView.systemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_STABLE
-        if (lockOnStart) {
+        if (lockAtStart) {
             val activityManager = activityManager
             @Suppress("DEPRECATION")
             if (!activityManager.isInLockTaskMode) {

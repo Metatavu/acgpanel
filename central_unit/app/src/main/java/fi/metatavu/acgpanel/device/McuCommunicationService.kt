@@ -40,10 +40,10 @@ private class NoResponseException : Exception("No response from device")
 private const val ZERO = '0'.toByte()
 private const val RESTART_INTERVAL_MS = 1000L
 private const val RESTART_MAX_TRIES = 10
-private const val READ_TIMEOUT_MS = 1000L
+private const val READ_TIMEOUT_MS = 3000L
 private const val READ_TIMEOUT_MAX_FAILURES = 5
-private const val PING_INTERVAL_MS = 5L*1000L
-private const val MAX_BAD_PINGS = 1
+private const val PING_INTERVAL_MS = 10L*1000L
+private const val MAX_BAD_PINGS = 2
 
 abstract class MessageReader {
 
@@ -319,6 +319,7 @@ class McuCommunicationService : Service() {
                     }
                 }
                 if (!lockModel.locksOpen &&
+                    !lockModel.isShelvingMode() &&
                     lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
                     Log.i(javaClass.name, "Pinging device...")
                     lastPing = Instant.now()
