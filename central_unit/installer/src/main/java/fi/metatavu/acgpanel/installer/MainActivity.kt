@@ -45,13 +45,15 @@ class MainActivity : Activity() {
         }
     }
 
-    fun maxProgress(max: Int) {
-        runOnUiThread {
-            progress_bar.max = max
+    var maxProgress: Int = 100
+        set(value) {
+            runOnUiThread {
+                progress_bar.max = value
+            }
+            field = value
         }
-    }
 
-    fun progress() {
+    fun incrementProgress() {
         runOnUiThread {
             progress_bar.incrementProgressBy(1)
         }
@@ -106,33 +108,33 @@ class MainActivity : Activity() {
 
     fun makeProcessThread(): Thread = thread(start = false) {
         try {
-            maxProgress(38)
+            maxProgress = 38
             // Disable GRUB loading screen
             runCommand("mkdir /mnt/boot")
-            progress()
+            incrementProgress()
             runCommand("mount -t vfat /dev/block/mmcblk0p1 /mnt/boot")
-            progress()
+            incrementProgress()
             runCommand("sed -i 's/^set timeout=5$/set timeout=0/' " +
                     "/mnt/boot/boot/grub/x86_64-efi/grub.cfg")
-            progress()
+            incrementProgress()
             runCommand("umount /mnt/boot")
-            progress()
+            incrementProgress()
             runCommand("rmdir /mnt/boot")
-            progress()
+            incrementProgress()
             // Install ACGPanel as privileged application
             val appApkPath = File(filesDir, "app.apk").absolutePath
             writeResource(R.raw.app, appApkPath)
-            progress()
+            incrementProgress()
             runCommand("mkdir /system/priv-app/fi.metatavu.acgpanel")
-            progress()
+            incrementProgress()
             runCommand("chmod 755 /system/priv-app/fi.metatavu.acgpanel")
-            progress()
+            incrementProgress()
             runCommand("cp $appApkPath /system/priv-app/fi.metatavu.acgpanel/")
-            progress()
+            incrementProgress()
             runCommand("chmod 644 /system/priv-app/fi.metatavu.acgpanel/app.apk")
-            progress()
+            incrementProgress()
             runCommand("pm install $appApkPath")
-            progress()
+            incrementProgress()
             // Start ACGPanel configuration
             val panelSettingsComponent = ComponentName.unflattenFromString(
                 "fi.metatavu.acgpanel/.AcgPanelSettingsActivity")
@@ -140,82 +142,82 @@ class MainActivity : Activity() {
             panelSettingsIntent.component = panelSettingsComponent
             startActivity(panelSettingsIntent)
             pause()
-            progress()
+            incrementProgress()
             // Configure app as device owner
             runCommand("dpm set-device-owner fi.metatavu.acgpanel/.DeviceAdminReceiver")
-            progress()
+            incrementProgress()
             // Disable other launchers so the user can't muck around
             runCommand("pm disable com.android.launcher3")
-            progress()
+            incrementProgress()
             runCommand("pm disable com.farmerbb.taskbar.androidx86")
-            progress()
+            incrementProgress()
             // Disable home key
             val genericKlPath = File(filesDir, "Generic.kl").absolutePath
             writeResource(R.raw.generic, genericKlPath)
-            progress()
+            incrementProgress()
             runCommand("cp $genericKlPath /system/usr/keylayout/Generic.kl")
-            progress()
+            incrementProgress()
             runCommand("chmod 644 /system/usr/keylayout/Generic.kl")
-            progress()
+            incrementProgress()
             // Disable Google Mobile Services (Chrome, Play etc)
             runCommand("pm disable com.google.android.gms")
-            progress()
+            incrementProgress()
             // Install non-emoji keyboard
             val simpleKeyboardApkPath = File(filesDir, "simplekeyboard.apk").absolutePath
             writeResource(R.raw.simplekeyboard, simpleKeyboardApkPath)
-            progress()
+            incrementProgress()
             runCommand("pm install $simpleKeyboardApkPath")
-            progress()
+            incrementProgress()
             runCommand("ime enable rkr.simplekeyboard.inputmethod/.latin.LatinIME")
-            progress()
+            incrementProgress()
             runCommand("ime disable com.google.android.googlequicksearchbox/com.google.android.voicesearch.ime.VoiceInputMethodService")
-            progress()
+            incrementProgress()
             runCommand("ime disable com.android.inputmethod.latin/.LatinIME")
-            progress()
+            incrementProgress()
             // Hide snackbars and toasts
             runCommand("appops set android TOAST_WINDOW deny")
-            progress()
+            incrementProgress()
             // Hide top and bottom bars
             runCommand("wm overscan 0,-48,0,-72")
-            progress()
+            incrementProgress()
             // Install logo as boot animation
             val bootAnimationPath = File(filesDir, "bootanimation.zip").absolutePath
             writeResource(R.raw.bootanimation, bootAnimationPath)
-            progress()
+            incrementProgress()
             runCommand("cp $bootAnimationPath /system/media")
-            progress()
+            incrementProgress()
             runCommand("chmod 644 /system/media/bootanimation.zip")
-            progress()
+            incrementProgress()
             // Black background to remove awkward flash after boot animation
             WallpaperManager.getInstance(applicationContext)
                             .setResource(R.raw.background)
-            progress()
+            incrementProgress()
             // Install F-Droid privileged extension to get auto updates
             val fDroidPrivilegedApkPath = File(filesDir, "fdroid_privileged.apk").absolutePath
             writeResource(R.raw.fdroid_privileged, fDroidPrivilegedApkPath)
-            progress()
+            incrementProgress()
             runCommand("mkdir /system/priv-app/org.fdroid.fdroid.privileged")
-            progress()
+            incrementProgress()
             runCommand("chmod 755 /system/priv-app/org.fdroid.fdroid.privileged")
-            progress()
+            incrementProgress()
             runCommand("cp $fDroidPrivilegedApkPath /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
-            progress()
+            incrementProgress()
             runCommand("chmod 644 /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
-            progress()
+            incrementProgress()
             runCommand("pm install $fDroidPrivilegedApkPath")
-            progress()
+            incrementProgress()
             // Install F-Droid for update management
             val fDroidApkPath = File(filesDir, "fdroid.apk").absolutePath
             writeResource(R.raw.fdroid, fDroidApkPath)
-            progress()
+            incrementProgress()
             runCommand("pm install $fDroidApkPath")
-            progress()
+            incrementProgress()
             // Add update repo
             val addRepoIntent = Intent(
                 Intent.ACTION_VIEW,
                 Uri.parse("fdroidrepo://static.metatavu.io/acgpanel_repo/repo/"))
             startActivity(addRepoIntent)
-            progress()
+            incrementProgress()
             completed()
         } catch (ex: Exception) {
             print("Exception: ${ex.javaClass.name}: ${ex.message}", error = true)
