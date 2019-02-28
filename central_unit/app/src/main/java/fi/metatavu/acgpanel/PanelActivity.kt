@@ -14,8 +14,10 @@ import android.view.View
 import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.TextView
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getMaintenanceModel
+import fi.metatavu.acgpanel.model.getNotificationModel
 import java.time.Duration
 
 abstract class PanelActivity(private val lockAtStart: Boolean = false)
@@ -23,6 +25,7 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
 
     private val maintenanceModel = getMaintenanceModel()
     private val loginModel = getLoginModel()
+    private val notificationModel = getNotificationModel()
     private val handler = Handler(Looper.getMainLooper())
 
     private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
@@ -49,6 +52,10 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
 
     private val onDeviceError = { msg: String ->
         DeviceErrorDialog(this, msg, maintenanceModel).show()
+    }
+
+    private val onNotification = { msg: String ->
+        notificationBar?.text = msg
     }
 
     private val activityManager: ActivityManager
@@ -82,13 +89,16 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
     }
 
     override fun onResume() {
+        super.onResume()
         maintenanceModel.addDeviceErrorListener(onDeviceError)
         maintenanceModel.isMaintenanceMode = false
-        super.onResume()
+        notificationModel.addNotificationListener(onNotification)
+        notificationModel.refreshNotifications()
     }
 
     override fun onPause() {
         maintenanceModel.removeDeviceErrorListener(onDeviceError)
+        notificationModel.removeNotificationListener(onNotification)
         super.onPause()
     }
 
@@ -149,8 +159,9 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
             false
         }
         dialog.show()
-
     }
 
     abstract val unlockButton : View
+
+    protected open val notificationBar: TextView? = null
 }

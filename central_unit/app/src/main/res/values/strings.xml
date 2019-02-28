@@ -53,7 +53,8 @@
     <string name="input_expenditure">Syötä kustannuspaikka</string>
     <string name="input_reference">Syötä lisäviite</string>
     <string name="not_logged_in_warning">⚠ Näytä korttia jatkaaksesi</string>
-    <string name="invalid_card">⛔ KORTTI EI KELPAA</string>
+    <string name="invalid_card">KORTTI EI KELPAA</string>
+    <string name="invalid_card_symbol">⛔</string>
     <string name="pref_key_server_address">server_address</string>
     <string name="pref_title_server_address">Palvelimen osoite</string>
     <string name="pref_key_maintenance_passcode">maintenance_passcode</string>
@@ -75,4 +76,5 @@
     <string name="next">Seuraava</string>
     <string name="shelving">HYLLYTYS: %1$s</string>
     <string name="unit_placeholder">kpl</string>
+    <string name="not_owner">Ohjelmaa ei ole määritelty laitteen omistajaksi</string>
 </resources>

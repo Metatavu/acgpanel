@@ -11,6 +11,7 @@ import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.activity_app_drawer.*
@@ -71,6 +72,23 @@ class AppDrawerActivity : Activity() {
 
     private val adapter = AppAdapter()
 
+    private val PACKAGE_BLACKLIST = listOf(
+        "com.android.calendar",
+        "com.android.chrome",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.dialer",
+        "com.android.gallery3d",
+        "com.android.vending",
+        "com.example.android.rssreader",
+        "com.google.android.gm",
+        "com.google.android.youtube",
+        "org.lineageos.eleven",
+        "com.android.calculator2",
+        "com.example.android.notepad",
+        "com.google.android.googlequicksearchbox"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_drawer)
@@ -79,14 +97,21 @@ class AppDrawerActivity : Activity() {
         val intent = Intent(Intent.ACTION_MAIN, null)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
         adapter.submitList(
-            packageManager.queryIntentActivities(intent, 0).map {
-                App(
-                    it.loadLabel(packageManager),
-                    it.activityInfo.packageName,
-                    it.activityInfo.name,
-                    it.activityInfo.loadIcon(packageManager)
-                )
-            }
+            packageManager
+                .queryIntentActivities(intent, 0)
+                .map {
+                    Log.i(javaClass.name, it.activityInfo.packageName)
+                    Log.i(javaClass.name, it.activityInfo.name)
+                    App(
+                        it.loadLabel(packageManager),
+                        it.activityInfo.packageName,
+                        it.activityInfo.name,
+                        it.activityInfo.loadIcon(packageManager)
+                    )
+                }
+                .filter {
+                    !(it.packageName in PACKAGE_BLACKLIST)
+                }
         )
     }
 

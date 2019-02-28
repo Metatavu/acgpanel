@@ -133,6 +133,7 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
                 thread(start=true) {newUrl()}
             }
         }
+
     var page: Int = 0
         set(value) {
             if (field != value) {
@@ -140,6 +141,7 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
                 thread(start=true) {newPage()}
             }
         }
+
     var numPages: Int = 0
         private set
 
@@ -154,4 +156,5 @@ class ZoomRemotePdfView: ZoomImageView, AutoCloseable {
         private val DP = Resources.getSystem().displayMetrics.density
         private val IMAGE_HEIGHT = (2000*DP).toInt()
     }
+
 }

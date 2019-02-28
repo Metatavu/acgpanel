@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ACGPanel Asennusohjelma</string>
+    <string name="ok">OK</string>
+    <string name="resume">Jatka</string>
 </resources>
