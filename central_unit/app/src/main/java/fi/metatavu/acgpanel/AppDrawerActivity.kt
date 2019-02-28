@@ -100,8 +100,6 @@ class AppDrawerActivity : Activity() {
             packageManager
                 .queryIntentActivities(intent, 0)
                 .map {
-                    Log.i(javaClass.name, it.activityInfo.packageName)
-                    Log.i(javaClass.name, it.activityInfo.name)
                     App(
                         it.loadLabel(packageManager),
                         it.activityInfo.packageName,
