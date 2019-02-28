@@ -30,7 +30,6 @@ class MainActivity : Activity() {
     val handler = Handler(Looper.getMainLooper())
     val stateNotifier = Object()
     var state: State = State.Ready
-    var progressStep = 0
 
     fun print(line: String, error: Boolean = false) {
         runOnUiThread {
