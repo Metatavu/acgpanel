@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_marginStart="100dp"
-        android:layout_marginEnd="530dp"
+        android:layout_marginEnd="600dp"
         android:layout_marginTop="10dp"
         android:text="@string/basket_item_placeholder"
         android:textStyle="bold"
@@ -33,7 +33,7 @@
         android:id="@+id/product_expenditure"
         android:layout_width="180dp"
         android:layout_height="50dp"
-        android:layout_marginEnd="330dp"
+        android:layout_marginEnd="400dp"
         android:layout_gravity="end|center_vertical"
         android:paddingStart="10dp"
         android:text="@string/basket_item_placeholder"
@@ -46,7 +46,7 @@
         android:id="@+id/product_reference"
         android:layout_width="180dp"
         android:layout_height="50dp"
-        android:layout_marginEnd="130dp"
+        android:layout_marginEnd="200dp"
         android:layout_gravity="end|center_vertical"
         android:paddingStart="10dp"
         android:text="@string/basket_item_placeholder"
@@ -60,7 +60,7 @@
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_gravity="end|center_vertical"
-        android:layout_marginEnd="65dp"
+        android:layout_marginEnd="135dp"
         android:background="@drawable/etra_border"
         android:hint="0"
         android:gravity="center"
@@ -71,6 +71,17 @@
         android:focusedByDefault="false"
         android:autofillHints=""
         tools:ignore="HardcodedText"
+        />
+
+    <TextView
+        android:id="@+id/unit_text"
+        android:layout_width="70dp"
+        android:layout_height="50sp"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="55dp"
+        android:padding="3dp"
+        android:textSize="30sp"
+        android:text="@string/unit_placeholder"
         />
 
     <ImageButton

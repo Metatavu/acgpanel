@@ -137,7 +137,7 @@ private object Preferences {
             .getString(getString(R.string.pref_key_password), "")
 
     val demoMode: Boolean
-        get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), false)
+        get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), true)
 
     val lockUserExpenditure: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_expenditure), false)
@@ -157,7 +157,7 @@ private object Preferences {
 
     val serverAddress: String
         get() = preferences()
-            .getString(getString(R.string.pref_key_server_address), "")
+            .getString(getString(R.string.pref_key_server_address), "http://localhost/")
 }
 
 private object PanelScheduling {
@@ -268,9 +268,12 @@ private object LockModelImpl: LockModel() {
         LoginModelImpl.logOut()
     }
 
-    override fun completeProductTransaction(callback: () -> Unit) {
-        BasketModelImpl.completeProductTransaction(callback)
+    override fun completeProductTransaction(function: () -> Unit) {
+        BasketModelImpl.completeProductTransaction(function)
     }
+
+    override fun isShelvingMode(): Boolean =
+        LoginModelImpl.currentUser?.canShelve == true
 
 }
 
@@ -401,3 +404,9 @@ private object ServerSyncModelImpl: ServerSyncModel() {
 }
 
 fun getServerSyncModel(): ServerSyncModel = ServerSyncModelImpl
+
+private object NotificationModelImpl: NotificationModel() {
+
+}
+
+fun getNotificationModel(): NotificationModel = NotificationModelImpl

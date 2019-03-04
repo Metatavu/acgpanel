@@ -16,7 +16,6 @@ class LockCalibrationActivity : Activity() {
     private var process: Thread? = null
     lateinit var handler: Handler
 
-    // TODO move to model
     private fun newProcess() = thread(start = false, isDaemon = true) {
         try {
             val numShelves = prompt("Montako ohjausyksikköä kaapissa on?").toInt()

@@ -125,7 +125,6 @@ class ProductBrowserActivity : PanelActivity() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_browser)
@@ -183,7 +182,10 @@ class ProductBrowserActivity : PanelActivity() {
             show_profile_button.text = user.userName
             if (user.canShelve) {
                 bottom_bar.background = getDrawable(R.color.error)
-                show_profile_button.text = "HYLLYTYS: ${user.userName}"
+                show_profile_button.text = getString(
+                    R.string.shelving,
+                    user.userName
+                )
             } else {
                 bottom_bar.background = getDrawable(R.color.colorPrimaryDark)
             }

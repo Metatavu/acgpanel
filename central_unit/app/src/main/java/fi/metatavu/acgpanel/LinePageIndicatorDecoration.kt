@@ -9,7 +9,6 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.View
 
-
 class LinePagerIndicatorDecoration : RecyclerView.ItemDecoration() {
 
     private val color = Color.rgb(0xFF, 0xFF, 0xFF) // dark: Color.rgb(0x00, 0x64, 0xa1)

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -14,33 +13,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="0dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_gravity="top|end"
         android:textColor="@color/lightText"
         android:textSize="8sp"
         tools:ignore="SmallSp" />
 
     <TextView
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
         android:background="@color/lightBackground"
         android:padding="20dp"
         android:text="@string/welcomeText"
         android:textAlignment="textEnd"
         android:textColor="@color/colorPrimaryDark"
         android:textSize="28sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="30"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintWidth_percent="100" />
+        />
+
+    <TextView
+        android:id="@+id/notification_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:text=""
+        android:padding="5dp"
+        android:background="@color/error"
+        android:textColor="@color/errorContrast"
+        android:textSize="30sp"
+        android:visibility="gone"
+        />
 
     <Button
         android:id="@+id/unlock_button"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:background="@android:color/transparent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_gravity="top|end"
+        />
 
-</android.support.constraint.ConstraintLayout>
+</FrameLayout>

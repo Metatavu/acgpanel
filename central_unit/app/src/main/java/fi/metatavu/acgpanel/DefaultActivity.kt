@@ -3,27 +3,28 @@ package fi.metatavu.acgpanel
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.app.admin.DevicePolicyManager
+import android.app.admin.SystemUpdatePolicy
+import android.content.*
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
-import android.os.Bundle
-import android.os.Handler
-import android.os.PowerManager
+import android.os.*
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import fi.metatavu.acgpanel.device.McuCommunicationService
 import fi.metatavu.acgpanel.model.getLoginModel
+import fi.metatavu.acgpanel.model.getNotificationModel
 import kotlinx.android.synthetic.main.activity_default.*
 import java.time.Duration
 
-class DefaultActivity : PanelActivity(lockOnStart = false) {
+class DefaultActivity : PanelActivity(lockAtStart = false) {
+
+    private val handler = Handler(Looper.getMainLooper())
 
     private val loginModel = getLoginModel()
+    private val notificationModel = getNotificationModel()
 
     private val rebootTickCounter = TimedTickCounter(3, Duration.ofSeconds(1)) {
         powerManager.reboot("")
@@ -114,6 +115,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
+        cosuLockDown()
         version_number.text = packageManager.getPackageInfo(packageName, 0)!!.versionName
         registerReceiver(receiver, IntentFilter(ACTION_USB_PERMISSION))
         val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
@@ -127,6 +129,7 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
                 "fi.metatavu.acgpanel:wakeLock")
             wakeLock!!.acquire()
         }
+        setupLogin()
     }
 
     override fun onDestroy() {
@@ -149,26 +152,17 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
     override fun onResume() {
         super.onResume()
         setupLogin()
-        killOthers()
     }
 
     private fun setupLogin() {
         loginModel.logOut()
         loginModel.canLogInViaRfid = true
+        handler.postDelayed({loginModel.canLogInViaRfid = true}, 100)
         // allow instant login for better usability
         loginModel.removeLogInListener(loginListener)
         loginModel.addLogInListener(loginListener)
         loginModel.removeFailedLogInListener(failedLoginListener)
         loginModel.addFailedLogInListener(failedLoginListener)
-    }
-
-    private fun killOthers() {
-        val packages = packageManager.getInstalledApplications(0)
-        for (p in packages) {
-            if (!p.packageName.contains("fdroid")) {
-                activityManager.killBackgroundProcesses(p.packageName)
-            }
-        }
     }
 
     override fun onPause() {
@@ -200,13 +194,43 @@ class DefaultActivity : PanelActivity(lockOnStart = false) {
         startActivity(intent)
     }
 
+    private fun cosuLockDown() {
+        if (isCosuLockedDown) {
+            return
+        }
+        val adminComponentName = DeviceAdminReceiver.getComponentName(this)
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (!dpm.isDeviceOwnerApp(packageName)) {
+            notificationModel.showNotification(NOTIFICATION_NOT_OWNER, getString(R.string.not_owner))
+            return
+        }
+        dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_SAFE_BOOT)
+        dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
+        dpm.setKeyguardDisabled(adminComponentName, true)
+        dpm.setStatusBarDisabled(adminComponentName, true)
+        dpm.setSystemUpdatePolicy(adminComponentName,
+            SystemUpdatePolicy.createWindowedInstallPolicy(60, 120))
+        dpm.setLockTaskPackages(adminComponentName, arrayOf(packageName))
+        val intentFilter = IntentFilter(Intent.ACTION_MAIN)
+        intentFilter.addCategory(Intent.CATEGORY_HOME)
+        intentFilter.addCategory(Intent.CATEGORY_DEFAULT)
+        dpm.addPersistentPreferredActivity(
+            adminComponentName,
+            intentFilter,
+            ComponentName(packageName, DefaultActivity::class.java.name)
+        )
+        isCosuLockedDown = true
+    }
+
     override val unlockButton: View
         get() = unlock_button
 
     companion object {
         private const val DEVICE_VENDOR_ID = 0x0403 // FTDI
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
+        private const val NOTIFICATION_NOT_OWNER = "NOTIFICATION_NOT_OWNER"
         private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
         private var wakeLock: PowerManager.WakeLock? = null
+        private var isCosuLockedDown = false
     }
 }

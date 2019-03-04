@@ -80,6 +80,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
             this@QuickPickItemViewHolder.index = index
             count_input.removeTextChangedListener(countListener)
             count_input.addTextChangedListener(countListener)
+            unit_text.text = item.product.unit
             product_line.text = item.product.line
             product_name.text = item.product.name
             product_expenditure.text = item.expenditure

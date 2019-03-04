@@ -42,6 +42,7 @@ abstract class LockModel {
     protected abstract fun logOut()
     protected abstract fun completeProductTransaction(function: () -> Unit)
     protected abstract val compartmentMappingDao: CompartmentMappingDao
+    abstract fun isShelvingMode(): Boolean
 
     private val lockOpenTimerCallback = Runnable {
     }
@@ -145,14 +146,16 @@ abstract class LockModel {
         if (linesToOpen.isEmpty()) {
             locksOpen = false
             unSchedule(lockOpenTimerCallback)
-            schedule(Runnable {
-                completeProductTransaction {
-                    logOut()
-                    thread(start = true) {
-                        syncProductTransactions()
+            if (!isShelvingMode()) {
+                schedule(Runnable {
+                    completeProductTransaction {
+                        logOut()
+                        thread(start = true) {
+                            syncProductTransactions()
+                        }
                     }
-                }
-            }, 0)
+                }, 0)
+            }
         } else {
             val line = linesToOpen.removeAt(0)
             unSchedule(lockOpenTimerCallback)
