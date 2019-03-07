@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-feature android:name="android.hardware.usb.host" />
 
     <application
@@ -137,6 +138,13 @@
                 android:name="android.app.device_admin"
                 android:resource="@xml/device_admin_receiver"
                 tools:ignore="DeviceAdmin" />
+        </receiver>
+
+        <receiver
+            android:name=".MyPackageReplacedReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
     </application>
 

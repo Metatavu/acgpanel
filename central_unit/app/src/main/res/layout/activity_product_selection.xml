@@ -124,16 +124,31 @@
         <requestFocus />
     </Button>
 
+    <!-- TODO use the notification system -->
     <TextView
         android:id="@+id/not_logged_in_warning"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginRight="20sp"
+        android:layout_marginRight="20dp"
         app:layout_constraintRight_toLeftOf="@id/ok_button"
         app:layout_constraintBottom_toBottomOf="@id/ok_button"
         android:text="@string/not_logged_in_warning"
-        android:textColor="@android:color/holo_red_light"
+        android:textColor="@color/error"
         android:textSize="25sp"
+        />
+
+    <TextView
+        android:id="@+id/not_calibrated_warning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="40dp"
+        app:layout_constraintRight_toLeftOf="@id/ok_button"
+        app:layout_constraintBottom_toBottomOf="@id/ok_button"
+        android:text="@string/not_calibrated_warning"
+        android:textColor="@color/error"
+        android:textSize="25sp"
+        android:visibility="gone"
         />
 
     <ImageView
@@ -161,13 +176,14 @@
 
     <TextView
         android:id="@+id/product_name"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text=""
         android:textSize="28sp"
         android:textStyle="bold"
         android:layout_marginTop="20dp"
         app:layout_constraintLeft_toLeftOf="@id/product_picture"
+        app:layout_constraintRight_toRightOf="@id/product_picture"
         app:layout_constraintTop_toBottomOf="@id/product_picture"
         />
 

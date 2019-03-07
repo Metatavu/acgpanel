@@ -53,6 +53,7 @@
     <string name="input_expenditure">Syötä kustannuspaikka</string>
     <string name="input_reference">Syötä lisäviite</string>
     <string name="not_logged_in_warning">⚠ Näytä korttia jatkaaksesi</string>
+    <string name="not_calibrated_warning">⚠ Tuotetta ei ole kalibroitu</string>
     <string name="invalid_card">KORTTI EI KELPAA</string>
     <string name="invalid_card_symbol">⛔</string>
     <string name="pref_key_server_address">server_address</string>
@@ -77,4 +78,9 @@
     <string name="shelving">HYLLYTYS: %1$s</string>
     <string name="unit_placeholder">kpl</string>
     <string name="not_owner">Ohjelmaa ei ole määritelty laitteen omistajaksi</string>
+    <string name="pref_key_update_interval">update_interval</string>
+    <string name="pref_title_update_interval">Päivitystiheys</string>
+    <string name="pref_key_user_asset_url">user_asset_url</string>
+    <string name="pref_key_developer_mode">developer_mode</string>
+    <string name="pref_title_developer_mode">Kehittäjätila</string>
 </resources>

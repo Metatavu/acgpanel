@@ -247,7 +247,6 @@ private object BasketModelImpl: BasketModel() {
 fun getBasketModel(): BasketModel = BasketModelImpl
 
 private object LockModelImpl: LockModel() {
-
     override val compartmentMappingDao: CompartmentMappingDao
         get() = Database.compartmentMappingDao
 
@@ -274,6 +273,10 @@ private object LockModelImpl: LockModel() {
 
     override fun isShelvingMode(): Boolean =
         LoginModelImpl.currentUser?.canShelve == true
+
+    override fun disableItemsInLine(line: String) {
+        BasketModelImpl.disableItemsInLine(line)
+    }
 
 }
 
@@ -391,7 +394,8 @@ private object ServerSyncModelImpl: ServerSyncModel() {
                 DemoModelImpl.demoModeCleanup()
                 LoginModelImpl.syncUsers()
                 ProductsModelImpl.syncProducts()
-                BasketModelImpl.syncProductTransactions()
+                // Don't sync product transactions to prevent race condition
+                // BasketModelImpl.syncProductTransactions()
                 LoginModelImpl.syncLogInAttempts()
             } catch (ex: IOException) {
                 // device offline, do nothing

@@ -113,6 +113,12 @@ abstract class LockModel {
         compartmentMappingDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
     }
 
+    fun isLineCalibrated(line: String, callback: (Boolean) -> Unit) {
+        thread(start = true) {
+            callback(compartmentMappingDao.getCompartmentMapping(line) != null)
+        }
+    }
+
     private fun linePosition(line: String): Pair<Int, Int> {
         val mapping = compartmentMappingDao.getCompartmentMapping(line)
         val shelf: Int
@@ -135,11 +141,14 @@ abstract class LockModel {
         openSpecificLock(shelf, compartment, reset)
     }
 
+
     fun openLineLock(line: String, reset: Boolean = false) {
         thread(start = true) {
             unsafeOpenLineLock(line, reset)
         }
     }
+
+    protected abstract fun disableItemsInLine(line: String)
 
     fun openLock(first: Boolean = true) {
         Log.d(javaClass.name, "linesToOpen: $linesToOpen")
@@ -151,7 +160,11 @@ abstract class LockModel {
                     completeProductTransaction {
                         logOut()
                         thread(start = true) {
-                            syncProductTransactions()
+                            try {
+                                syncProductTransactions()
+                            } catch (e: Exception) {
+                                Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                            }
                         }
                     }
                 }, 0)
@@ -161,6 +174,7 @@ abstract class LockModel {
             unSchedule(lockOpenTimerCallback)
             schedule(lockOpenTimerCallback, LOCK_TIMEOUT_MS)
             openLineLock(line, reset = first)
+            disableItemsInLine(line)
             schedule(Runnable {
                 for (listener in lockOpenedListeners) {
                     listener()

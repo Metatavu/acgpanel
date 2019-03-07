@@ -7,9 +7,12 @@ import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.*
+import android.os.Environment.DIRECTORY_PICTURES
+import android.os.Environment.getExternalStoragePublicDirectory
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -17,6 +20,7 @@ import fi.metatavu.acgpanel.device.McuCommunicationService
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getNotificationModel
 import kotlinx.android.synthetic.main.activity_default.*
+import java.io.File
 import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockAtStart = false) {
@@ -130,6 +134,21 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             wakeLock!!.acquire()
         }
         setupLogin()
+        setupCarousel()
+    }
+
+    fun setupCarousel() {
+        val picsDir = File(getExternalStoragePublicDirectory(DIRECTORY_PICTURES), "ACGPanel")
+        if (picsDir.exists()) {
+            val pics = picsDir.listFiles() ?: return
+            carousel.pageCount = pics.size
+            carousel.setImageListener { position, imageView ->
+                val bmp = BitmapFactory.decodeFile(pics[position].absolutePath)
+                imageView.setImageBitmap(bmp)
+            }
+        } else {
+            carousel.visibility = View.GONE
+        }
     }
 
     override fun onDestroy() {

@@ -53,6 +53,7 @@
         android:cursorVisible="true"
         android:textCursorDrawable="@color/colorPrimaryDark"
         android:textSize="30sp"
+        android:focusableInTouchMode="true"
         tools:ignore="Autofill" />
 
     <android.support.v7.widget.RecyclerView

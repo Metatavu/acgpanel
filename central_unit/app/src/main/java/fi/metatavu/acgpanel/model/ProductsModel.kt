@@ -35,8 +35,11 @@ interface ProductDao {
     @Query("UPDATE product SET removed = 1")
     fun markAllRemoved()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg products: Product): List<Long>
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg products: Product)
 
     @Query("""SELECT * FROM product
               WHERE removed = 0
@@ -85,6 +88,9 @@ interface ProductDao {
 
     @Query("SELECT * FROM product WHERE externalId=:externalId")
     fun findProductByExternalId(externalId: Long): Product?
+
+    @Query("SELECT * FROM product WHERE externalId=:externalId AND line=:line")
+    fun findProductByExternalIdAndLine(externalId: Long, line: String): Product?
 
     @Query("DELETE FROM product")
     fun clearProducts()
@@ -171,7 +177,15 @@ abstract class ProductsModel {
             // TODO delete removed
             transaction {
                 productDao.markAllRemoved()
-                productDao.insertAll(*products)
+                for (product in products) {
+                    val existing = productDao.findProductByExternalIdAndLine(product.externalId, product.line)
+                    if (existing != null) {
+                        product.id = existing.id
+                        productDao.updateAll(product)
+                    } else {
+                        productDao.insertAll(product)
+                    }
+                }
             }
         }
     }

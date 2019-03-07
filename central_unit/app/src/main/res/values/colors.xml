@@ -12,6 +12,7 @@
 
     <color name="lightText">#FFFFFF</color>
     <color name="lightBackground">#FFFFFF</color>
+    <color name="lightOverlay">#80FFFFFF</color>
 
     <color name="error">#FF0000</color>
     <color name="errorContrast">#FFFFFF</color>

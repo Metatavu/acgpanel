@@ -9,6 +9,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
 
@@ -16,17 +17,27 @@ class ProductSelectionActivity : PanelActivity() {
 
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
+    private val lockModel = getLockModel()
 
     override val unlockButton: Button
         get() = unlock_button
 
     private val logInListener = {
         not_logged_in_warning.visibility = View.INVISIBLE
-        ok_button.isEnabled = true
         expenditure_input.isEnabled = !basketModel.lockUserExpenditure
         expenditure_input.text = loginModel.currentUser?.expenditure ?: ""
         reference_input.isEnabled = !basketModel.lockUserReference
         reference_input.text = loginModel.currentUser?.reference ?: ""
+        val basketItem = basketModel.currentBasketItem
+        if (basketItem != null) {
+            lockModel.isLineCalibrated(basketItem.product.line) { calibrated ->
+                runOnUiThread {
+                    if (calibrated) {
+                        ok_button.isEnabled = true
+                    }
+                }
+            }
+        }
     }
 
     private val failedLoginListener = {
@@ -90,6 +101,16 @@ class ProductSelectionActivity : PanelActivity() {
             reference_input.isEnabled = !basketModel.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
+            lockModel.isLineCalibrated(product.line) { calibrated ->
+                runOnUiThread {
+                    if (calibrated) {
+                        not_calibrated_warning.visibility = View.GONE
+                    } else {
+                        not_calibrated_warning.visibility = View.VISIBLE
+                        ok_button.isEnabled = false
+                    }
+                }
+            }
         }
         if (!loginModel.loggedIn) {
             ok_button.isEnabled = false

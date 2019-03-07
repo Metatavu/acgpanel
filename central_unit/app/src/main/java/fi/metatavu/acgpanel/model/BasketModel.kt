@@ -5,6 +5,7 @@ import android.util.Log
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
+import java.util.*
 import kotlin.concurrent.thread
 
 @Entity
@@ -56,6 +57,15 @@ class GiptoolProductTransactionItem {
     var count: Int = 0
     var expenditure: String = ""
     var reference: String = ""
+
+    override fun toString(): String {
+        return "GiptoolProductTransactionItem(" +
+                "productId=$productId," +
+                "line=$line," +
+                "count=$count," +
+                "expenditure=$expenditure," +
+                "reference=$reference)"
+    }
 }
 
 class GiptoolProductTransaction {
@@ -63,6 +73,14 @@ class GiptoolProductTransaction {
     var userId: Long? = null
     var vendingMachineId: String? = null
     val items: MutableList<GiptoolProductTransactionItem> = mutableListOf()
+
+    override fun toString(): String {
+        return "GiptoolProductTransaction(" +
+                "transactionNumber=$transactionNumber," +
+                "userId=$userId," +
+                "vendingMachineId=$vendingMachineId," +
+                "items=$items)"
+    }
 }
 
 interface GiptoolProductTransactionsService {
@@ -74,18 +92,23 @@ data class BasketItem(
     val product: Product,
     val count: Int,
     val expenditure: String,
-    val reference: String) {
+    val reference: String,
+    val enabled: Boolean = true) {
 
     fun withCount(count: Int): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
+        return BasketItem(product, count, expenditure, reference, enabled)
     }
 
     fun withExpenditure(expenditure: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
+        return BasketItem(product, count, expenditure, reference, enabled)
     }
 
     fun withReference(reference: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference)
+        return BasketItem(product, count, expenditure, reference, enabled)
+    }
+
+    fun disabled(): BasketItem {
+        return BasketItem(product, count, expenditure, reference, false)
     }
 
 }
@@ -179,23 +202,28 @@ abstract class BasketModel {
         thread(start = true) {
             val user = currentUser
             if (user != null) {
-                val tx = ProductTransaction(
-                    null,
-                    user.id!!
-                )
-                val id = productTransactionDao.insertProductTransaction(tx)
-                val items = basket.map {
-                    ProductTransactionItem(
+                transaction {
+                    val tx = ProductTransaction(
                         null,
-                        id,
-                        it.product.id!!,
-                        it.count,
-                        it.expenditure,
-                        it.reference
+                        user.id!!
                     )
-                }.toTypedArray()
-                productTransactionDao.insertProductTransactionItems(*items)
-                schedule(Runnable { callback() }, 0)
+                    val id = productTransactionDao.insertProductTransaction(tx)
+                    Log.d(javaClass.name, "ProductTransaction: $tx")
+                    val items = basket.map {
+                        ProductTransactionItem(
+                            null,
+                            id,
+                            it.product.id!!,
+                            it.count,
+                            it.expenditure,
+                            it.reference
+                        )
+                    }.toTypedArray()
+                    productTransactionDao.insertProductTransactionItems(*items)
+                    Log.d(javaClass.name, "ProductTransactionItems: ${Arrays.toString(items)}")
+                    Log.d(javaClass.name, "Completed product transaction")
+                    schedule(Runnable { callback() }, 100)
+                }
             }
         }
     }
@@ -210,6 +238,16 @@ abstract class BasketModel {
 
     fun clearBasket() {
         mutableBasket.clear()
+    }
+
+    fun disableItemsInLine(line: String) {
+        mutableBasket.replaceAll {
+            if (it.product.line == line) {
+                it.disabled()
+            } else {
+                it
+            }
+        }
     }
 
     protected open fun syncProductTransactions() {
@@ -236,6 +274,7 @@ abstract class BasketModel {
                         giptoolTx.items.add(giptoolTxItem)
                     }
                 }
+                Log.d(javaClass.name, "Uploading product transaction: $giptoolTx")
                 val res = productTransactionsService.sendProductTransaction(giptoolTx)
                     .execute()
                 if (res.isSuccessful) {

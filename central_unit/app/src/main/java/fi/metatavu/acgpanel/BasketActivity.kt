@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
 
@@ -46,11 +47,18 @@ class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productVi
                    context.getString(R.string.basket_product_details,
                        item.expenditure,
                        item.reference)
-            product_delete_button.setOnClickListener {
-                onDeleteClick(index)
-            }
-            product_modify_button.setOnClickListener {
-                onModifyClick(index)
+            if (item.enabled) {
+                disabled_overlay.visibility = View.GONE
+                product_delete_button.setOnClickListener {
+                    onDeleteClick(index)
+                }
+                product_modify_button.setOnClickListener {
+                    onModifyClick(index)
+                }
+            } else {
+                disabled_overlay.visibility = View.VISIBLE
+                product_delete_button.setOnClickListener { }
+                product_modify_button.setOnClickListener { }
             }
             drawProduct(item.product, product_image)
         }
@@ -99,6 +107,10 @@ class BasketActivity : PanelActivity() {
     private var basketAccepted = false
     private val adapter = BasketAdapter()
     private val basketModel = getBasketModel()
+    private val lockModel = getLockModel()
+    private val lockOpenListener = {
+        adapter.notifyDataSetChanged()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,8 +130,14 @@ class BasketActivity : PanelActivity() {
         }
     }
 
+    override fun onPause() {
+        lockModel.removeLockOpenedListener(lockOpenListener)
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        lockModel.addLockOpenedListener(lockOpenListener)
         ok_button.requestFocus()
     }
 

@@ -139,6 +139,7 @@ class ProductBrowserActivity : PanelActivity() {
         basket_items_view.adapter = adapter
         adapter.submitList(productsModel.productPages)
         // TODO throttle/debounce
+        enableSoftKeyboard(search_box)
         search_box.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 productsModel.searchTerm = s.toString()

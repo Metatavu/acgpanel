@@ -175,6 +175,7 @@ class MainActivity : Activity() {
         runCommand("cp $appApkPath /system/priv-app/fi.metatavu.acgpanel/")
         runCommand("chmod 644 /system/priv-app/fi.metatavu.acgpanel/app.apk")
         runCommand("pm install $appApkPath")
+        runCommand("pm grant fi.metatavu.acgpanel android.permission.READ_EXTERNAL_STORAGE")
     }
 
     /**
@@ -271,7 +272,7 @@ class MainActivity : Activity() {
      */
     private fun makeProcessThread(): Thread = thread(start = false) {
         try {
-            maxProgress = 38
+            maxProgress = 39
             disableGrubMenuScreen()
             installMainAppAsPrivileged()
             startAcgPanelConfiguration()

@@ -8,12 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.IBinder
+import android.preference.PreferenceManager
 import android.util.Log
 import fi.metatavu.acgpanel.model.getServerSyncModel
 import kotlin.concurrent.thread
 
 const val SERVER_SYNC_SERVICE_ID = 2
-const val SERVER_SYNC_INTERVAL_MS = 2L*60L*1000L
+const val SERVER_SYNC_INTERVAL_MINUTES = "2"
 
 class ServerSyncService : Service() {
     private val notificationManager: NotificationManager
@@ -27,9 +28,13 @@ class ServerSyncService : Service() {
     private fun process() {
         try {
             while (running) {
+                val syncInterval = PreferenceManager
+                    .getDefaultSharedPreferences(PanelApplication.instance)
+                    .getString(PanelApplication.instance.getString(R.string.pref_key_update_interval),
+                               SERVER_SYNC_INTERVAL_MINUTES)
                 Log.d(javaClass.name, "Syncing with server...")
                 model.serverSync()
-                Thread.sleep(SERVER_SYNC_INTERVAL_MS)
+                Thread.sleep((syncInterval.toLongOrNull() ?: 10) * 60L * 1000L)
             }
         } catch (ex: InterruptedException) {
 

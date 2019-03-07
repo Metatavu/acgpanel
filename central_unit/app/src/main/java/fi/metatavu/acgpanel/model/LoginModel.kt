@@ -35,8 +35,11 @@ interface UserDao {
     @Query("UPDATE user SET removed = 1")
     fun markAllRemoved()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg users: User): List<Long>
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg users: User)
 
     @Query("SELECT * FROM user WHERE removed = 0 AND cardCode = :cardCode")
     fun findUserByCardCode(cardCode: String): User?
@@ -147,7 +150,7 @@ abstract class LoginModel {
     }
 
     fun logIn(cardCode: String, usingRfid: Boolean = false) {
-        val truncatedCode = cardCode.takeWhile { it != '=' }
+        val truncatedCode = cardCode.take(15)
         if (usingRfid && !canLogInViaRfid) {
             return
         }
@@ -175,7 +178,11 @@ abstract class LoginModel {
                         )
                     )
                 }
-                syncLogInAttempts()
+                try {
+                    syncLogInAttempts()
+                } catch (e: Exception) {
+                    Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                }
             } else {
                 schedule(Runnable {
                     for (listener in failedLoginEventListeners) {
@@ -193,7 +200,11 @@ abstract class LoginModel {
                         )
                     )
                 }
-                syncLogInAttempts()
+                try {
+                    syncLogInAttempts()
+                } catch (e: Exception) {
+                    Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                }
             }
         }
     }
@@ -254,6 +265,7 @@ abstract class LoginModel {
                 transaction {
                     userDao.markAllRemoved()
                     userDao.insertAll(*users)
+                    userDao.updateAll(*users)
                 }
             } else {
                 Log.e(javaClass.name, "Got empty response from server")
