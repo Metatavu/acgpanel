@@ -24,10 +24,11 @@ import kotlin.concurrent.thread
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class,
+    ProductSafetyCard::class,
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class
-], version = 5, exportSchema = false)
+], version = 6, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -239,7 +240,7 @@ private object BasketModelImpl: BasketModel() {
         Database.transaction(tx)
 
     override fun acceptBasket() {
-        LockModelImpl.openLines(basket.map{it.product.line})
+        LockModelImpl.openLines(basket.map{it.product.line })
     }
 
 }

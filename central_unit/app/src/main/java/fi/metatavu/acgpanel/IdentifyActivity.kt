@@ -32,7 +32,6 @@ class IdentifyActivity : PanelActivity() {
             .setListener(null)
 
         Handler().postDelayed({
-            loginModel.canLogInViaRfid = false
             locked = false
             finish()
 
@@ -48,14 +47,12 @@ class IdentifyActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identify)
-        loginModel.canLogInViaRfid = true
         loginModel.addLogInListener(onLogIn)
         loginModel.addFailedLogInListener(failedLoginListener)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        loginModel.canLogInViaRfid = false
         loginModel.removeFailedLogInListener(failedLoginListener)
         loginModel.removeLogInListener(onLogIn)
     }

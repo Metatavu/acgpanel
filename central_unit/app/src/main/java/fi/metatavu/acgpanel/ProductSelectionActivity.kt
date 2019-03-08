@@ -11,6 +11,7 @@ import android.widget.Button
 import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
+import fi.metatavu.acgpanel.model.getProductsModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
 
 class ProductSelectionActivity : PanelActivity() {
@@ -18,6 +19,7 @@ class ProductSelectionActivity : PanelActivity() {
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
     private val lockModel = getLockModel()
+    private val productsModel = getProductsModel()
 
     override val unlockButton: Button
         get() = unlock_button
@@ -67,10 +69,12 @@ class ProductSelectionActivity : PanelActivity() {
         val basketItem = basketModel.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
-            if (product.safetyCard != "") {
-                info_button.visibility = View.VISIBLE
-            } else {
-                info_button.visibility = View.INVISIBLE
+            productsModel.listProductSafetyCards(product) {
+                if (it.isNotEmpty()) {
+                    info_button.visibility = View.VISIBLE
+                } else {
+                    info_button.visibility = View.INVISIBLE
+                }
             }
             product_name.text = product.name
             product_description.text = "Tuotekoodi: ${product.code}\n\n" +
@@ -126,15 +130,8 @@ class ProductSelectionActivity : PanelActivity() {
     override fun onResume() {
         super.onResume()
         count_input.requestFocus()
-        loginModel.canLogInViaRfid = true
     }
 
-    override fun onPause() {
-        loginModel.canLogInViaRfid = false
-        super.onPause()
-    }
-
-    @Suppress("UNUSED")
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketModel.lockUserExpenditure) {
             showEditDialog(getString(R.string.input_expenditure)) {
@@ -143,7 +140,6 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
-    @Suppress("UNUSED")
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketModel.lockUserReference) {
             showEditDialog(getString(R.string.input_reference)) {

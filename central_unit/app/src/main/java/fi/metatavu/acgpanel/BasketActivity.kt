@@ -15,7 +15,7 @@ import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
 
-internal fun productView(context: Context): View {
+private fun basketItemView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density
     val view = View.inflate(context, R.layout.view_basket_item, null)!!
     view.layoutParams = RecyclerView.LayoutParams(
@@ -25,7 +25,7 @@ internal fun productView(context: Context): View {
     return view
 }
 
-class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productView(context)) {
+private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(basketItemView(context)) {
 
     fun populate(index: Int,
                  item: BasketItem,
@@ -66,7 +66,7 @@ class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productVi
 
 }
 
-class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
+private class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 
     override fun areContentsTheSame(a: BasketItem, b: BasketItem): Boolean {
         return a == b
@@ -78,7 +78,7 @@ class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 
 }
 
-class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
+private class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
 
     private var deleteClickListener : (Int) -> Unit = {}
     private var modifyClickListener: (Int) -> Unit = {}
@@ -91,13 +91,13 @@ class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCa
         modifyClickListener = listener
     }
 
-    override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): BasketItemViewHolder {
-        return BasketItemViewHolder(viewGroup.context)
+    override fun onCreateViewHolder(parent: ViewGroup, index: Int): BasketItemViewHolder {
+        return BasketItemViewHolder(parent.context)
     }
 
-    override fun onBindViewHolder(holder: BasketItemViewHolder, index: Int) {
-        val item = getItem(index)
-        holder.populate(index, item, deleteClickListener, modifyClickListener)
+    override fun onBindViewHolder(holder: BasketItemViewHolder, position: Int) {
+        val item = getItem(position)
+        holder.populate(position, item, deleteClickListener, modifyClickListener)
     }
 
 }

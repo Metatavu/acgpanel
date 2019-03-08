@@ -17,6 +17,12 @@ class MenuActivity : PanelActivity() {
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
 
+    private val loginListener = {
+        if (loginModel.loggedIn && loginModel.currentUser?.canShelve != true) {
+            quick_pick_button.isEnabled = true
+        }
+    }
+
     override val unlockButton: Button
         get() = unlock_button
 
@@ -30,6 +36,12 @@ class MenuActivity : PanelActivity() {
         if (!loginModel.loggedIn || loginModel.currentUser?.canShelve == true) {
             quick_pick_button.isEnabled = false
         }
+        loginModel.addLogInListener(loginListener)
+    }
+
+    override fun onPause() {
+        loginModel.removeLogInListener(loginListener)
+        super.onPause()
     }
 
     fun browseProducts(@Suppress("UNUSED_PARAMETER") view: View) {

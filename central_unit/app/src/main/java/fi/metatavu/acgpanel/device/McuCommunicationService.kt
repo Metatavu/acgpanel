@@ -308,7 +308,7 @@ class McuCommunicationService : Service() {
                     when (msg) {
                         is ReadCard -> {
                             Handler(mainLooper).post {
-                                loginModel.logIn(msg.cardId, usingRfid = true)
+                                loginModel.logIn(msg.cardId)
                             }
                         }
                         is LockClosed -> {
@@ -383,10 +383,10 @@ class McuCommunicationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (serviceRunning) {
-            return Service.START_STICKY
-        }
-        serviceRunning = true
+        return Service.START_STICKY
+    }
+
+    override fun onCreate() {
         val handler = Handler()
         lateinit var autorestarter: Runnable
         var numFailures = 0
@@ -422,7 +422,6 @@ class McuCommunicationService : Service() {
         startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
         lockModel.addLockOpenRequestListener(onLockOpenRequest)
         lockModel.addAssignShelfRequestListener(onAssignShelfRequest)
-        return Service.START_STICKY
     }
 
     override fun onDestroy() {

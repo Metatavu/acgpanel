@@ -122,7 +122,6 @@ abstract class LoginModel {
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
 
-    var canLogInViaRfid = false
     var currentUser: User? = null
 
     fun addLogOutListener(listener: () -> Unit) {
@@ -149,11 +148,11 @@ abstract class LoginModel {
         failedLoginEventListeners.remove(listener)
     }
 
-    fun logIn(cardCode: String, usingRfid: Boolean = false) {
-        val truncatedCode = cardCode.take(15)
-        if (usingRfid && !canLogInViaRfid) {
+    fun logIn(cardCode: String) {
+        if (loggedIn) {
             return
         }
+        val truncatedCode = cardCode.take(15)
         if (truncatedCode == "" || truncatedCode.length < 5) {
             return
         }

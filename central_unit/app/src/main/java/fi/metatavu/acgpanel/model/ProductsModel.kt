@@ -19,11 +19,17 @@ data class Product(
     var description: String,
     var image: String,
     var code: String,
-    var safetyCard: String,
     var productInfo: String,
     var unit: String,
     var line: String,
     var barcode: String,
+    var removed: Boolean
+)
+
+@Entity(primaryKeys = ["productId", "safetyCard"])
+data class ProductSafetyCard(
+    var productId: Long,
+    var safetyCard: String,
     var removed: Boolean
 )
 
@@ -33,7 +39,7 @@ data class ProductPage(val products: List<Product>)
 interface ProductDao {
 
     @Query("UPDATE product SET removed = 1")
-    fun markAllRemoved()
+    fun markAllProductsRemoved()
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg products: Product): List<Long>
@@ -95,6 +101,18 @@ interface ProductDao {
     @Query("DELETE FROM product")
     fun clearProducts()
 
+    @Query("UPDATE productsafetycard SET removed = 1")
+    fun markAllSafetyCardsRemoved()
+
+    @Query("SELECT * FROM productsafetycard WHERE removed=0 AND productId=:productId")
+    fun listSafetyCardsByProductId(productId: Long): List<ProductSafetyCard>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAll(vararg safetyCards: ProductSafetyCard): List<Long>
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg safetyCards: ProductSafetyCard)
+
 }
 
 class GiptoolProduct {
@@ -143,7 +161,6 @@ abstract class ProductsModel {
                     "",
                     "$it",
                     "",
-                    "",
                     "kpl",
                     "1%02d".format((it - 1) % 12 + 1),
                     "",
@@ -152,11 +169,12 @@ abstract class ProductsModel {
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
-            val products = productsService
+            val giptoolProducts = productsService
                 .listProducts(vendingMachineId)
                 .execute()
                 .body()!!
                 .products
+            val products = giptoolProducts
                 .map {
                     Product(
                         null,
@@ -165,7 +183,6 @@ abstract class ProductsModel {
                         it.description?.trim() ?: "",
                         it.picture ?: "",
                         it.code?.trim() ?: "",
-                        it.safetyCard ?: "",
                         it.productInfo ?: "",
                         it.unit ?: "",
                         it.line?.trim() ?: "",
@@ -176,14 +193,28 @@ abstract class ProductsModel {
                 .toTypedArray()
             // TODO delete removed
             transaction {
-                productDao.markAllRemoved()
+                productDao.markAllProductsRemoved()
                 for (product in products) {
-                    val existing = productDao.findProductByExternalIdAndLine(product.externalId, product.line)
+                    val existing = productDao.findProductByExternalIdAndLine(
+                        product.externalId, product.line)
                     if (existing != null) {
                         product.id = existing.id
                         productDao.updateAll(product)
                     } else {
                         productDao.insertAll(product)
+                    }
+                }
+                for (giptoolProduct in giptoolProducts) {
+                    val safetyCardFiles = giptoolProduct
+                        .safetyCard?.split(",") ?: emptyList()
+                    val product = productDao.findProductByExternalId(
+                        giptoolProduct.externalId ?: continue) ?: continue
+                    for (fileName in safetyCardFiles) {
+                        productDao.insertAll(ProductSafetyCard(
+                            product.id!!,
+                            fileName,
+                            false
+                        ))
                     }
                 }
             }
@@ -221,6 +252,21 @@ abstract class ProductsModel {
                 (0 until productCount step 6).map {
                     ProductPage(productDao.getProductPageSearch(searchTerm, it))
                 }
+            }
+        }
+    }
+
+    fun listProductSafetyCards(product: Product, callback: (List<String>) -> Unit) {
+        thread(start = true) {
+            val productId = product.id
+            if (productId != null) {
+                callback(
+                    productDao
+                        .listSafetyCardsByProductId(productId)
+                        .map {
+                            it.safetyCard
+                        }
+                )
             }
         }
     }

@@ -175,8 +175,6 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
 
     private fun setupLogin() {
         loginModel.logOut()
-        loginModel.canLogInViaRfid = true
-        handler.postDelayed({loginModel.canLogInViaRfid = true}, 100)
         // allow instant login for better usability
         loginModel.removeLogInListener(loginListener)
         loginModel.addLogInListener(loginListener)
@@ -187,7 +185,6 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
     override fun onPause() {
         loginModel.removeLogInListener(loginListener)
         loginModel.removeFailedLogInListener(failedLoginListener)
-        loginModel.canLogInViaRfid = false
         super.onPause()
     }
 
