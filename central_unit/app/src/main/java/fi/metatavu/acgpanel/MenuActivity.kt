@@ -7,15 +7,18 @@ import android.preference.PreferenceManager
 import android.view.View
 import android.widget.Button
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getProductsModel
 import kotlinx.android.synthetic.main.activity_menu.*
+import kotlin.concurrent.thread
 
 class MenuActivity : PanelActivity() {
 
     private val productsModel = getProductsModel()
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
+    private val lockModel = getLockModel()
 
     private val loginListener = {
         if (loginModel.loggedIn && loginModel.currentUser?.canShelve != true) {
@@ -66,20 +69,27 @@ class MenuActivity : PanelActivity() {
     fun quickPick(@Suppress("UNUSED_PARAMETER") view: View) {
         productsModel.searchTerm = ""
         productsModel.refreshProductPages {
-            basketModel.clearBasket()
-            for (page in productsModel.productPages) {
-                for (product in page.products) {
-                    basketModel.selectNewBasketItem(product)
-                    basketModel.saveSelectedItem(
-                        0,
-                        loginModel.currentUser?.expenditure ?: "",
-                        loginModel.currentUser?.reference ?: ""
-                    )
+            thread(start = true) {
+                basketModel.clearBasket()
+                for (page in productsModel.productPages) {
+                    for (product in page.products) {
+                        basketModel.selectNewBasketItem(product)
+                        basketModel.saveSelectedItem(
+                            0,
+                            loginModel.currentUser?.expenditure ?: "",
+                            loginModel.currentUser?.reference ?: ""
+                        )
+                        if (!lockModel.unsafeIsLineCalibrated(product.line)) {
+                            basketModel.disableItemsInLine(product.line)
+                        }
+                    }
+                }
+                val intent = Intent(this, QuickPickActivity::class.java)
+                runOnUiThread {
+                    finish()
+                    startActivity(intent)
                 }
             }
-            val intent = Intent(this, QuickPickActivity::class.java)
-            finish()
-            startActivity(intent)
         }
     }
 

@@ -115,9 +115,12 @@ abstract class LockModel {
 
     fun isLineCalibrated(line: String, callback: (Boolean) -> Unit) {
         thread(start = true) {
-            callback(compartmentMappingDao.getCompartmentMapping(line) != null)
+            callback(unsafeIsLineCalibrated(line))
         }
     }
+
+    fun unsafeIsLineCalibrated(line: String): Boolean
+        = compartmentMappingDao.getCompartmentMapping(line) != null
 
     private fun linePosition(line: String): Pair<Int, Int> {
         val mapping = compartmentMappingDao.getCompartmentMapping(line)
@@ -140,7 +143,6 @@ abstract class LockModel {
         val (shelf, compartment) = linePosition(line)
         openSpecificLock(shelf, compartment, reset)
     }
-
 
     fun openLineLock(line: String, reset: Boolean = false) {
         thread(start = true) {

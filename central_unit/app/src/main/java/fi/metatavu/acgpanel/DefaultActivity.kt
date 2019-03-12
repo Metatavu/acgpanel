@@ -81,18 +81,15 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             val context = this
             val pkgManager = context.packageManager
             val appInfo = pkgManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-
             val serviceManagerClass = Class.forName("android.os.ServiceManager")
             val getServiceMethod = serviceManagerClass.getDeclaredMethod("getService", String::class.java)
             getServiceMethod.isAccessible = true
             val binder = getServiceMethod.invoke(null, Context.USB_SERVICE) as android.os.IBinder
-
             val iUsbManagerClass = Class.forName("android.hardware.usb.IUsbManager")
             val stubClass = Class.forName("android.hardware.usb.IUsbManager\$Stub")
             val asInterfaceMethod = stubClass.getDeclaredMethod("asInterface", android.os.IBinder::class.java)
             asInterfaceMethod.isAccessible = true
             val iUsbManager = asInterfaceMethod.invoke(null, binder)
-
             val grantDevicePermissionMethod = iUsbManagerClass.getDeclaredMethod(
                 "grantDevicePermission",
                 UsbDevice::class.java,
@@ -100,13 +97,11 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             )
             grantDevicePermissionMethod.isAccessible = true
             grantDevicePermissionMethod.invoke(iUsbManager, usbDevice, appInfo.uid)
-
             return true
         } catch (e: Exception) {
             // Not a privileged app, fall back to asking permission
             return false
         }
-
     }
 
     private val usbManager: UsbManager
@@ -221,7 +216,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             return
         }
         dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_SAFE_BOOT)
-        dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
+        dpm.clearUserRestriction(adminComponentName, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
         dpm.setKeyguardDisabled(adminComponentName, true)
         dpm.setStatusBarDisabled(adminComponentName, true)
         dpm.setSystemUpdatePolicy(adminComponentName,

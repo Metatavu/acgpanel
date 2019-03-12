@@ -7,8 +7,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_blue"
-    android:onClick="proceed"
     tools:context=".DefaultActivity">
+
 
     <TextView
         android:id="@+id/version_number"
@@ -45,19 +45,13 @@
         android:visibility="gone"
         />
 
-    <Button
-        android:id="@+id/unlock_button"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="top|end"
-        android:background="@android:color/transparent"
-        />
-
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:src="@drawable/etralogo"
+        android:scaleX="0.75"
+        android:scaleY="0.75"
         />
 
     <com.synnapps.carouselview.CarouselView
@@ -71,6 +65,22 @@
         app:slideInterval="60000"
         app:strokeColor="#FFFFFFFF"
         app:strokeWidth="2dp"
+        />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:stateListAnimator="@null"
+        android:onClick="proceed"
+        />
+
+    <Button
+        android:id="@+id/unlock_button"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="top|end"
+        android:background="@android:color/transparent"
         />
 
 </FrameLayout>

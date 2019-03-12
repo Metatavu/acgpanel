@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_quick_pick.*
 import kotlinx.android.synthetic.main.view_quick_pick_item.view.*
@@ -41,7 +42,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
             }
             val count = text.toString().toIntOrNull() ?: 0
             onCountUpdated(index, count)
-            setBackgroundColor(index, count)
+            setBackgroundColor(index, count, true)
         }
         override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
         }
@@ -49,14 +50,18 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
         }
     }
 
-    fun setBackgroundColor(index: Int, count: Int) {
+    fun setBackgroundColor(index: Int, count: Int, enabled: Boolean) {
         with (itemView) {
-            background = when (Pair(index % 2 == 0, count > 0)) {
-                Pair(true, true) -> context.getDrawable(R.color.highlight)
-                Pair(false, true) -> context.getDrawable(R.color.highlightDark)
-                Pair(true, false) -> context.getDrawable(R.color.lightZebraStripe1)
-                Pair(false, false) -> context.getDrawable(R.color.lightZebraStripe2)
-                else -> context.getDrawable(R.color.lightBackground)
+            background = if (enabled) {
+                when (Pair(index % 2 == 0, count > 0)) {
+                    Pair(true, true) -> context.getDrawable(R.color.highlight)
+                    Pair(false, true) -> context.getDrawable(R.color.highlightDark)
+                    Pair(true, false) -> context.getDrawable(R.color.lightZebraStripe1)
+                    Pair(false, false) -> context.getDrawable(R.color.lightZebraStripe2)
+                    else -> context.getDrawable(R.color.lightBackground)
+                }
+            } else {
+                context.getDrawable(R.color.colorPrimaryDarkDim)
             }
         }
     }
@@ -68,7 +73,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                  onExpenditureClick: (Int, ((String) -> Unit)) -> Unit,
                  onReferenceClick: (Int, ((String) -> Unit)) -> Unit) {
         with (itemView) {
-            setBackgroundColor(index, item.count)
+            setBackgroundColor(index, item.count, item.enabled)
             count_input.transformationMethod = null
             disableCountListener = true
             count_input.text.clear()
@@ -79,14 +84,19 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
             this@QuickPickItemViewHolder.onCountUpdated = onCountUpdated
             this@QuickPickItemViewHolder.index = index
             count_input.removeTextChangedListener(countListener)
-            count_input.addTextChangedListener(countListener)
+            if (item.enabled) {
+                count_input.addTextChangedListener(countListener)
+            } else {
+                count_input.isEnabled = false
+            }
             unit_text.text = item.product.unit
             product_line.text = item.product.line
             product_name.text = item.product.name
             product_expenditure.text = item.expenditure
-            if (basketModel.lockUserExpenditure) {
+            if (basketModel.lockUserExpenditure || !item.enabled) {
                 product_expenditure.isEnabled = false
             } else {
+                product_expenditure.isEnabled = true
                 product_expenditure.setOnClickListener {
                     onExpenditureClick(index) { expenditure ->
                         product_expenditure.text = expenditure
@@ -94,7 +104,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                 }
             }
             product_reference.text = item.reference
-            if (basketModel.lockUserReference) {
+            if (basketModel.lockUserReference || !item.enabled) {
                 product_reference.isEnabled = false
             } else {
                 product_reference.setOnClickListener {
@@ -103,12 +113,17 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                     }
                 }
             }
-            product_delete_button.setOnClickListener {
-                disableCountListener = true
-                count_input.text.clear()
-                disableCountListener = false
-                setBackgroundColor(index, 0)
-                onDeleteClick(index)
+            if (item.enabled) {
+                product_delete_button.setOnClickListener {
+                    disableCountListener = true
+                    count_input.text.clear()
+                    disableCountListener = false
+                    setBackgroundColor(index, 0, item.enabled)
+                    onDeleteClick(index)
+                }
+            } else {
+                product_delete_button.isEnabled = false
+                product_delete_button.setOnClickListener {}
             }
         }
     }
@@ -173,6 +188,11 @@ class QuickPickActivity : PanelActivity() {
     private val adapter = QuickPickAdapter()
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
+    private val lockModel = getLockModel()
+
+    private val onLockOpen = {
+        adapter.notifyDataSetChanged()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -228,8 +248,14 @@ class QuickPickActivity : PanelActivity() {
         }
     }
 
+    override fun onPause() {
+        lockModel.removeLockOpenedListener(onLockOpen)
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        lockModel.addLockOpenedListener(onLockOpen)
         basket_items_view.requestFocus()
     }
 
