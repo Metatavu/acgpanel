@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Cotio</string>
+    <string name="pref_header_general">Yleiset</string>
+    <string name="title_activity_cotio_settings">Cotio Asetukset</string>
+    <string name="pref_key_num_drivers">num_drivers</string>
+    <string name="pref_title_num_drivers">Ohjausyksikköjen määrä</string>
+    <string name="pref_key_enabled_lockers_1">enabled_lockers_1</string>
+    <string name="pref_key_enabled_lockers_2">enabled_lockers_2</string>
+    <string name="pref_key_enabled_lockers_3">enabled_lockers_3</string>
+    <string name="pref_key_enabled_lockers_4">enabled_lockers_4</string>
+    <string name="pref_title_enabled_lockers_1">Käytössä olevat lokerot (torni 1)</string>
+    <string name="pref_title_enabled_lockers_2">Käytössä olevat lokerot (torni 2)</string>
+    <string name="pref_title_enabled_lockers_3">Käytössä olevat lokerot (torni 3)</string>
+    <string name="pref_title_enabled_lockers_4">Käytössä olevat lokerot (torni 4)</string>
+</resources>

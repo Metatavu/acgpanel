@@ -1,1 +1,1 @@
-include ':app', ':installer'
+include ':app', ':installer', ':support', ':cotio'

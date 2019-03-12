@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Peripheral Unit Communication</string>
+    <string name="unlockCode">Huoltokoodi</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Peruuta</string>
+    <string name="app_name_placeholder">\???</string>
+</resources>
