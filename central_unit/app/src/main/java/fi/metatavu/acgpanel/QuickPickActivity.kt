@@ -71,7 +71,9 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                  onDeleteClick: (Int) -> Unit,
                  onCountUpdated: (Int, Int) -> Unit,
                  onExpenditureClick: (Int, ((String) -> Unit)) -> Unit,
-                 onReferenceClick: (Int, ((String) -> Unit)) -> Unit) {
+                 onReferenceClick: (Int, ((String) -> Unit)) -> Unit,
+                 onPrevious: (Int) -> Unit,
+                 onNext: (Int) -> Unit) {
         with (itemView) {
             setBackgroundColor(index, item.count, item.enabled)
             count_input.transformationMethod = null
@@ -148,6 +150,8 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
     private var countUpdatedListener: (Int, Int) -> Unit = {_, _ ->}
     private var expenditureClickListener: (Int, ((String)->Unit)) -> Unit = {_, _ ->}
     private var referenceClickListener: (Int, ((String)->Unit)) -> Unit = {_, _ ->}
+    private var previousClickListener: (Int) -> Unit = {}
+    private var nextClickListener: (Int) -> Unit = {}
 
     fun setDeleteClickListener(listener: (Int) -> Unit) {
         deleteClickListener = listener
@@ -165,6 +169,14 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
         referenceClickListener = listener
     }
 
+    fun setPreviousClickListener(listener: (Int) -> Unit) {
+        previousClickListener = listener
+    }
+
+    fun setNextClickListener(listener: (Int) -> Unit) {
+        nextClickListener = listener
+    }
+
     override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): QuickPickItemViewHolder {
         return QuickPickItemViewHolder(viewGroup.context)
     }
@@ -177,7 +189,9 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
             deleteClickListener,
             countUpdatedListener,
             expenditureClickListener,
-            referenceClickListener)
+            referenceClickListener,
+            previousClickListener,
+            nextClickListener)
     }
 
 }
@@ -244,6 +258,20 @@ class QuickPickActivity : PanelActivity() {
                 )
                 updateNumProducts()
                 updateReference(it)
+            }
+        }
+        adapter.setPreviousClickListener {
+            if (it > 0) {
+                with (basket_items_view.getChildAt(it - 1)) {
+                    count_input.requestFocus()
+                }
+            }
+        }
+        adapter.setNextClickListener {
+            if (it < adapter.itemCount - 1) {
+                with (basket_items_view.getChildAt(it - 1)) {
+                    count_input.requestFocus()
+                }
             }
         }
     }

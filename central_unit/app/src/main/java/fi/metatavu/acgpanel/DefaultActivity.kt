@@ -1,7 +1,6 @@
 package fi.metatavu.acgpanel
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
@@ -13,9 +12,11 @@ import android.hardware.usb.UsbManager
 import android.os.*
 import android.os.Environment.DIRECTORY_PICTURES
 import android.os.Environment.getExternalStoragePublicDirectory
+import android.preference.PreferenceManager
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.widget.ImageView
 import fi.metatavu.acgpanel.device.McuCommunicationService
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getNotificationModel
@@ -25,10 +26,13 @@ import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockAtStart = false) {
 
-    private val handler = Handler(Looper.getMainLooper())
-
     private val loginModel = getLoginModel()
     private val notificationModel = getNotificationModel()
+    private var carouselWidth = 1
+    private var carouselHeight = 1
+
+    private val preferences: SharedPreferences
+        get() = PreferenceManager.getDefaultSharedPreferences(this)
 
     private val rebootTickCounter = TimedTickCounter(3, Duration.ofSeconds(1)) {
         powerManager.reboot("")
@@ -107,15 +111,14 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
     private val usbManager: UsbManager
         get() = getSystemService(Context.USB_SERVICE) as UsbManager
 
-    private val activityManager: ActivityManager
-        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-
     @SuppressLint("WakelockTimeout")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
         cosuLockDown()
-        version_number.text = packageManager.getPackageInfo(packageName, 0)!!.versionName
+        val version = packageManager.getPackageInfo(packageName, 0)!!.versionName
+        val id = loginModel.vendingMachineId
+        identification.text = "$id\nv$version"
         registerReceiver(receiver, IntentFilter(ACTION_USB_PERMISSION))
         val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
         startService(mcuCommServiceIntent)
@@ -132,15 +135,22 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
         setupCarousel()
     }
 
-    fun setupCarousel() {
+    private fun setupCarousel() {
         val picsDir = File(getExternalStoragePublicDirectory(DIRECTORY_PICTURES), "ACGPanel")
         if (picsDir.exists()) {
             val pics = picsDir.listFiles() ?: return
-            carousel.pageCount = pics.size
             carousel.setImageListener { position, imageView ->
-                val bmp = BitmapFactory.decodeFile(pics[position].absolutePath)
-                imageView.setImageBitmap(bmp)
+                val source = BitmapFactory.decodeFile(pics[position].absolutePath)
+                imageView.scaleType = ImageView.ScaleType.FIT_CENTER
+                imageView.setImageBitmap(source)
             }
+            carousel.pageCount = pics.size
+            carousel.slideInterval = (preferences
+                .getString(
+                    getString(R.string.pref_key_carousel_slide_interval),
+                    DEFAULT_CAROUSEL_INTERVAL.toString())
+                .toIntOrNull() ?: DEFAULT_CAROUSEL_INTERVAL) * 1000
+            carousel.forceLayout()
         } else {
             carousel.visibility = View.GONE
         }
@@ -241,6 +251,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
         private const val NOTIFICATION_NOT_OWNER = "NOTIFICATION_NOT_OWNER"
         private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
+        private const val DEFAULT_CAROUSEL_INTERVAL = 15
         private var wakeLock: PowerManager.WakeLock? = null
         private var isCosuLockedDown = false
     }

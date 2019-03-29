@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
+import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -111,9 +112,11 @@ class BasketActivity : PanelActivity() {
     private val lockOpenListener = {
         adapter.notifyDataSetChanged()
     }
+    private lateinit var handler: Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handler = Handler(mainLooper)
         setContentView(R.layout.activity_basket)
         updateNumProducts()
         basket_items_view.adapter = adapter
@@ -177,6 +180,9 @@ class BasketActivity : PanelActivity() {
         if (!basketAccepted) {
             basketModel.acceptBasket()
             basketAccepted = true
+            handler.postDelayed({
+                num_products_label.text = getString(R.string.hint_only_edit_open_locker)
+            }, 500)
         }
         cancel_button.isEnabled = false
         select_another_button.isEnabled = false

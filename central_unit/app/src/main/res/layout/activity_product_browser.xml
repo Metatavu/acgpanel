@@ -7,25 +7,59 @@
     android:layout_height="match_parent"
     tools:context=".ProductBrowserActivity">
 
-    <Button
-        android:layout_width="100dp"
-        android:layout_height="match_parent"
-        android:layout_marginTop="102dp"
-        android:layout_marginBottom="102dp"
-        android:onClick="previousPage"
+    <ImageButton
+        android:onClick="back"
+        android:layout_width="80dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="20dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="@id/search_box"
+        app:layout_constraintBottom_toBottomOf="@id/search_box"
+        android:src="@drawable/back"
         android:background="@android:color/transparent"
-        android:drawableRight="@drawable/arrow_left_2"
+        android:scaleType="fitCenter"
         />
 
-    <Button
-        android:layout_width="100dp"
+
+    <ImageButton
+        android:id="@+id/button_previous_page"
+        android:onClick="previousPage"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_marginTop="102dp"
         android:layout_marginBottom="102dp"
+        android:layout_marginRight="10dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/basket_items_view"
         android:background="@android:color/transparent"
-        android:drawableLeft="@drawable/arrow_right_2"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:src="@drawable/arrow_left_2"
+        android:scaleType="center"
+        />
+
+    <ImageButton
+        android:id="@+id/button_next_page"
         android:onClick="nextPage"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginTop="102dp"
+        android:layout_marginBottom="102dp"
+        android:layout_marginLeft="10dp"
+        app:layout_constraintLeft_toRightOf="@id/basket_items_view"
+        app:layout_constraintRight_toRightOf="parent"
+        android:background="@android:color/transparent"
+        android:src="@drawable/arrow_right_2"
+        android:scaleType="center"
+        />
+
+    <TextView
+        android:id="@+id/time_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_margin="10dp"
+        android:textSize="18sp"
+        android:text="@string/time_left"
         />
 
     <View

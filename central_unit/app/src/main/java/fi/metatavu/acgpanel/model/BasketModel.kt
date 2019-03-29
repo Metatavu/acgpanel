@@ -111,6 +111,10 @@ data class BasketItem(
         return BasketItem(product, count, expenditure, reference, false)
     }
 
+    fun enabled(): BasketItem {
+        return BasketItem(product, count, expenditure, reference, true)
+    }
+
 }
 
 abstract class BasketModel {
@@ -240,6 +244,10 @@ abstract class BasketModel {
         mutableBasket.clear()
     }
 
+    fun disableAll() {
+        mutableBasket.replaceAll { it.disabled() }
+    }
+
     fun disableItemsInLine(line: String) {
         mutableBasket.replaceAll {
             if (it.product.line == line) {
@@ -249,6 +257,17 @@ abstract class BasketModel {
             }
         }
     }
+
+    fun enableItemsInLine(line: String) {
+        mutableBasket.replaceAll {
+            if (it.product.line == line) {
+                it.enabled()
+            } else {
+                it
+            }
+        }
+    }
+
 
     protected open fun syncProductTransactions() {
         if (demoMode) {

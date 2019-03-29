@@ -109,10 +109,28 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".LockTestActivity"
+            android:screenOrientation="landscape"
+            android:label="Luukkujen testaus">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".AppDrawerActivity"
             android:screenOrientation="landscape"
             />
+        <activity
+            android:name=".LoginLessShelvingActivity"
+            android:label="Hyllytystila"
+            >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <service
             android:name=".device.McuCommunicationService"
             android:enabled="true"

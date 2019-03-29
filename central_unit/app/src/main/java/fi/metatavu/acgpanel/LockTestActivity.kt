@@ -8,7 +8,7 @@ import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_prompt.*
 import kotlin.concurrent.thread
 
-class LockCalibrationActivity : PromptActivity() {
+class LockTestActivity : PromptActivity() {
     val model = getLockModel()
     override val promptButton: Button
         get() = prompt_button
@@ -17,7 +17,7 @@ class LockCalibrationActivity : PromptActivity() {
     override val promptInput: EditText
         get() = prompt_input
 
-    protected override fun newProcess() = thread(start = false, isDaemon = true) {
+    override fun newProcess() = thread(start = false, isDaemon = true) {
         try {
             model.isCalibrationMode = true
             val numShelves = prompt("Montako ohjausyksikköä kaapissa on?").toInt()
@@ -35,24 +35,22 @@ class LockCalibrationActivity : PromptActivity() {
                             "Paina nappia uudestaan ja varmista," +
                             " että vilkkuminen loppuu."
                 )
+                runOnUiThread {
+                    promptButton.isEnabled = false
+                }
                 for (compartment in 1..12) {
                     model.openSpecificLock(shelf, compartment, reset=true)
-                    val line = prompt(
-                        "Ohjain $shelf/$numShelves\n" +
-                                "Luukku $compartment/12\n" +
-                                "\nSyötä auenneen luukun linjanumero. Jos mikään luukku ei" +
-                                " auennut, jätä kenttä tyhjäksi. Älä sulje vielä luukkua."
-                    )
-                    if (line != "") {
-                        model.calibrationAssignLine(line, shelf, compartment)
+                    runOnUiThread {
+                        promptText.text = "Ohjain $shelf/$numShelves\n" +
+                                           "Luukku $compartment/12 auki."
                     }
+                    Thread.sleep(10000)
+                }
+                runOnUiThread {
+                    promptButton.isEnabled = true
                 }
             }
-            prompt(
-                "Kalibrointi on valmis. Voit nyt sulkea luukut." +
-                        " Jos haluat liittää usean linjan samaan" +
-                        " luukkuun, aja kalibrointi uudestaan."
-            )
+            prompt("Testi on valmis. Voit nyt sulkea luukut.")
             runOnUiThread { finish() }
         } catch (ex: InterruptedException) {
 

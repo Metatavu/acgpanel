@@ -1,7 +1,9 @@
 package fi.metatavu.acgpanel.model
 
+import android.arch.persistence.db.SupportSQLiteDatabase
 import android.arch.persistence.room.Database as RoomDatabase
 import android.arch.persistence.room.Room
+import android.arch.persistence.room.migration.Migration
 import android.arch.persistence.room.RoomDatabase as RoomRoomDatabase
 import android.content.SharedPreferences
 import android.os.Handler
@@ -17,7 +19,6 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.time.Duration
-import kotlin.concurrent.thread
 
 @RoomDatabase(entities = [
     User::class,
@@ -28,7 +29,7 @@ import kotlin.concurrent.thread
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class
-], version = 6, exportSchema = false)
+], version = 7, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -48,8 +49,12 @@ private object Database {
             AndroidPanelDatabase::class.java,
             DATABASE_NAME
         )
-            .fallbackToDestructiveMigration()
             .addMigrations(
+                object: Migration(6, 7) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("DELETE FROM ProductSafetyCard")
+                    }
+                }
             )
             .build()
 
@@ -159,6 +164,19 @@ private object Preferences {
     val serverAddress: String
         get() = preferences()
             .getString(getString(R.string.pref_key_server_address), "http://localhost/")
+
+    val useWiegandProfile1: Boolean
+        get() = preferences()
+            .getBoolean(getString(R.string.pref_key_wiegand_profile_1), false)
+
+    val useWiegandProfile2: Boolean
+        get() = preferences()
+            .getBoolean(getString(R.string.pref_key_wiegand_profile_2), false)
+
+    val timeoutInSeconds: Long
+        get() = preferences()
+            .getString(getString(R.string.pref_key_timeout_in_s), "").toLongOrNull() ?: 60
+
 }
 
 private object PanelScheduling {
@@ -248,6 +266,14 @@ private object BasketModelImpl: BasketModel() {
 fun getBasketModel(): BasketModel = BasketModelImpl
 
 private object LockModelImpl: LockModel() {
+    override fun enableItemsInLine(line: String) {
+        BasketModelImpl.enableItemsInLine(line)
+    }
+
+    override fun disableAllItemsInBasket() {
+        BasketModelImpl.disableAll()
+    }
+
     override val compartmentMappingDao: CompartmentMappingDao
         get() = Database.compartmentMappingDao
 
@@ -272,19 +298,14 @@ private object LockModelImpl: LockModel() {
         BasketModelImpl.completeProductTransaction(function)
     }
 
-    override fun isShelvingMode(): Boolean =
-        LoginModelImpl.currentUser?.canShelve == true
-
-    override fun disableItemsInLine(line: String) {
-        BasketModelImpl.disableItemsInLine(line)
-    }
+    override val isShelvingMode: Boolean
+        get() = LoginModelImpl.currentUser?.canShelve == true
 
 }
 
 fun getLockModel(): LockModel = LockModelImpl
 
 private object LoginModelImpl: LoginModel() {
-
     override val userDao: UserDao
         get() = Database.userDao
 
@@ -299,6 +320,15 @@ private object LoginModelImpl: LoginModel() {
 
     override val demoMode: Boolean
         get() = Preferences.demoMode
+
+    override val useWiegandProfile1: Boolean
+        get() = Preferences.useWiegandProfile1
+
+    override val useWiegandProfile2: Boolean
+        get() = Preferences.useWiegandProfile2
+
+    override val timeoutInSeconds: Long
+        get() = Preferences.timeoutInSeconds
 
     override fun schedule(callback: Runnable, timeout: Long) =
         PanelScheduling.schedule(callback, timeout)
@@ -332,7 +362,6 @@ private object LoginModelImpl: LoginModel() {
     public override fun syncLogInAttempts() {
         super.syncLogInAttempts()
     }
-
 
 }
 
@@ -390,19 +419,19 @@ fun getMaintenanceModel(): MaintenanceModel = MaintenanceModelImpl
 private object ServerSyncModelImpl: ServerSyncModel() {
 
     override fun serverSync() {
-         thread(start=true) {
-            try {
-                DemoModelImpl.demoModeCleanup()
-                LoginModelImpl.syncUsers()
-                ProductsModelImpl.syncProducts()
-                // Don't sync product transactions to prevent race condition
-                // BasketModelImpl.syncProductTransactions()
-                LoginModelImpl.syncLogInAttempts()
-            } catch (ex: IOException) {
-                // device offline, do nothing
-            } catch (ex: Exception) {
-                Log.e(javaClass.name, "Error while syncing to server: $ex")
-            }
+        try {
+            DemoModelImpl.demoModeCleanup()
+            LoginModelImpl.syncUsers()
+            ProductsModelImpl.syncProducts()
+            // Don't sync product transactions to prevent race condition
+            // BasketModelImpl.syncProductTransactions()
+            LoginModelImpl.syncLogInAttempts()
+        } catch (ex: IOException) {
+            Log.d(javaClass.name, "IOException: $ex");
+            // device offline, do nothing
+        } catch (ex: Exception) {
+            Log.e(javaClass.name, Log.getStackTraceString(ex));
+            Log.e(javaClass.name, "Error while syncing to server: $ex")
         }
     }
 

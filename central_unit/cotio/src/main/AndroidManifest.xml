@@ -43,6 +43,11 @@
         <activity
             android:name=".ReadCodeActivity"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="stateHidden"
+            />
+        <activity
+            android:name=".FinishedActivity"
+            android:launchMode="singleTask"
             />
         <activity
             android:name=".CotioSettingsActivity"

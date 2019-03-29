@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#FFFFFF"
     tools:context=".ReadCodeActivity">
 
     <Button
@@ -10,28 +12,105 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_gravity="top|end"
+        android:background="@android:color/transparent"
         />
 
     <TextView
         android:id="@+id/code_prompt"
-        android:layout_width="wrap_content"
+        android:layout_width="580dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:textSize="100sp"
-        android:text="Lue koodi"
+        android:layout_gravity="start|bottom"
+        android:layout_marginLeft="100dp"
+        android:layout_marginBottom="230dp"
+        android:textSize="50sp"
+        android:textColor="@color/colorPrimaryText"
+        android:textStyle="bold"
+        android:text="@string/read_code_prompt"
+        />
+
+    <ImageView
+        android:layout_width="500dp"
+        android:layout_height="500dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="40dp"
+        android:src="@drawable/screen"
+        />
+
+    <ImageView
+        android:id="@+id/arrow"
+        android:layout_width="500dp"
+        android:layout_height="500dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="40dp"
+        android:src="@drawable/arrow"
+        />
+
+
+    <ImageView
+        android:id="@+id/hand"
+        android:layout_width="250dp"
+        android:layout_height="487dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="-160dp"
+        android:layout_marginEnd="104dp"
+        android:src="@drawable/hand"
+        />
+
+    <TextView
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="100dp"
+        android:layout_marginLeft="100dp"
+        android:padding="15dp"
+        android:text="@string/input_code_help"
+        android:textSize="25sp"
+        android:textColor="@color/colorPrimaryText"
+        />
+
+    <Button
+        android:onClick="showCodeDialog"
+        android:id="@+id/show_code_button"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="40dp"
+        android:layout_marginLeft="100dp"
+        android:padding="15dp"
+        android:text="@string/input_code"
+        android:textSize="25sp"
+        android:textColor="@color/colorPrimaryText"
+        android:textStyle="bold"
+        android:background="@drawable/basic_border"
+        android:textAllCaps="false"
+        android:fontFamily="@font/roboto"
+        />
+
+    <ImageButton
+        android:onClick="goBack"
+        android:id="@+id/go_back_button"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_gravity="start|top"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="0dp"
+        android:src="@drawable/back_arrow"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
         />
 
     <EditText
         android:id="@+id/code_textbox"
-        android:layout_width="600dp"
-        android:layout_height="80dp"
-        android:layout_gravity="center_horizontal|bottom"
-        android:layout_marginBottom="40dp"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
         android:focusableInTouchMode="true"
         android:focusedByDefault="true"
-        android:textSize="50dp"
         android:singleLine="true"
         android:maxLines="1"
+        android:alpha="0"
         />
 
 </FrameLayout>

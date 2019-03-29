@@ -26,7 +26,7 @@
 #define BAUD_RATE_BD 9600
 #define BAUD_RATE_CR 9600
 
-#define MS 10
+#define MS 25
 
 volatile uint8_t lastTarget = 0;
 
@@ -129,7 +129,8 @@ void timerInit(void) {
 #ifdef TEST
   uint16_t numCycles = 100;
 #else
-  // 10kHz timer
+  // 40kHz timer
+  // uint16_t numCycles = 200; //F_OSC = 8_000_000, MS=40, F_OSC / (MS * 1000) = 160
   uint16_t numCycles = F_OSC / (MS * 1000);
 #endif
   uint8_t sreg = SREG;
@@ -148,50 +149,41 @@ void timerInit(void) {
   SREG = sreg;
 }
 
-int16_t wieLastVal = -1;
-
-uint8_t wieBuffer = 0;
-uint8_t wieCounter = 0;
-uint8_t wieFlushTimer = 0;
-
-void cuCommWriteNybbleHex(uint8_t val) {
-  val = val & 0x0F;
-  if (val < 10) {
-    cuCommWrite('0' + val);
+__attribute__ ((always_inline)) inline uint8_t wieReadValue() {
+  if ((PINE & (1<<PE2)) && !(PINE & (1<<PE3))) {
+    return 0x01;
+  } else if (!(PINE & (1<<PE2)) && (PINE & (1<<PE3))) {
+    return 0x00;
   } else {
-    cuCommWrite('A' + (val - 10));
+    return 0xFF;
   }
 }
+
+const uint32_t WIEGAND_IDLE_TIME = 20000;
+uint8_t wieBuffer[128] = {};
   
-void wieRead(void) {    
-  int16_t value;
-  // Wiegand
-  if ((PINE & (1<<PE2)) && !(PINE & (1<<PE3))) {
-    value = 1;
-  } else if (!(PINE & (1<<PE2)) && (PINE & (1<<PE3))) {
-    value = 0;
-  } else {
-    value = -1;
-  }
-  if (value == wieLastVal) {
+__attribute__ ((always_inline)) inline void wieRead(void) {    
+  uint8_t wieCounter = 0;
+  uint8_t value = wieReadValue();
+  if (value == 0xFF) {
     return;
   }
-  wieLastVal = value;
-  if (value == -1) {
-    return;
+  while (wieCounter < 128) {
+    while (wieReadValue() != 0xFF);
+    wieBuffer[wieCounter++] = '0' + value;
+    uint32_t idleTime = 0;
+    while ((value = wieReadValue()) == 0xFF) {
+      wdt_reset();
+      if (idleTime++ > WIEGAND_IDLE_TIME) {
+        goto codeRead;
+      }
+    }
   }
-  wieFlushTimer = 8*MS;
-  if (source_timer <= 0) {
-    source_timer = 20*MS;
-    cuCommWrite(TARGET_WIEGAND);
-  }
-  wieBuffer <<= 1;
-  wieBuffer |= value;
-  wieCounter++;
-  if (wieCounter >= 4) {
-    cuCommWriteNybbleHex(wieBuffer);
-    wieCounter = 0;
-    wieBuffer = 0;
+codeRead:
+  cuCommWrite(TARGET_WIEGAND);
+  for (uint8_t i=0; i<wieCounter; i++) {
+    wdt_reset();
+    cuCommWrite(wieBuffer[i]);
   }
 }
 
@@ -207,15 +199,6 @@ ISR(TIMER1_COMPA_vect)
     rs485_enable_timer--;
   } else {
     bdCommInput();
-  }
-  if (wieFlushTimer > 0) {
-    wieFlushTimer--;
-  } else {
-    if (wieCounter != 0) {
-      cuCommWriteNybbleHex(wieBuffer);
-      wieCounter = 0;
-      wieBuffer = 0;
-    }
   }
   wieRead();
 }

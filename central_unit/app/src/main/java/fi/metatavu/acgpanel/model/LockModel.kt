@@ -42,7 +42,7 @@ abstract class LockModel {
     protected abstract fun logOut()
     protected abstract fun completeProductTransaction(function: () -> Unit)
     protected abstract val compartmentMappingDao: CompartmentMappingDao
-    abstract fun isShelvingMode(): Boolean
+    abstract val isShelvingMode: Boolean
 
     private val lockOpenTimerCallback = Runnable {
     }
@@ -56,6 +56,8 @@ abstract class LockModel {
         get() = numInitialLinesToOpen - linesToOpen.size
     val numLocks
         get() = numInitialLinesToOpen
+
+    var isCalibrationMode = false
 
     fun addLockOpenedListener(listener: () -> Unit) {
         lockOpenedListeners.add(listener)
@@ -150,14 +152,15 @@ abstract class LockModel {
         }
     }
 
-    protected abstract fun disableItemsInLine(line: String)
+    protected abstract fun enableItemsInLine(line: String)
+    protected abstract fun disableAllItemsInBasket()
 
     fun openLock(first: Boolean = true) {
         Log.d(javaClass.name, "linesToOpen: $linesToOpen")
         if (linesToOpen.isEmpty()) {
             locksOpen = false
             unSchedule(lockOpenTimerCallback)
-            if (!isShelvingMode()) {
+            if (!isShelvingMode) {
                 schedule(Runnable {
                     completeProductTransaction {
                         logOut()
@@ -173,10 +176,11 @@ abstract class LockModel {
             }
         } else {
             val line = linesToOpen.removeAt(0)
+            disableAllItemsInBasket()
+            enableItemsInLine(line)
             unSchedule(lockOpenTimerCallback)
             schedule(lockOpenTimerCallback, LOCK_TIMEOUT_MS)
             openLineLock(line, reset = first)
-            disableItemsInLine(line)
             schedule(Runnable {
                 for (listener in lockOpenedListeners) {
                     listener()

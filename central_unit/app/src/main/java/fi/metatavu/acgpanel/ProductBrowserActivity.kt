@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.content.res.TypedArray
+import android.graphics.Point
 import android.os.Bundle
 import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
@@ -111,6 +112,7 @@ class ProductBrowserActivity : PanelActivity() {
     private val lockModel = getLockModel()
     private val basketModel = getBasketModel()
     private val productsModel = getProductsModel()
+    private lateinit var handler: Handler
 
     @SuppressLint("SetTextI18n")
     private val logInListener = {
@@ -125,24 +127,44 @@ class ProductBrowserActivity : PanelActivity() {
         }
     }
 
+    private val updateTimeoutCounter = object: Runnable {
+        override fun run() {
+            val timeLeft = loginModel.timeLeft
+            time_left.text = getString(
+                R.string.time_left,
+                "${timeLeft / 60}:${(timeLeft % 60).toString().padStart(2, '0')}")
+            if (!this@ProductBrowserActivity.isDestroyed) {
+                handler.postDelayed(this, 1000)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handler = Handler(mainLooper)
         setContentView(R.layout.activity_product_browser)
         val adapter = ProductPageAdapter()
         adapter.setProductClickListener {
             if (loginModel.currentUser?.canShelve == true) {
-                lockModel.openLineLock(it.line)
+                lockModel.openLineLock(it.line, reset = true)
             } else {
                 selectProduct(it)
             }
         }
         basket_items_view.adapter = adapter
         adapter.submitList(productsModel.productPages)
+        val display = windowManager.defaultDisplay
+        val size = Point()
+        display.getSize(size)
+        if (size.x < MIN_PREV_NEXT_BUTTON_WIDTH) {
+            button_previous_page.visibility = View.INVISIBLE
+            button_next_page.visibility = View.INVISIBLE
+        }
         // TODO throttle/debounce
         enableSoftKeyboard(search_box)
         search_box.addTextChangedListener(object: TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                productsModel.searchTerm = s.toString()
+                productsModel.searchTerm = s.toString().replace("*", "")
                 productsModel.refreshProductPages {
                     adapter.submitList(productsModel.productPages)
                 }
@@ -155,11 +177,13 @@ class ProductBrowserActivity : PanelActivity() {
         search_box.setOnKeyListener { _, _, keyEvent ->
             val productPage = productsModel.productPages.firstOrNull()
             val product = productPage?.products?.firstOrNull()
+            val numProducts = productPage?.products?.size ?: 0
             if (keyEvent.action == KeyEvent.ACTION_UP
                     && keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
-                    && product != null) {
+                    && product != null
+                    && numProducts == 1) {
                 if (loginModel.currentUser?.canShelve == true) {
-                    lockModel.openLineLock(product.line)
+                    lockModel.openLineLock(product.line, reset = true)
                     search_box.text.clear()
                     productsModel.searchTerm = ""
                     productsModel.refreshProductPages {
@@ -174,6 +198,7 @@ class ProductBrowserActivity : PanelActivity() {
                 false
             }
         }
+        handler.post(updateTimeoutCounter)
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(basket_items_view)
         basket_items_view.addItemDecoration(LinePagerIndicatorDecoration())
@@ -262,6 +287,10 @@ class ProductBrowserActivity : PanelActivity() {
         scrollPage(layoutManager, itemNumber == layoutManager.itemCount - 1, -1)
     }
 
+    fun back(@Suppress("UNUSED_PARAMETER") target: View) {
+        loginModel.logOut()
+    }
+
     fun showProfileDialog(@Suppress("UNUSED_PARAMETER") target: View) {
         val dialog = ProfileDialog(this, loginModel)
         dialog.setLogoutListener {
@@ -273,5 +302,8 @@ class ProductBrowserActivity : PanelActivity() {
     override val unlockButton: View
         get() = unlock_button
 
+    companion object {
+        private const val MIN_PREV_NEXT_BUTTON_WIDTH = 1200
+    }
 }
 

@@ -9,17 +9,6 @@
     android:background="@drawable/bg_blue"
     tools:context=".DefaultActivity">
 
-
-    <TextView
-        android:id="@+id/version_number"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="0dp"
-        android:layout_gravity="top|end"
-        android:textColor="@color/lightText"
-        android:textSize="8sp"
-        tools:ignore="SmallSp" />
-
     <TextView
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -59,6 +48,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="70dp"
+        android:background="#000000"
         app:fillColor="#ffffffff"
         app:pageColor="#00000000"
         app:radius="10dp"
@@ -66,6 +56,20 @@
         app:strokeColor="#FFFFFFFF"
         app:strokeWidth="2dp"
         />
+
+    <TextView
+        android:id="@+id/identification"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_gravity="top|end"
+        android:padding="5dp"
+        android:textColor="@color/lightText"
+        android:textSize="20dp"
+        android:text="1020\n1.5.2"
+        android:background="@android:color/black"
+        android:gravity="end"
+        tools:ignore="SmallSp" />
 
     <Button
         android:layout_width="match_parent"

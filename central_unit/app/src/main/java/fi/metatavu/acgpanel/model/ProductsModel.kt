@@ -1,6 +1,7 @@
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
+import android.util.Log
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -169,9 +170,14 @@ abstract class ProductsModel {
             }
             productDao.insertAll(*products.toTypedArray())
         } else {
-            val giptoolProducts = productsService
+            val result = productsService
                 .listProducts(vendingMachineId)
                 .execute()
+            if (!(result.isSuccessful && result.body() != null)) {
+                Log.e(javaClass.name, "Error while syncing products: ${result.errorBody()}")
+                return
+            }
+            val giptoolProducts = result
                 .body()!!
                 .products
             val products = giptoolProducts
@@ -210,11 +216,15 @@ abstract class ProductsModel {
                     val product = productDao.findProductByExternalId(
                         giptoolProduct.externalId ?: continue) ?: continue
                     for (fileName in safetyCardFiles) {
-                        productDao.insertAll(ProductSafetyCard(
-                            product.id!!,
-                            fileName,
-                            false
-                        ))
+                        if (fileName != "") {
+                            productDao.insertAll(
+                                ProductSafetyCard(
+                                    product.id!!,
+                                    fileName,
+                                    false
+                                )
+                            )
+                        }
                     }
                 }
             }

@@ -26,7 +26,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -79,7 +79,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -132,7 +132,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -187,7 +187,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -240,7 +240,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />
@@ -293,7 +293,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="21sp"
+                    android:textSize="23sp"
                     android:gravity="center"
                     android:text="@string/product"
                     />

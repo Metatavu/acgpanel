@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Color
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.*
@@ -17,18 +19,26 @@ import android.preference.PreferenceFragment
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import com.zeugmasolutions.localehelper.LocaleHelperActivityDelegateImpl
+import com.zeugmasolutions.localehelper.LocaleHelperApplicationDelegate
 import fi.metatavu.acgpanel.support.pucomm.PeripheralUnitCommunicator
 import fi.metatavu.acgpanel.support.ui.AppDrawerActivity
 import fi.metatavu.acgpanel.support.ui.LockedDownActivity
+import fi.metatavu.acgpanel.support.ui.showEditDialog
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
+import java.util.*
 import kotlin.concurrent.thread
-import kotlin.math.cos
 import kotlinx.android.synthetic.main.activity_default.unlock_button
     as default_activity_unlock_button
 import kotlinx.android.synthetic.main.activity_read_code.unlock_button
     as read_code_unlock_button
+import kotlinx.android.synthetic.main.activity_finished.unlock_button
+    as finished_activity_unlock_button
 
 class DeviceAdminReceiver: AndroidDeviceAdminReceiver() {
 
@@ -43,10 +53,21 @@ class DeviceAdminReceiver: AndroidDeviceAdminReceiver() {
 
 class CotioApplication: Application() {
 
+    private val lockerClosedListeners = mutableListOf<() -> Unit>()
+    private val localeAppDelegate = LocaleHelperApplicationDelegate()
+
     lateinit var model: CotioModel
     private lateinit var puComm: PeripheralUnitCommunicator
     private var lockOpen = false
     private var wakeLock: PowerManager.WakeLock? = null
+
+    fun addLockerClosedListener(listener: () -> Unit) {
+        lockerClosedListeners.add(listener)
+    }
+
+    fun removeLockerClosedListener(listener: () -> Unit) {
+        lockerClosedListeners.remove(listener)
+    }
 
     @SuppressLint("PrivateApi")
     private fun grantAutomaticPermission(usbDevice: UsbDevice): Boolean {
@@ -99,11 +120,18 @@ class CotioApplication: Application() {
         cosuLockDown()
         puComm = PeripheralUnitCommunicator(
             {},
-            {lockOpen = false},
+            {
+                lockOpen = false
+                lockerClosedListeners.forEach {it()}
+            },
             {},
             {!lockOpen})
         puComm.start(device, usbManager.openDevice(device)
             ?: throw IllegalStateException("Couldn't open device"))
+        // not guaranteed to run, but better than nothing
+        Runtime.getRuntime().addShutdownHook(thread(start = false) {
+            puComm.stop()
+        })
         thread(start = true) {
             model.init()
             model.addLockOpenRequestListener {
@@ -143,9 +171,13 @@ class CotioApplication: Application() {
         )
     }
 
-    override fun onTerminate() {
-        puComm.stop()
-        super.onTerminate()
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(localeAppDelegate.attachBaseContext(base))
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration?) {
+        super.onConfigurationChanged(newConfig)
+        localeAppDelegate.onConfigurationChanged(this)
     }
 
     companion object {
@@ -154,7 +186,34 @@ class CotioApplication: Application() {
 
 }
 
-class DefaultActivity : LockedDownActivity() {
+abstract class CotioActivity : LockedDownActivity() {
+    private val localeDelegate = LocaleHelperActivityDelegateImpl()
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(localeDelegate.attachBaseContext(newBase))
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        localeDelegate.onCreate(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        localeDelegate.onResumed(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        localeDelegate.onPaused()
+    }
+
+    open fun updateLocale(locale: Locale) {
+        localeDelegate.setLocale(this, locale)
+    }
+}
+
+class DefaultActivity : CotioActivity() {
 
     override val maintenancePasscode: String
         get() = "0000"
@@ -173,16 +232,32 @@ class DefaultActivity : LockedDownActivity() {
         startActivity(intent)
     }
 
-    fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
+    fun proceedInFinnish(@Suppress("UNUSED_PARAMETER") view: View) {
+        updateLocale(Locale.forLanguageTag("fi"))
+        proceed()
+    }
+
+    fun proceedInEnglish(@Suppress("UNUSED_PARAMETER") view: View) {
+        updateLocale(Locale.ENGLISH)
+        proceed()
+    }
+
+    private fun proceed() {
         val intent = Intent(this, ReadCodeActivity::class.java)
         startActivity(intent)
     }
 
+
 }
 
-class ReadCodeActivity : LockedDownActivity() {
+class ReadCodeActivity : CotioActivity() {
 
     private lateinit var model: CotioModel
+    private lateinit var handler: Handler
+
+    private val lockClosedListener = {
+        startActivity(Intent(this, FinishedActivity::class.java))
+    }
 
     override val maintenancePasscode: String
         get() = "0000"
@@ -190,37 +265,124 @@ class ReadCodeActivity : LockedDownActivity() {
     override val unlockButton: View
         get() = read_code_unlock_button
 
+    private val inputMethodManager: InputMethodManager
+        get() = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+
+    fun flashMessage(msg: String) {
+        code_prompt.text = msg
+        code_prompt.setTextColor(getColor(R.color.colorError))
+        handler.postDelayed({
+            code_prompt.text = getString(R.string.read_code_prompt)
+            code_prompt.setTextColor(getColor(R.color.colorPrimaryText))
+        }, 5000)
+    }
+
+    fun showCodeDialog(@Suppress("UNUSED_PARAMETER") view: View) {
+        showEditDialog(getString(R.string.input_code_title), {
+            code_textbox.requestFocus()
+            readCode(it)
+        })
+    }
+
+    fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {
+        finishAffinity()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        handler = Handler(mainLooper)
         model = (application as CotioApplication).model
         setContentView(R.layout.activity_read_code)
         super.onCreate(savedInstanceState)
+        code_textbox.setOnTouchListener { _, _ -> true }
         code_textbox.setOnKeyListener { view, i, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_UP &&
                 keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                thread(start = true) {
-                    val result = model.readCode(code_textbox.text.toString())
-                    runOnUiThread {
-                        code_textbox.text.clear()
-                        when (result) {
-                            CodeReadResult.CheckIn -> {
-                                code_prompt.text = "CheckIn"
-                            }
-                            CodeReadResult.CheckOut -> {
-                                code_prompt.text = "CheckOut"
-                            }
-                            CodeReadResult.CodeUsed -> {
-                                code_prompt.text = "CodeUsed"
-                            }
-                            CodeReadResult.NotFound -> {
-                                code_prompt.text = "NotFound"
-                            }
-                        }
-                    }
-                }
+                readCode(code_textbox.text.toString())
                 true
             }
             false
         }
+    }
+
+    private fun readCode(code: String) {
+        thread(start = true) {
+            val result = model.readCode(code)
+            runOnUiThread {
+                code_textbox.text.clear()
+                when (result) {
+                    CodeReadResult.CheckIn -> {
+                        promptCloseDoor()
+                    }
+                    CodeReadResult.CheckOut -> {
+                        promptCloseDoor()
+                    }
+                    CodeReadResult.CodeUsed -> {
+                        flashMessage(getString(R.string.code_used_message))
+                    }
+                    CodeReadResult.NotFound -> {
+                        flashMessage(getString(R.string.invalid_code_message))
+                    }
+                    CodeReadResult.NoFreeLockers -> {
+                        flashMessage(getString(R.string.no_free_lockers_message))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun promptCloseDoor() {
+        code_prompt.text = getString(R.string.close_door_prompt)
+        arrow.animation?.cancel()
+        arrow.visibility = View.INVISIBLE
+        show_code_button.isEnabled = false
+        go_back_button.isEnabled = false
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val cotioApplication = application as CotioApplication
+        cotioApplication.removeLockerClosedListener(lockClosedListener)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val cotioApplication = application as CotioApplication
+        cotioApplication.addLockerClosedListener(lockClosedListener)
+        code_textbox.requestFocus()
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        AnimationUtils.loadAnimation(this, R.anim.slide_up).also {
+            hand.startAnimation(it)
+        }
+
+        Handler(mainLooper).postDelayed({
+            AnimationUtils.loadAnimation(this, R.anim.bounce).also {
+                arrow.startAnimation(it)
+            }
+        }, 2000)
+    }
+
+}
+
+class FinishedActivity : CotioActivity() {
+
+    override val maintenancePasscode: String
+        get() = "0000"
+
+    override val unlockButton: View
+        get() = finished_activity_unlock_button
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        setContentView(R.layout.activity_finished)
+        super.onCreate(savedInstanceState)
+        Handler(mainLooper).postDelayed({finishAffinity()}, 5_000)
+    }
+
+    fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
+        finishAffinity()
     }
 
 }

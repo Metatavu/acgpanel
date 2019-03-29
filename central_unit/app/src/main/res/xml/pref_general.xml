@@ -80,4 +80,39 @@
         android:title="@string/pref_title_developer_mode"
         />
 
+    <EditTextPreference
+        android:key="@string/pref_key_carousel_slide_interval"
+        android:title="@string/pref_title_carousel_slide_interval"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_wiegand_profile_1"
+        android:title="@string/pref_title_wiegand_profile_1"
+        />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_wiegand_profile_2"
+        android:title="@string/pref_title_wiegand_profile_2"
+        />
+
+    <EditTextPreference
+        android:key="@string/pref_key_software_update_url"
+        android:title="@string/pref_title_software_update_url"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
+
+    <EditTextPreference
+        android:key="@string/pref_key_timeout_in_s"
+        android:title="@string/pref_title_timeout_in_s"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
+
+
 </PreferenceScreen>

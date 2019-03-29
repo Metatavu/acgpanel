@@ -6,11 +6,19 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageInstaller
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.preference.PreferenceManager
 import android.util.Log
 import fi.metatavu.acgpanel.model.getServerSyncModel
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import kotlin.concurrent.thread
 
 const val SERVER_SYNC_SERVICE_ID = 2
@@ -25,19 +33,67 @@ class ServerSyncService : Service() {
     private var running = false
     private var runningThread: Thread? = null
 
+    private val preferences: SharedPreferences
+        get() = PreferenceManager.getDefaultSharedPreferences(this)
+
     private fun process() {
         try {
             while (running) {
-                val syncInterval = PreferenceManager
-                    .getDefaultSharedPreferences(PanelApplication.instance)
-                    .getString(PanelApplication.instance.getString(R.string.pref_key_update_interval),
+                val syncInterval = preferences
+                    .getString(getString(R.string.pref_key_update_interval),
                                SERVER_SYNC_INTERVAL_MINUTES)
+                val updateUrl = preferences
+                    .getString(getString(R.string.pref_key_software_update_url),
+                        SERVER_SYNC_INTERVAL_MINUTES)
                 Log.d(javaClass.name, "Syncing with server...")
                 model.serverSync()
+                softwareUpdate(updateUrl)
                 Thread.sleep((syncInterval.toLongOrNull() ?: 10) * 60L * 1000L)
             }
-        } catch (ex: InterruptedException) {
+        } catch (ex: InterruptedException) {}
+    }
 
+    private fun softwareUpdate(updateUrl: String?) {
+        try {
+            val client = OkHttpClient.Builder().build()
+            val versionResult = client
+                .newCall(
+                    Request.Builder().url("$updateUrl/version.txt").build())
+                .execute()
+            if (versionResult.isSuccessful) {
+                val version = versionResult.body()!!.string().trim().toInt()
+                val myVersion = packageManager
+                    .getPackageInfo(packageName, 0)!!
+                    .versionCode
+                if (version > myVersion) {
+                    val fileResult = client
+                        .newCall(Request.Builder().url("$updateUrl/app.apk").build())
+                        .execute()
+                    if (fileResult.isSuccessful) {
+                        val path = File(filesDir, "app.apk").absolutePath
+                        fileResult.body()!!.byteStream().use {
+                            Files.copy(it, Paths.get(path), StandardCopyOption.REPLACE_EXISTING)
+                        }
+                        Runtime.getRuntime()
+                            .exec(
+                                arrayOf(
+                                    "su",
+                                    "-c",
+                                    "pm install -r $path"
+                                )
+                            )
+                    } else {
+                        Log.e(
+                            javaClass.name, "Couldn't download software update:" +
+                                    " ${fileResult.message()}"
+                        )
+                    }
+                }
+            } else {
+                Log.e(javaClass.name, "Couldn't download version number: ${versionResult.message()}")
+            }
+        } catch (ex: Exception) {
+            Log.e(javaClass.name, "Error when updating software: $ex")
         }
     }
 

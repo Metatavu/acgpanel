@@ -1,15 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cotio</string>
-    <string name="pref_header_general">Yleiset</string>
-    <string name="title_activity_cotio_settings">Cotio Asetukset</string>
+    <string name="pref_header_general">General</string>
+    <string name="title_activity_cotio_settings">Cotio Settings</string>
     <string name="pref_key_num_drivers">num_drivers</string>
-    <string name="pref_title_num_drivers">Ohjausyksikköjen määrä</string>
+    <string name="pref_title_num_drivers">Number of drivers</string>
     <string name="pref_key_enabled_lockers_1">enabled_lockers_1</string>
     <string name="pref_key_enabled_lockers_2">enabled_lockers_2</string>
     <string name="pref_key_enabled_lockers_3">enabled_lockers_3</string>
     <string name="pref_key_enabled_lockers_4">enabled_lockers_4</string>
-    <string name="pref_title_enabled_lockers_1">Käytössä olevat lokerot (torni 1)</string>
-    <string name="pref_title_enabled_lockers_2">Käytössä olevat lokerot (torni 2)</string>
-    <string name="pref_title_enabled_lockers_3">Käytössä olevat lokerot (torni 3)</string>
-    <string name="pref_title_enabled_lockers_4">Käytössä olevat lokerot (torni 4)</string>
+    <string name="pref_title_enabled_lockers_1">Lockers in use (driver 1)</string>
+    <string name="pref_title_enabled_lockers_2">Lockers in use (driver 2)</string>
+    <string name="pref_title_enabled_lockers_3">Lockers in use (driver 3)</string>
+    <string name="pref_title_enabled_lockers_4">Lockers in use (driver 4)</string>
+    <string name="read_code_prompt">Show the QR code on your receipt to the scanner below the screen.\n\nWait for the locker door to open.</string>
+    <string name="close_door_prompt">Please close the locker door.</string>
+    <string name="code_used_message">The code is already used.</string>
+    <string name="invalid_code_message">The code is invalid.</string>
+    <string name="titlescreen_title">You get it back!</string>
+    <string name="titlescreen_subtitle"></string>
+    <string name="input_code_help">Scan not working?</string>
+    <string name="input_code">Input code</string>
+    <string name="finished_message">Thank you!</string>
+    <string name="code_prefix_https" translatable="false">https://www.cotios.com/</string>
+    <string name="code_prefix_http" translatable="false">http://www.cotios.com/</string>
+    <string name="input_code_title">Please type the 8-digit code in the receipt</string>
+    <string name="no_free_lockers_message">No free lockers.</string>
 </resources>

@@ -1,13 +1,17 @@
 package fi.metatavu.acgpanel.installer
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.text.Html
 import android.view.View
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -17,7 +21,7 @@ import java.nio.file.StandardCopyOption
 import kotlin.concurrent.thread
 
 /**
- * A program that installs ACGPanel as a COSU app and
+ * A program that installs ACGPanel or Cotio as a COSU app and
  * configures the system for single use. The program won't
  * function properly unless installed with this.
  */
@@ -34,15 +38,26 @@ class MainActivity : Activity() {
         object Errored: State()
     }
 
+    private sealed class InstallTarget {
+        object ACGPanel : InstallTarget()
+        object Cotio : InstallTarget()
+    }
+
     /**
      * This object is notified when the state
      * is changed from State.Paused to something else
      */
     private val stateNotifier = Object()
+
     /**
      * The state of the installation process
      */
     private var state: State = State.Ready
+
+    /**
+     * The program to install
+     */
+    private var installTarget: InstallTarget = InstallTarget.ACGPanel
 
     /**
      * Output a line to the screen and scroll to bottom
@@ -176,6 +191,22 @@ class MainActivity : Activity() {
         runCommand("chmod 644 /system/priv-app/fi.metatavu.acgpanel/app.apk")
         runCommand("pm install $appApkPath")
         runCommand("pm grant fi.metatavu.acgpanel android.permission.READ_EXTERNAL_STORAGE")
+        runCommand("pm grant fi.metatavu.acgpanel android.permission.ACCESS_SUPERUSER")
+    }
+
+    /**
+     * Install the bundled cotio.apk file into /system/priv-app/ with
+     * proper privileges
+     */
+    private fun installCotioAppAsPrivileged() {
+        val cotioApkPath = File(filesDir, "cotio.apk").absolutePath
+        writeResource(R.raw.cotio, cotioApkPath)
+        runCommand("mkdir /system/priv-app/fi.metatavu.acgpanel.cotio")
+        runCommand("chmod 755 /system/priv-app/fi.metatavu.acgpanel.cotio")
+        runCommand("cp $cotioApkPath /system/priv-app/fi.metatavu.acgpanel.cotio/")
+        runCommand("chmod 644 /system/priv-app/fi.metatavu.acgpanel.cotio/cotio.apk")
+        runCommand("pm install $cotioApkPath")
+        runCommand("pm grant fi.metatavu.acgpanel.cotio android.permission.READ_EXTERNAL_STORAGE")
     }
 
     /**
@@ -191,6 +222,21 @@ class MainActivity : Activity() {
         pause()
         incrementProgress()
     }
+
+    /**
+     * Show Cotio's settings activity and pause the installation
+     */
+    private fun startCotioConfiguration() {
+        val cotioSettingsComponent = ComponentName.unflattenFromString(
+            "fi.metatavu.acgpanel.cotio/.CotioSettingsActivity"
+        )
+        val cotioSettingsIntent = Intent(Intent.ACTION_VIEW)
+        cotioSettingsIntent.component = cotioSettingsComponent
+        startActivity(cotioSettingsIntent)
+        pause()
+        incrementProgress()
+    }
+
 
     /**
      * Ensure that regular users can't access the system configuration
@@ -272,10 +318,18 @@ class MainActivity : Activity() {
      */
     private fun makeProcessThread(): Thread = thread(start = false) {
         try {
-            maxProgress = 39
+            maxProgress = 40
             disableGrubMenuScreen()
-            installMainAppAsPrivileged()
-            startAcgPanelConfiguration()
+            when (installTarget) {
+                InstallTarget.ACGPanel -> {
+                    installMainAppAsPrivileged()
+                    startAcgPanelConfiguration()
+                }
+                InstallTarget.Cotio -> {
+                    installCotioAppAsPrivileged()
+                    startCotioConfiguration()
+                }
+            }
             lockDownDevice()
             installAndEnableSimpleKeyboard()
             installBootAnimation()
@@ -293,9 +347,44 @@ class MainActivity : Activity() {
      */
     var processThread: Thread? = null
 
+    /**
+     * Show a selection dialog for choosing the app to install
+     */
+    private fun selectInstallTarget() {
+        val radioGroup = RadioGroup(this)
+        radioGroup.orientation = RadioGroup.VERTICAL
+        radioGroup.setPadding(20, 20, 20, 20)
+        val acgPanelButton = RadioButton(this)
+        acgPanelButton.text = getString(R.string.acgpanel)
+        radioGroup.addView(acgPanelButton)
+        val cotioButton = RadioButton(this)
+        cotioButton.text = getString(R.string.cotio)
+        radioGroup.addView(cotioButton)
+        AlertDialog.Builder(this)
+            .setView(radioGroup)
+            .setTitle(getString(R.string.select_install_target))
+            .setPositiveButton(getString(R.string.ok)) { _, _ ->
+                if (acgPanelButton.isChecked) {
+                    installTarget = InstallTarget.ACGPanel
+                }
+                if (cotioButton.isChecked) {
+                    installTarget = InstallTarget.Cotio
+                }
+            }
+            .show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        if (state == State.Ready) {
+            selectInstallTarget()
+        }
     }
 
     /**
