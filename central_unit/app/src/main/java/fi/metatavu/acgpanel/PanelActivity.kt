@@ -32,7 +32,6 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
         val dialog = UnlockDialog(this, maintenanceModel.maintenancePasscode)
         dialog.setFinishListener {
             maintenanceModel.isMaintenanceMode = true
-            val activityManager = activityManager
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {
                 stopLockTask()
@@ -79,7 +78,7 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
                 startLockTask()
             }
         }
-        unlockButton.setOnClickListener { initiateUnlock(); }
+        unlockButton.setOnClickListener { initiateUnlock() }
         loginModel.addLogOutListener(onLogout)
     }
 

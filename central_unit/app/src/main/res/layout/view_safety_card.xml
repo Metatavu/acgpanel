@@ -1,0 +1,13 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="60dp"
+    >
+    <Button
+        android:id="@+id/safety_card_button"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:text="@string/safety_card_placeholder"
+        android:textSize="30sp"
+        />
+</FrameLayout>

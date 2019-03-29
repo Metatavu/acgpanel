@@ -1,31 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_blue"
-    android:onClick="proceed"
     tools:context=".DefaultActivity">
 
     <TextView
-        android:id="@+id/version_number"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="0dp"
-        android:layout_gravity="top|end"
-        android:textColor="@color/lightText"
-        android:textSize="8sp"
-        tools:ignore="SmallSp" />
-
-    <TextView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="70dp"
         android:layout_gravity="bottom|end"
+        android:paddingRight="20dp"
         android:background="@color/lightBackground"
-        android:padding="20dp"
         android:text="@string/welcomeText"
-        android:textAlignment="textEnd"
+        android:gravity="center_vertical|end"
         android:textColor="@color/colorPrimaryDark"
         android:textSize="28sp"
         />
@@ -43,12 +34,57 @@
         android:visibility="gone"
         />
 
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:src="@drawable/etralogo"
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        />
+
+    <com.synnapps.carouselview.CarouselView
+        android:id="@+id/carousel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="70dp"
+        android:background="#000000"
+        app:fillColor="#ffffffff"
+        app:pageColor="#00000000"
+        app:radius="10dp"
+        app:slideInterval="60000"
+        app:strokeColor="#FFFFFFFF"
+        app:strokeWidth="2dp"
+        />
+
+    <TextView
+        android:id="@+id/identification"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_gravity="top|end"
+        android:padding="5dp"
+        android:textColor="@color/lightText"
+        android:textSize="20dp"
+        android:text="1020\n1.5.2"
+        android:background="@android:color/black"
+        android:gravity="end"
+        tools:ignore="SmallSp" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:stateListAnimator="@null"
+        android:onClick="proceed"
+        />
+
     <Button
         android:id="@+id/unlock_button"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:background="@android:color/transparent"
         android:layout_gravity="top|end"
+        android:background="@android:color/transparent"
         />
 
 </FrameLayout>

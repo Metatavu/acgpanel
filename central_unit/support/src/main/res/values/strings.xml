@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Peripheral Unit Communication</string>
+    <string name="unlockCode">Maintenance code</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="app_name_placeholder">\???</string>
+</resources>

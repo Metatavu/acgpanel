@@ -40,9 +40,9 @@ private class NoResponseException : Exception("No response from device")
 private const val ZERO = '0'.toByte()
 private const val RESTART_INTERVAL_MS = 1000L
 private const val RESTART_MAX_TRIES = 10
-private const val READ_TIMEOUT_MS = 3000L
+private const val READ_TIMEOUT_MS = 5000L
 private const val READ_TIMEOUT_MAX_FAILURES = 5
-private const val PING_INTERVAL_MS = 10L*1000L
+private const val PING_INTERVAL_MS = 15L*1000L
 private const val MAX_BAD_PINGS = 2
 
 abstract class MessageReader {
@@ -308,7 +308,7 @@ class McuCommunicationService : Service() {
                     when (msg) {
                         is ReadCard -> {
                             Handler(mainLooper).post {
-                                loginModel.logIn(msg.cardId, usingRfid = true)
+                                loginModel.logIn(msg.cardId)
                             }
                         }
                         is LockClosed -> {
@@ -319,7 +319,8 @@ class McuCommunicationService : Service() {
                     }
                 }
                 if (!lockModel.locksOpen &&
-                    !lockModel.isShelvingMode() &&
+                    !lockModel.isShelvingMode &&
+                    !lockModel.isCalibrationMode &&
                     lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
                     Log.i(javaClass.name, "Pinging device...")
                     lastPing = Instant.now()
@@ -383,10 +384,10 @@ class McuCommunicationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (serviceRunning) {
-            return Service.START_STICKY
-        }
-        serviceRunning = true
+        return Service.START_STICKY
+    }
+
+    override fun onCreate() {
         val handler = Handler()
         lateinit var autorestarter: Runnable
         var numFailures = 0
@@ -422,7 +423,6 @@ class McuCommunicationService : Service() {
         startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
         lockModel.addLockOpenRequestListener(onLockOpenRequest)
         lockModel.addAssignShelfRequestListener(onAssignShelfRequest)
-        return Service.START_STICKY
     }
 
     override fun onDestroy() {

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cotio</string>
+    <string name="pref_header_general">Yleiset</string>
+    <string name="title_activity_cotio_settings">Cotio Asetukset</string>
+    <string name="pref_key_num_drivers">num_drivers</string>
+    <string name="pref_title_num_drivers">Ohjausyksikköjen määrä</string>
+    <string name="pref_key_enabled_lockers_1">enabled_lockers_1</string>
+    <string name="pref_key_enabled_lockers_2">enabled_lockers_2</string>
+    <string name="pref_key_enabled_lockers_3">enabled_lockers_3</string>
+    <string name="pref_key_enabled_lockers_4">enabled_lockers_4</string>
+    <string name="pref_title_enabled_lockers_1">Käytössä olevat lokerot (torni 1)</string>
+    <string name="pref_title_enabled_lockers_2">Käytössä olevat lokerot (torni 2)</string>
+    <string name="pref_title_enabled_lockers_3">Käytössä olevat lokerot (torni 3)</string>
+    <string name="pref_title_enabled_lockers_4">Käytössä olevat lokerot (torni 4)</string>
+    <string name="read_code_prompt">Näytä kuitillasi olevaa QR-koodia näytön alareunassa olevaan lukijaan.\n\nOdota oven aukeamista.</string>
+    <string name="close_door_prompt">Sulje luukku, kiitos!</string>
+    <string name="code_used_message">Koodi on jo käytetty.</string>
+    <string name="invalid_code_message">Koodi ei ole kelvollinen.</string>
+    <string name="titlescreen_title">You get it back!</string>
+    <string name="titlescreen_subtitle"></string>
+    <string name="input_code_help">Eikö koodin luku onnistu?</string>
+    <string name="input_code">Näppäile koodi</string>
+    <string name="finished_message">Kiitos!</string>
+    <!-- code_prefix_https -->
+    <!-- code_prefix_http -->
+    <string name="input_code_title">Näppäile 8-merkkinen koodi kuitistasi</string>
+    <string name="no_free_lockers_message">Ei vapaita lokeroita.</string>
+</resources>

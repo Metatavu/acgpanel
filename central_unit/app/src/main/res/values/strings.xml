@@ -21,7 +21,7 @@
     <string name="browse_products_without_login">Selaa tuotteita kirjautumatta</string>
     <string name="accept_vend">Hyväksy otto</string>
     <string name="num_products">%1$d tuotetta</string>
-    <string name="basket_product_title">%1$s (%2$d %3$s)</string>
+    <string name="basket_product_title">%2$d %3$s %1$s</string>
     <string name="basket_product_details">kustannuspaikka: %1$s, lisäviite: %2$s</string>
     <string name="vend">Otto</string>
     <string name="select_another">Ota lisää</string>
@@ -53,6 +53,7 @@
     <string name="input_expenditure">Syötä kustannuspaikka</string>
     <string name="input_reference">Syötä lisäviite</string>
     <string name="not_logged_in_warning">⚠ Näytä korttia jatkaaksesi</string>
+    <string name="not_calibrated_warning">⚠ Tuotetta ei ole kalibroitu</string>
     <string name="invalid_card">KORTTI EI KELPAA</string>
     <string name="invalid_card_symbol">⛔</string>
     <string name="pref_key_server_address">server_address</string>
@@ -77,4 +78,22 @@
     <string name="shelving">HYLLYTYS: %1$s</string>
     <string name="unit_placeholder">kpl</string>
     <string name="not_owner">Ohjelmaa ei ole määritelty laitteen omistajaksi</string>
+    <string name="pref_key_update_interval">update_interval</string>
+    <string name="pref_title_update_interval">Päivitystiheys</string>
+    <string name="pref_key_user_asset_url">user_asset_url</string>
+    <string name="pref_key_developer_mode">developer_mode</string>
+    <string name="pref_title_developer_mode">Kehittäjätila</string>
+    <string name="safety_card_placeholder">...</string>
+    <string name="pref_key_carousel_slide_interval">carousel_slide_interval</string>
+    <string name="pref_title_carousel_slide_interval">Sisällön vaihtoväli aloitusnäytössä</string>
+    <string name="pref_key_wiegand_profile_1">use_wiegand</string>
+    <string name="pref_key_wiegand_profile_2">wiegand_profile_1</string>
+    <string name="pref_title_wiegand_profile_1">Käytä Wiegand-kortinlukijaa (profiili 1)</string>
+    <string name="pref_title_wiegand_profile_2">Käytä Wiegand-kortinlukijaa (profiili 2)</string>
+    <string name="hint_only_edit_open_locker">Vain avoimen lokeron tuotemäärää voi muokata.</string>
+    <string name="pref_key_software_update_url">software_update_url</string>
+    <string name="pref_title_software_update_url">Ohjelmistopäivitysten sijainti</string>
+    <string name="time_left">%1$s jäljellä</string>
+    <string name="pref_key_timeout_in_s">timeout_in_s</string>
+    <string name="pref_title_timeout_in_s">Istunnon kesto (sekunteina)</string>
 </resources>

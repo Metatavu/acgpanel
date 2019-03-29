@@ -42,7 +42,7 @@ abstract class LockModel {
     protected abstract fun logOut()
     protected abstract fun completeProductTransaction(function: () -> Unit)
     protected abstract val compartmentMappingDao: CompartmentMappingDao
-    abstract fun isShelvingMode(): Boolean
+    abstract val isShelvingMode: Boolean
 
     private val lockOpenTimerCallback = Runnable {
     }
@@ -56,6 +56,8 @@ abstract class LockModel {
         get() = numInitialLinesToOpen - linesToOpen.size
     val numLocks
         get() = numInitialLinesToOpen
+
+    var isCalibrationMode = false
 
     fun addLockOpenedListener(listener: () -> Unit) {
         lockOpenedListeners.add(listener)
@@ -113,6 +115,15 @@ abstract class LockModel {
         compartmentMappingDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
     }
 
+    fun isLineCalibrated(line: String, callback: (Boolean) -> Unit) {
+        thread(start = true) {
+            callback(unsafeIsLineCalibrated(line))
+        }
+    }
+
+    fun unsafeIsLineCalibrated(line: String): Boolean
+        = compartmentMappingDao.getCompartmentMapping(line) != null
+
     private fun linePosition(line: String): Pair<Int, Int> {
         val mapping = compartmentMappingDao.getCompartmentMapping(line)
         val shelf: Int
@@ -141,23 +152,32 @@ abstract class LockModel {
         }
     }
 
+    protected abstract fun enableItemsInLine(line: String)
+    protected abstract fun disableAllItemsInBasket()
+
     fun openLock(first: Boolean = true) {
         Log.d(javaClass.name, "linesToOpen: $linesToOpen")
         if (linesToOpen.isEmpty()) {
             locksOpen = false
             unSchedule(lockOpenTimerCallback)
-            if (!isShelvingMode()) {
+            if (!isShelvingMode) {
                 schedule(Runnable {
                     completeProductTransaction {
                         logOut()
                         thread(start = true) {
-                            syncProductTransactions()
+                            try {
+                                syncProductTransactions()
+                            } catch (e: Exception) {
+                                Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                            }
                         }
                     }
                 }, 0)
             }
         } else {
             val line = linesToOpen.removeAt(0)
+            disableAllItemsInBasket()
+            enableItemsInLine(line)
             unSchedule(lockOpenTimerCallback)
             schedule(lockOpenTimerCallback, LOCK_TIMEOUT_MS)
             openLineLock(line, reset = first)

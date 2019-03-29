@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
+import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -11,10 +12,11 @@ import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
 
-internal fun productView(context: Context): View {
+private fun basketItemView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density
     val view = View.inflate(context, R.layout.view_basket_item, null)!!
     view.layoutParams = RecyclerView.LayoutParams(
@@ -24,7 +26,7 @@ internal fun productView(context: Context): View {
     return view
 }
 
-class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productView(context)) {
+private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(basketItemView(context)) {
 
     fun populate(index: Int,
                  item: BasketItem,
@@ -46,11 +48,18 @@ class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productVi
                    context.getString(R.string.basket_product_details,
                        item.expenditure,
                        item.reference)
-            product_delete_button.setOnClickListener {
-                onDeleteClick(index)
-            }
-            product_modify_button.setOnClickListener {
-                onModifyClick(index)
+            if (item.enabled) {
+                disabled_overlay.visibility = View.GONE
+                product_delete_button.setOnClickListener {
+                    onDeleteClick(index)
+                }
+                product_modify_button.setOnClickListener {
+                    onModifyClick(index)
+                }
+            } else {
+                disabled_overlay.visibility = View.VISIBLE
+                product_delete_button.setOnClickListener { }
+                product_modify_button.setOnClickListener { }
             }
             drawProduct(item.product, product_image)
         }
@@ -58,7 +67,7 @@ class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(productVi
 
 }
 
-class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
+private class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 
     override fun areContentsTheSame(a: BasketItem, b: BasketItem): Boolean {
         return a == b
@@ -70,7 +79,7 @@ class BasketItemCallback : DiffUtil.ItemCallback<BasketItem>() {
 
 }
 
-class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
+private class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCallback()) {
 
     private var deleteClickListener : (Int) -> Unit = {}
     private var modifyClickListener: (Int) -> Unit = {}
@@ -83,13 +92,13 @@ class BasketAdapter : ListAdapter<BasketItem, BasketItemViewHolder>(BasketItemCa
         modifyClickListener = listener
     }
 
-    override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): BasketItemViewHolder {
-        return BasketItemViewHolder(viewGroup.context)
+    override fun onCreateViewHolder(parent: ViewGroup, index: Int): BasketItemViewHolder {
+        return BasketItemViewHolder(parent.context)
     }
 
-    override fun onBindViewHolder(holder: BasketItemViewHolder, index: Int) {
-        val item = getItem(index)
-        holder.populate(index, item, deleteClickListener, modifyClickListener)
+    override fun onBindViewHolder(holder: BasketItemViewHolder, position: Int) {
+        val item = getItem(position)
+        holder.populate(position, item, deleteClickListener, modifyClickListener)
     }
 
 }
@@ -99,9 +108,15 @@ class BasketActivity : PanelActivity() {
     private var basketAccepted = false
     private val adapter = BasketAdapter()
     private val basketModel = getBasketModel()
+    private val lockModel = getLockModel()
+    private val lockOpenListener = {
+        adapter.notifyDataSetChanged()
+    }
+    private lateinit var handler: Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handler = Handler(mainLooper)
         setContentView(R.layout.activity_basket)
         updateNumProducts()
         basket_items_view.adapter = adapter
@@ -118,8 +133,14 @@ class BasketActivity : PanelActivity() {
         }
     }
 
+    override fun onPause() {
+        lockModel.removeLockOpenedListener(lockOpenListener)
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        lockModel.addLockOpenedListener(lockOpenListener)
         ok_button.requestFocus()
     }
 
@@ -159,6 +180,9 @@ class BasketActivity : PanelActivity() {
         if (!basketAccepted) {
             basketModel.acceptBasket()
             basketAccepted = true
+            handler.postDelayed({
+                num_products_label.text = getString(R.string.hint_only_edit_open_locker)
+            }, 500)
         }
         cancel_button.isEnabled = false
         select_another_button.isEnabled = false

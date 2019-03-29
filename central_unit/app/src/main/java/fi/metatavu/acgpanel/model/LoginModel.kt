@@ -7,6 +7,9 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.concurrent.thread
 
 @Entity
@@ -35,11 +38,14 @@ interface UserDao {
     @Query("UPDATE user SET removed = 1")
     fun markAllRemoved()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg users: User): List<Long>
 
-    @Query("SELECT * FROM user WHERE removed = 0 AND cardCode = :cardCode")
-    fun findUserByCardCode(cardCode: String): User?
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg users: User)
+
+    @Query("SELECT * FROM user WHERE removed = 0 AND cardCode IN (:cardCodes)")
+    fun findUserByCardCode(cardCodes: List<String>): User?
 
     @Query("DELETE FROM user")
     fun clearUsers()
@@ -106,8 +112,12 @@ abstract class LoginModel {
     protected abstract val userDao: UserDao
     protected abstract val logInAttemptDao: LogInAttemptDao
     protected abstract val usersService: GiptoolUsersService
-    protected abstract val vendingMachineId: String
     protected abstract val demoMode: Boolean
+    protected abstract val useWiegandProfile1: Boolean
+    protected abstract val useWiegandProfile2: Boolean
+    protected abstract val timeoutInSeconds: Long
+
+    abstract val vendingMachineId: String
 
     private val logoutTimerCallback = Runnable {
         if (!isLocksOpen()) {
@@ -118,9 +128,10 @@ abstract class LoginModel {
     private val logoutEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
+    private var lastRefresh = Instant.now()
 
-    var canLogInViaRfid = false
     var currentUser: User? = null
+        private set
 
     fun addLogOutListener(listener: () -> Unit) {
         logoutEventListeners.add(listener)
@@ -146,16 +157,53 @@ abstract class LoginModel {
         failedLoginEventListeners.remove(listener)
     }
 
-    fun logIn(cardCode: String, usingRfid: Boolean = false) {
-        val truncatedCode = cardCode.takeWhile { it != '=' }
-        if (usingRfid && !canLogInViaRfid) {
+    fun loginLessShelving() {
+        currentUser = User(
+            id = null,
+            userName = "Ei käyttäjää",
+            cardCode = "",
+            expenditure = "",
+            reference = "",
+            canShelve = true,
+            removed = false
+        )
+        for (listener in loginEventListeners) {
+            listener()
+        }
+        refresh()
+    }
+
+    fun logIn(cardCode: String) {
+        if (loggedIn) {
             return
         }
-        if (truncatedCode == "" || truncatedCode.length < 5) {
-            return
+        val convertedCodes: List<String>
+        if (useWiegandProfile1) {
+            // 24 data bits + 2 (discarded) parity bits
+            convertedCodes = listOf(cardCode
+                .drop(1).take(24)
+                .toInt(2).toString()
+                .padEnd(CODE_LENGTH, '0'))
+        } else if (useWiegandProfile2) {
+            var binary = cardCode.padEnd(35, '0').toULong(2)
+            binary = binary xor 0x400000000UL;
+            val hex = binary
+                .toString(16)
+                .toUpperCase()
+            convertedCodes = listOf(
+                hex
+                    .padStart(10, '0')
+                    .padEnd(CODE_LENGTH, '0'),
+                hex
+                    .padStart(9, '0')
+                    .padEnd(CODE_LENGTH, '0'))
+        } else {
+            convertedCodes = listOf(cardCode.take(CODE_LENGTH))
         }
+        Log.d(javaClass.name, "Converted codes: $convertedCodes");
+        refresh()
         thread(start = true) {
-            val user = userDao.findUserByCardCode(truncatedCode)
+            val user = userDao.findUserByCardCode(convertedCodes)
             if (user != null) {
                 currentUser = user
                 schedule(Runnable {
@@ -169,13 +217,17 @@ abstract class LoginModel {
                         LogInAttempt(
                             null,
                             user.id,
-                            truncatedCode,
+                            user.cardCode,
                             true,
                             false
                         )
                     )
                 }
-                syncLogInAttempts()
+                try {
+                    syncLogInAttempts()
+                } catch (e: Exception) {
+                    Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                }
             } else {
                 schedule(Runnable {
                     for (listener in failedLoginEventListeners) {
@@ -187,13 +239,17 @@ abstract class LoginModel {
                         LogInAttempt(
                             null,
                             null,
-                            truncatedCode,
+                            convertedCodes[0],
                             false,
                             false
                         )
                     )
                 }
-                syncLogInAttempts()
+                try {
+                    syncLogInAttempts()
+                } catch (e: Exception) {
+                    Log.e(javaClass.name, "${e.javaClass.name}: ${e.message}")
+                }
             }
         }
     }
@@ -201,9 +257,16 @@ abstract class LoginModel {
     val loggedIn: Boolean
         get() = currentUser != null
 
+    val timeLeft: Long
+        get() = Duration.between(
+                    Instant.now(),
+                    lastRefresh.plusMillis(timeoutInSeconds * 1000L)
+                ).get(ChronoUnit.SECONDS)
+
     fun refresh() {
+        lastRefresh = Instant.now()
         unSchedule(logoutTimerCallback)
-        schedule(logoutTimerCallback, SESSION_TIMEOUT_MS)
+        schedule(logoutTimerCallback, timeoutInSeconds * 1000L)
     }
 
     fun logOut() {
@@ -233,11 +296,11 @@ abstract class LoginModel {
                 )
             )
         } else {
-            val body = usersService
+            val result = usersService
                 .listUsers(vendingMachineId)
                 .execute()
-                .body()
-            if (body != null) {
+            val body = result.body()
+            if (result.isSuccessful && body != null) {
                 val users = body.users.map {
                     User(
                         it.id,
@@ -254,9 +317,10 @@ abstract class LoginModel {
                 transaction {
                     userDao.markAllRemoved()
                     userDao.insertAll(*users)
+                    userDao.updateAll(*users)
                 }
             } else {
-                Log.e(javaClass.name, "Got empty response from server")
+                Log.e(javaClass.name, "Couldn't sync users: ${result.errorBody()}")
             }
         }
     }
@@ -285,7 +349,7 @@ abstract class LoginModel {
     }
 
     companion object {
-        private const val SESSION_TIMEOUT_MS = 5*60*1000L
+        private const val CODE_LENGTH = 15
     }
 
 }

@@ -1,30 +1,38 @@
 package fi.metatavu.acgpanel
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.*
+import android.os.Environment.DIRECTORY_PICTURES
+import android.os.Environment.getExternalStoragePublicDirectory
+import android.preference.PreferenceManager
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.widget.ImageView
 import fi.metatavu.acgpanel.device.McuCommunicationService
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getNotificationModel
 import kotlinx.android.synthetic.main.activity_default.*
+import java.io.File
 import java.time.Duration
 
 class DefaultActivity : PanelActivity(lockAtStart = false) {
 
-    private val handler = Handler(Looper.getMainLooper())
-
     private val loginModel = getLoginModel()
     private val notificationModel = getNotificationModel()
+    private var carouselWidth = 1
+    private var carouselHeight = 1
+
+    private val preferences: SharedPreferences
+        get() = PreferenceManager.getDefaultSharedPreferences(this)
 
     private val rebootTickCounter = TimedTickCounter(3, Duration.ofSeconds(1)) {
         powerManager.reboot("")
@@ -77,18 +85,15 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             val context = this
             val pkgManager = context.packageManager
             val appInfo = pkgManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-
             val serviceManagerClass = Class.forName("android.os.ServiceManager")
             val getServiceMethod = serviceManagerClass.getDeclaredMethod("getService", String::class.java)
             getServiceMethod.isAccessible = true
             val binder = getServiceMethod.invoke(null, Context.USB_SERVICE) as android.os.IBinder
-
             val iUsbManagerClass = Class.forName("android.hardware.usb.IUsbManager")
             val stubClass = Class.forName("android.hardware.usb.IUsbManager\$Stub")
             val asInterfaceMethod = stubClass.getDeclaredMethod("asInterface", android.os.IBinder::class.java)
             asInterfaceMethod.isAccessible = true
             val iUsbManager = asInterfaceMethod.invoke(null, binder)
-
             val grantDevicePermissionMethod = iUsbManagerClass.getDeclaredMethod(
                 "grantDevicePermission",
                 UsbDevice::class.java,
@@ -96,27 +101,24 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             )
             grantDevicePermissionMethod.isAccessible = true
             grantDevicePermissionMethod.invoke(iUsbManager, usbDevice, appInfo.uid)
-
             return true
         } catch (e: Exception) {
             // Not a privileged app, fall back to asking permission
             return false
         }
-
     }
 
     private val usbManager: UsbManager
         get() = getSystemService(Context.USB_SERVICE) as UsbManager
-
-    private val activityManager: ActivityManager
-        get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
     @SuppressLint("WakelockTimeout")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default)
         cosuLockDown()
-        version_number.text = packageManager.getPackageInfo(packageName, 0)!!.versionName
+        val version = packageManager.getPackageInfo(packageName, 0)!!.versionName
+        val id = loginModel.vendingMachineId
+        identification.text = "$id\nv$version"
         registerReceiver(receiver, IntentFilter(ACTION_USB_PERMISSION))
         val mcuCommServiceIntent = Intent(this, McuCommunicationService::class.java)
         startService(mcuCommServiceIntent)
@@ -130,6 +132,28 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             wakeLock!!.acquire()
         }
         setupLogin()
+        setupCarousel()
+    }
+
+    private fun setupCarousel() {
+        val picsDir = File(getExternalStoragePublicDirectory(DIRECTORY_PICTURES), "ACGPanel")
+        if (picsDir.exists()) {
+            val pics = picsDir.listFiles() ?: return
+            carousel.setImageListener { position, imageView ->
+                val source = BitmapFactory.decodeFile(pics[position].absolutePath)
+                imageView.scaleType = ImageView.ScaleType.FIT_CENTER
+                imageView.setImageBitmap(source)
+            }
+            carousel.pageCount = pics.size
+            carousel.slideInterval = (preferences
+                .getString(
+                    getString(R.string.pref_key_carousel_slide_interval),
+                    DEFAULT_CAROUSEL_INTERVAL.toString())
+                .toIntOrNull() ?: DEFAULT_CAROUSEL_INTERVAL) * 1000
+            carousel.forceLayout()
+        } else {
+            carousel.visibility = View.GONE
+        }
     }
 
     override fun onDestroy() {
@@ -156,8 +180,6 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
 
     private fun setupLogin() {
         loginModel.logOut()
-        loginModel.canLogInViaRfid = true
-        handler.postDelayed({loginModel.canLogInViaRfid = true}, 100)
         // allow instant login for better usability
         loginModel.removeLogInListener(loginListener)
         loginModel.addLogInListener(loginListener)
@@ -168,7 +190,6 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
     override fun onPause() {
         loginModel.removeLogInListener(loginListener)
         loginModel.removeFailedLogInListener(failedLoginListener)
-        loginModel.canLogInViaRfid = false
         super.onPause()
     }
 
@@ -205,7 +226,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             return
         }
         dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_SAFE_BOOT)
-        dpm.addUserRestriction(adminComponentName, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
+        dpm.clearUserRestriction(adminComponentName, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
         dpm.setKeyguardDisabled(adminComponentName, true)
         dpm.setStatusBarDisabled(adminComponentName, true)
         dpm.setSystemUpdatePolicy(adminComponentName,
@@ -230,6 +251,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
         private const val ACTION_USB_PERMISSION = "fi.metatavu.acgpanel.USB_PERMISSION"
         private const val NOTIFICATION_NOT_OWNER = "NOTIFICATION_NOT_OWNER"
         private const val PERMISSION_GRANT_WAIT_PERIOD = 500L
+        private const val DEFAULT_CAROUSEL_INTERVAL = 15
         private var wakeLock: PowerManager.WakeLock? = null
         private var isCosuLockedDown = false
     }

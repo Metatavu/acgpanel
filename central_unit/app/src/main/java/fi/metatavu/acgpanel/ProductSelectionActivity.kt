@@ -9,24 +9,37 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import fi.metatavu.acgpanel.model.getBasketModel
+import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
+import fi.metatavu.acgpanel.model.getProductsModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
 
 class ProductSelectionActivity : PanelActivity() {
 
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
+    private val lockModel = getLockModel()
+    private val productsModel = getProductsModel()
 
     override val unlockButton: Button
         get() = unlock_button
 
     private val logInListener = {
         not_logged_in_warning.visibility = View.INVISIBLE
-        ok_button.isEnabled = true
         expenditure_input.isEnabled = !basketModel.lockUserExpenditure
         expenditure_input.text = loginModel.currentUser?.expenditure ?: ""
         reference_input.isEnabled = !basketModel.lockUserReference
         reference_input.text = loginModel.currentUser?.reference ?: ""
+        val basketItem = basketModel.currentBasketItem
+        if (basketItem != null) {
+            lockModel.isLineCalibrated(basketItem.product.line) { calibrated ->
+                runOnUiThread {
+                    if (calibrated) {
+                        ok_button.isEnabled = true
+                    }
+                }
+            }
+        }
     }
 
     private val failedLoginListener = {
@@ -56,10 +69,12 @@ class ProductSelectionActivity : PanelActivity() {
         val basketItem = basketModel.currentBasketItem
         if (basketItem != null) {
             val product = basketItem.product
-            if (product.safetyCard != "") {
-                info_button.visibility = View.VISIBLE
-            } else {
-                info_button.visibility = View.INVISIBLE
+            productsModel.listProductSafetyCards(product) {
+                if (it.isNotEmpty()) {
+                    info_button.visibility = View.VISIBLE
+                } else {
+                    info_button.visibility = View.INVISIBLE
+                }
             }
             product_name.text = product.name
             product_description.text = "Tuotekoodi: ${product.code}\n\n" +
@@ -90,6 +105,16 @@ class ProductSelectionActivity : PanelActivity() {
             reference_input.isEnabled = !basketModel.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
+            lockModel.isLineCalibrated(product.line) { calibrated ->
+                runOnUiThread {
+                    if (calibrated) {
+                        not_calibrated_warning.visibility = View.GONE
+                    } else {
+                        not_calibrated_warning.visibility = View.VISIBLE
+                        ok_button.isEnabled = false
+                    }
+                }
+            }
         }
         if (!loginModel.loggedIn) {
             ok_button.isEnabled = false
@@ -105,15 +130,8 @@ class ProductSelectionActivity : PanelActivity() {
     override fun onResume() {
         super.onResume()
         count_input.requestFocus()
-        loginModel.canLogInViaRfid = true
     }
 
-    override fun onPause() {
-        loginModel.canLogInViaRfid = false
-        super.onPause()
-    }
-
-    @Suppress("UNUSED")
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketModel.lockUserExpenditure) {
             showEditDialog(getString(R.string.input_expenditure)) {
@@ -122,7 +140,6 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
-    @Suppress("UNUSED")
     fun inputReference(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketModel.lockUserReference) {
             showEditDialog(getString(R.string.input_reference)) {

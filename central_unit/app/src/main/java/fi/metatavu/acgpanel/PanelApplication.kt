@@ -3,6 +3,7 @@ package fi.metatavu.acgpanel
 import android.app.Application
 
 class PanelApplication : Application() {
+
     init {
         instance = this
     }
@@ -10,4 +11,5 @@ class PanelApplication : Application() {
     companion object {
         lateinit var instance: PanelApplication
     }
+
 }

@@ -17,7 +17,7 @@
     <TextView
         android:id="@+id/product_name"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="50dp"
         android:layout_marginLeft="170dp"
         android:layout_marginRight="300dp"
         android:layout_marginTop="10dp"
@@ -69,5 +69,13 @@
         android:background="@color/colorPrimaryLight"
         android:elevation="6dp"
         android:contentDescription="" />
+
+    <View
+        android:id="@+id/disabled_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/lightOverlay"
+        android:elevation="1000dp"
+        />
 
 </FrameLayout>
