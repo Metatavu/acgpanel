@@ -11,7 +11,7 @@
 
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="80dp"
         android:layout_gravity="bottom|end"
         android:paddingRight="20dp"
         android:background="@color/lightBackground"
@@ -47,13 +47,13 @@
         android:id="@+id/carousel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="70dp"
+        android:layout_marginBottom="80dp"
         android:background="#000000"
-        app:fillColor="#ffffffff"
+        app:fillColor="@color/colorPrimaryDark"
         app:pageColor="#00000000"
         app:radius="10dp"
         app:slideInterval="60000"
-        app:strokeColor="#FFFFFFFF"
+        app:strokeColor="@color/colorPrimaryDark"
         app:strokeWidth="2dp"
         />
 

@@ -24,7 +24,9 @@ data class Product(
     var unit: String,
     var line: String,
     var barcode: String,
-    var removed: Boolean
+    var removed: Boolean,
+    var empty: Boolean,
+    var serverStock: Int
 )
 
 @Entity(primaryKeys = ["productId", "safetyCard"])
@@ -127,6 +129,7 @@ class GiptoolProduct {
     var unit: String? = null
     var line: String? = null
     var barcode: String? = null
+    var stock: Int? = null
 }
 
 class GiptoolProducts {
@@ -155,17 +158,19 @@ abstract class ProductsModel {
             productDao.clearProducts()
             val products = (1L..20L).map {
                 Product(
-                    it,
-                    it,
-                    "Tuote $it",
-                    "Kuvaus $it",
-                    "",
-                    "$it",
-                    "",
-                    "kpl",
-                    "1%02d".format((it - 1) % 12 + 1),
-                    "",
-                    false
+                    id = it,
+                    externalId = it,
+                    name = "Tuote $it",
+                    description = "Kuvaus $it",
+                    image = "",
+                    code = "$it",
+                    productInfo = "",
+                    unit = "kpl",
+                    line = "1%02d".format((it - 1) % 12 + 1),
+                    barcode = "",
+                    removed = false,
+                    empty = false,
+                    serverStock = 0
                 )
             }
             productDao.insertAll(*products.toTypedArray())
@@ -183,17 +188,19 @@ abstract class ProductsModel {
             val products = giptoolProducts
                 .map {
                     Product(
-                        null,
-                        it.externalId!!,
-                        it.name?.trim() ?: "",
-                        it.description?.trim() ?: "",
-                        it.picture ?: "",
-                        it.code?.trim() ?: "",
-                        it.productInfo ?: "",
-                        it.unit ?: "",
-                        it.line?.trim() ?: "",
-                        it.barcode?.trim() ?: "",
-                        false
+                        id = null,
+                        externalId = it.externalId!!,
+                        name = it.name?.trim() ?: "",
+                        description = it.description?.trim() ?: "",
+                        image = it.picture ?: "",
+                        code = it.code?.trim() ?: "",
+                        productInfo = it.productInfo ?: "",
+                        unit = it.unit ?: "",
+                        line = it.line?.trim() ?: "",
+                        barcode = it.barcode?.trim() ?: "",
+                        removed = false,
+                        empty = false,
+                        serverStock = it.stock ?: 0
                     )
                 }
                 .toTypedArray()
@@ -205,6 +212,11 @@ abstract class ProductsModel {
                         product.externalId, product.line)
                     if (existing != null) {
                         product.id = existing.id
+                        if (product.serverStock > existing.serverStock) {
+                            product.empty = false
+                        } else {
+                            product.empty = existing.empty
+                        }
                         productDao.updateAll(product)
                     } else {
                         productDao.insertAll(product)
@@ -238,7 +250,7 @@ abstract class ProductsModel {
         }
     }
 
-    private fun unsafeRefreshProductPages() {
+    protected open fun unsafeRefreshProductPages() {
         productPages = when {
             searchTerm == "" -> {
                 val productCount = productDao.getProductCount()
@@ -278,6 +290,15 @@ abstract class ProductsModel {
                         }
                 )
             }
+        }
+    }
+
+    fun markNotEmpty(it: Product, callback: () -> Unit) {
+        thread(start = true) {
+            it.empty = false
+            productDao.updateAll(it)
+            unsafeRefreshProductPages()
+            callback()
         }
     }
 

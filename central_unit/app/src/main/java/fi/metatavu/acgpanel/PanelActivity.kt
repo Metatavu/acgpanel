@@ -15,6 +15,7 @@ import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
+import fi.metatavu.acgpanel.model.getLightsModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getMaintenanceModel
 import fi.metatavu.acgpanel.model.getNotificationModel
@@ -27,6 +28,7 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
     private val loginModel = getLoginModel()
     private val notificationModel = getNotificationModel()
     private val handler = Handler(Looper.getMainLooper())
+    private val lightsModel = getLightsModel()
 
     private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
         val dialog = UnlockDialog(this, maintenanceModel.maintenancePasscode)
@@ -118,11 +120,13 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         loginModel.refresh()
+        lightsModel.refreshLights()
         return super.dispatchTouchEvent(ev)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         loginModel.refresh()
+        lightsModel.refreshLights()
         return super.dispatchKeyEvent(event)
     }
 

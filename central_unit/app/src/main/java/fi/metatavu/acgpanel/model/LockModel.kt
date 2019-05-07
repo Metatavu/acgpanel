@@ -51,6 +51,7 @@ abstract class LockModel {
     private val assignShelfRequestListeners: MutableList<(AssignShelfRequest) -> Unit> = mutableListOf()
     private var numInitialLinesToOpen = 0
     private val linesToOpen: MutableList<String> = mutableListOf()
+    private var reOpenLock = Runnable {}
 
     val currentLock
         get() = numInitialLinesToOpen - linesToOpen.size
@@ -99,6 +100,11 @@ abstract class LockModel {
         }
         for (listener in lockOpenRequestListeners) {
             listener(LockOpenRequest(shelf, compartment, reset))
+            reOpenLock = Runnable {
+                listener(LockOpenRequest(shelf, compartment, true))
+                schedule(reOpenLock, 58_000)
+            }
+            schedule(reOpenLock, 58_000)
         }
     }
 
@@ -157,6 +163,7 @@ abstract class LockModel {
 
     fun openLock(first: Boolean = true) {
         Log.d(javaClass.name, "linesToOpen: $linesToOpen")
+        unSchedule(reOpenLock)
         if (linesToOpen.isEmpty()) {
             locksOpen = false
             unSchedule(lockOpenTimerCallback)

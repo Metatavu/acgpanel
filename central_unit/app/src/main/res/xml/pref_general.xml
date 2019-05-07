@@ -69,7 +69,7 @@
 
     <EditTextPreference
         android:key="@string/pref_key_user_asset_url"
-        android:title="Kuvien ja dokumenttien osoite"
+        android:title="@string/pref_title_user_asset_url"
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
@@ -114,5 +114,28 @@
         android:singleLine="true"
         />
 
+    <EditTextPreference
+        android:key="@string/pref_key_lights_timeout_in_s"
+        android:title="@string/pref_title_lights_timeout_in_s"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
+
+    <EditTextPreference
+        android:key="@string/pref_key_lights_low_intensity"
+        android:title="@string/pref_title_lights_low_intensity"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
+
+    <EditTextPreference
+        android:key="@string/pref_key_lights_high_intensity"
+        android:title="@string/pref_title_lights_high_intensity"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        />
 
 </PreferenceScreen>

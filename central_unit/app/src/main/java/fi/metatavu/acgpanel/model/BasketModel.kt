@@ -8,6 +8,10 @@ import retrofit2.http.POST
 import java.util.*
 import kotlin.concurrent.thread
 
+/**
+ * One item (row) in a batch of items an user purchases
+ * from the vending machine.
+ */
 @Entity
 data class ProductTransactionItem(
     @PrimaryKey var id: Long?,
@@ -126,6 +130,7 @@ abstract class BasketModel {
 
     protected abstract fun schedule(callback: Runnable, timeout: Long)
     protected abstract fun transaction(tx: () -> Unit)
+    protected abstract fun unsafeUpdateProducts()
     protected abstract val productDao: ProductDao
     protected abstract val productTransactionDao: ProductTransactionDao
     protected abstract val productTransactionsService: GiptoolProductTransactionsService
@@ -235,6 +240,28 @@ abstract class BasketModel {
     fun deleteBasketItem(index: Int) {
         mutableBasket.removeAt(index)
     }
+
+    fun markProductEmpty(index: Int) {
+        val product = basket[index].product
+        product.empty = true
+        thread(start = true) {
+            productDao.updateAll(product)
+            unsafeUpdateProducts()
+        }
+    }
+
+    fun markCurrentProductEmpty() {
+        val item = selectedBasketItem
+        if (item is SelectedBasketItem.Existing) {
+            val product = basket[item.index].product
+            product.empty = true
+            thread(start = true) {
+                productDao.updateAll(product)
+                unsafeUpdateProducts()
+            }
+        }
+    }
+
 
     fun removeZeroCountItems() {
         mutableBasket.removeIf { it.count < 1 }

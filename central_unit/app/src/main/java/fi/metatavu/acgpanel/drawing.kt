@@ -28,11 +28,18 @@ fun drawProducts(pairs: List<Pair<Product, ImageView>>) {
     val picasso = Picasso
         .Builder(context)
         .executor(executor)
-        .downloader(OkHttp3Downloader(cacheDir, cacheSize))
+        .downloader(OkHttp3Downloader(
+                        cacheDir,
+                        cacheSize))
         .build()
     for ((product, view) in pairs) {
+        val prefix =
+            if (product.image.startsWith("http://") || product.image.startsWith("https://"))
+                ""
+            else
+                productImagePrefix
         picasso
-            .load("$productImagePrefix${product.image}")
+            .load("$prefix${product.image}")
             //.placeholder(R.drawable.image_placeholder)
             .error(R.drawable.image_placeholder)
             .noFade()

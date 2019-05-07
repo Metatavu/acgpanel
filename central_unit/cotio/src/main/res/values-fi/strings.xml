@@ -26,4 +26,7 @@
     <!-- code_prefix_http -->
     <string name="input_code_title">Näppäile 8-merkkinen koodi kuitistasi</string>
     <string name="no_free_lockers_message">Ei vapaita lokeroita.</string>
+    <string name="add_code">Lisää koodeja</string>
+    <string name="code_added">Koodi lisätty</string>
+    <string name="code_add_error">Virhe koodia lisättäessä: %s</string>
 </resources>

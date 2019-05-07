@@ -19,6 +19,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.time.Duration
+import kotlin.concurrent.thread
 
 @RoomDatabase(entities = [
     User::class,
@@ -29,7 +30,7 @@ import java.time.Duration
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class
-], version = 7, exportSchema = false)
+], version = 9, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -53,6 +54,22 @@ private object Database {
                 object: Migration(6, 7) {
                     override fun migrate(database: SupportSQLiteDatabase) {
                         database.execSQL("DELETE FROM ProductSafetyCard")
+                    }
+                },
+                object: Migration(7, 8) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            ALTER TABLE product
+                            ADD COLUMN empty INTEGER NOT NULL DEFAULT 0
+                        """)
+                    }
+                },
+                object: Migration(8, 9) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            ALTER TABLE product
+                            ADD COLUMN serverStock INTEGER NOT NULL DEFAULT 0
+                        """)
                     }
                 }
             )
@@ -121,6 +138,9 @@ private object Services {
     val productTransactionsService: GiptoolProductTransactionsService =
         makeRetrofitService(GiptoolProductTransactionsService::class.java)
 
+    val messagingService: GiptoolMessagingService =
+        makeRetrofitService(GiptoolMessagingService::class.java)
+
 }
 
 private object Preferences {
@@ -138,9 +158,18 @@ private object Preferences {
         get() = preferences()
             .getString(getString(R.string.pref_key_vending_machine_id), "")
 
-    val password: String
+    var password: String
         get() = preferences()
             .getString(getString(R.string.pref_key_password), "")
+        set(value) {
+            preferences()
+                .edit()
+                .putString(
+                    getString(R.string.pref_key_password),
+                    value
+                )
+                .apply()
+        }
 
     val demoMode: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), true)
@@ -176,6 +205,18 @@ private object Preferences {
     val timeoutInSeconds: Long
         get() = preferences()
             .getString(getString(R.string.pref_key_timeout_in_s), "").toLongOrNull() ?: 60
+
+    val lightsTimeoutInSeconds: Int
+        get() = preferences()
+            .getString(getString(R.string.pref_key_lights_timeout_in_s), "").toIntOrNull() ?: 60
+
+    val lightsLowIntensity: Int
+        get() = preferences()
+            .getString(getString(R.string.pref_key_lights_low_intensity), "").toIntOrNull() ?: 60
+
+    val lightsHighIntensity: Int
+        get() = preferences()
+            .getString(getString(R.string.pref_key_lights_high_intensity), "").toIntOrNull() ?: 60
 
 }
 
@@ -215,6 +256,10 @@ private object ProductsModelImpl: ProductsModel() {
 
     public override fun syncProducts() {
         super.syncProducts()
+    }
+
+    public override fun unsafeRefreshProductPages() {
+        super.unsafeRefreshProductPages()
     }
 
 }
@@ -259,6 +304,10 @@ private object BasketModelImpl: BasketModel() {
 
     override fun acceptBasket() {
         LockModelImpl.openLines(basket.map{it.product.line })
+    }
+
+    override fun unsafeUpdateProducts() {
+        ProductsModelImpl.unsafeRefreshProductPages()
     }
 
 }
@@ -329,6 +378,10 @@ private object LoginModelImpl: LoginModel() {
 
     override val timeoutInSeconds: Long
         get() = Preferences.timeoutInSeconds
+
+    override var password: String
+        get() = Preferences.password
+        set(value) {Preferences.password = value}
 
     override fun schedule(callback: Runnable, timeout: Long) =
         PanelScheduling.schedule(callback, timeout)
@@ -423,15 +476,34 @@ private object ServerSyncModelImpl: ServerSyncModel() {
             DemoModelImpl.demoModeCleanup()
             LoginModelImpl.syncUsers()
             ProductsModelImpl.syncProducts()
-            // Don't sync product transactions to prevent race condition
-            // BasketModelImpl.syncProductTransactions()
+            BasketModelImpl.syncProductTransactions()
             LoginModelImpl.syncLogInAttempts()
         } catch (ex: IOException) {
-            Log.d(javaClass.name, "IOException: $ex");
+            Log.d(javaClass.name, "IOException: $ex")
             // device offline, do nothing
         } catch (ex: Exception) {
-            Log.e(javaClass.name, Log.getStackTraceString(ex));
+            Log.e(javaClass.name, Log.getStackTraceString(ex))
             Log.e(javaClass.name, "Error while syncing to server: $ex")
+        }
+    }
+
+    override fun testServerConnection(callback: (String?) -> Unit) {
+        thread(start = true) {
+            try {
+                val result = Services.productsService.listProducts(Preferences.vendingMachineId)
+                    .execute()
+                if (!result.isSuccessful) {
+                    callback("Result not successful: ${result.code()}: ${result.errorBody()}")
+                }
+                else if (result.body() == null) {
+                    callback("Response was empty")
+                }
+                else {
+                    callback(null)
+                }
+            } catch (e: IOException) {
+                callback("IOException: $e")
+            }
         }
     }
 
@@ -439,8 +511,39 @@ private object ServerSyncModelImpl: ServerSyncModel() {
 
 fun getServerSyncModel(): ServerSyncModel = ServerSyncModelImpl
 
-private object NotificationModelImpl: NotificationModel() {
+private object NotificationModelImpl: NotificationModel()
+
+fun getNotificationModel(): NotificationModel = NotificationModelImpl
+
+private object LightsModelImpl: LightsModel() {
+
+    override fun schedule(callback: Runnable, timeout: Long) =
+        PanelScheduling.schedule(callback, timeout)
+
+    override fun unSchedule(callback: Runnable) =
+        PanelScheduling.unSchedule(callback)
+
+    override val lightsTimeoutInSeconds: Int
+        get() = Preferences.lightsTimeoutInSeconds
+
+    override val lightsLowIntensity: Int
+        get() = Preferences.lightsLowIntensity
+
+    override val lightsHighIntensity: Int
+        get() = Preferences.lightsHighIntensity
 
 }
 
-fun getNotificationModel(): NotificationModel = NotificationModelImpl
+fun getLightsModel(): LightsModel = LightsModelImpl
+
+private object MessagingModelImpl: MessagingModel() {
+
+    override val messagingService: GiptoolMessagingService
+        get() = Services.messagingService
+
+    override val vendingMachineId: String
+        get() = Preferences.vendingMachineId
+
+}
+
+fun getMessagingModel(): MessagingModel = MessagingModelImpl

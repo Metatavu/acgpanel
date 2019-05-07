@@ -33,6 +33,7 @@ data class LockClosed(val shelf: Int): Message()
 data class ResetLock(val shelf: Int): Message()
 data class ResetLockConfirmation(val shelf: Int): Message()
 data class AssignShelf(val shelf: Int): Message()
+data class SetLightsIntensity(val intensity: Int): Message()
 object AssignShelfConfirmation : Message()
 
 private class NoResponseException : Exception("No response from device")
@@ -179,6 +180,11 @@ abstract class MessageWriter {
                 write(0x0D)
                 flush()
             }
+            is SetLightsIntensity -> {
+                write(0x04)
+                write(msg.intensity.toByte())
+                flush()
+            }
         }
     }
 
@@ -194,6 +200,9 @@ sealed class Action {
     ): Action()
     data class AssignShelf(
         val shelf: Int
+    ): Action()
+    data class SetLightsIntensity(
+        val intensity: Int
     ): Action()
 }
 
@@ -212,6 +221,7 @@ class McuCommunicationService : Service() {
     private val maintenanceModel = getMaintenanceModel()
     private val demoModel = getDemoModel()
     private val loginModel = getLoginModel()
+    private val lightsModel = getLightsModel()
     private var jobThread: Thread? = null
     private var serial: UsbSerialDevice? = null
     private var readFailures = 0
@@ -221,6 +231,9 @@ class McuCommunicationService : Service() {
     }
     private val onAssignShelfRequest: (AssignShelfRequest) -> Unit = {
         actions.add(Action.AssignShelf(it.shelf))
+    }
+    private val onLightsRequest: (LightsRequest) -> Unit = {
+        actions.add(Action.SetLightsIntensity(it.intensity))
     }
 
     private val messageReader = object : MessageReader() {
@@ -298,6 +311,9 @@ class McuCommunicationService : Service() {
                     is Action.AssignShelf -> {
                         messageWriter.writeMessage(AssignShelf(action.shelf))
                         messageReader.readMessage() ?: throw NoResponseException()
+                    }
+                    is Action.SetLightsIntensity -> {
+                        messageWriter.writeMessage(SetLightsIntensity(action.intensity))
                     }
                 }
                 if (messageReader.available()) {
@@ -423,12 +439,14 @@ class McuCommunicationService : Service() {
         startForeground(MCU_COMMUNICATION_SERVICE_ID, notification)
         lockModel.addLockOpenRequestListener(onLockOpenRequest)
         lockModel.addAssignShelfRequestListener(onAssignShelfRequest)
+        lightsModel.addLightsRequestListener(onLightsRequest)
     }
 
     override fun onDestroy() {
         stop()
         lockModel.removeLockOpenRequestListener(onLockOpenRequest)
         lockModel.removeAssignShelfRequestListener(onAssignShelfRequest)
+        lightsModel.removeLightsRequestListener(onLightsRequest)
         super.onDestroy()
     }
 

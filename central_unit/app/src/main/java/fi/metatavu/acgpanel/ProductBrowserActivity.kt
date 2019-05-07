@@ -36,16 +36,26 @@ internal fun productPageView(context: Context): View {
 
 const val PRODUCTS_PER_PAGE = 6
 
-class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
+class ProductPageViewHolder(val context: Context) : RecyclerView.ViewHolder(productPageView(context)) {
 
-    private val parentViewIds = context.resources.obtainTypedArray(R.array.product_view_ids)
-    private val textViewIds = context.resources.obtainTypedArray(R.array.product_view_text_ids)
-    private val imageViewIds = context.resources.obtainTypedArray(R.array.product_view_image_ids)
-    private val lineViewIds = context.resources.obtainTypedArray(R.array.product_view_line_ids)
-    private val buttonIds = context.resources.obtainTypedArray(R.array.product_view_button_ids)
+    private val parentViewIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_ids)
+    private val textViewIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_text_ids)
+    private val imageViewIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_image_ids)
+    private val lineViewIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_line_ids)
+    private val buttonIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_button_ids)
+    private val emptyMessageIds
+        get() = context.resources.obtainTypedArray(R.array.product_view_empty_ids)
 
-    private fun <T: View> getView(arr: TypedArray, i: Int): T
-        = itemView.findViewById(arr.getResourceId(i, -1))
+    private fun <T: View> getView(arr: TypedArray, i: Int): T {
+        val result = itemView.findViewById<T>(arr.getResourceId(i, -1))
+        arr.recycle()
+        return result
+    }
 
     fun populate(item: ProductPage, onProductClick: (Product) -> Unit) {
         for (i in 0 until PRODUCTS_PER_PAGE) {
@@ -54,9 +64,12 @@ class ProductPageViewHolder(context: Context) : RecyclerView.ViewHolder(productP
                 getView<View>(parentViewIds, i).visibility = View.VISIBLE
                 getView<TextView>(textViewIds, i).text = product.name
                 getView<TextView>(lineViewIds, i).text = product.line
-                getView<Button>(buttonIds, i).setOnClickListener {
+                val button = getView<Button>(buttonIds, i)
+                button.setOnClickListener {
                     onProductClick(product)
                 }
+                getView<TextView>(emptyMessageIds, i).visibility =
+                    if (product.empty) View.VISIBLE else View.INVISIBLE
             } else {
                getView<View>(parentViewIds, i).visibility = View.INVISIBLE
             }
@@ -84,7 +97,7 @@ class ProductPageItemCallback : DiffUtil.ItemCallback<ProductPage>() {
 
 class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(ProductPageItemCallback()) {
 
-    private var productClickListener : ((Product) -> Unit)? = null
+    private var productClickListener : ((Product) -> Unit) = {}
 
     fun setProductClickListener(listener: (Product) -> Unit) {
         productClickListener = listener
@@ -97,11 +110,7 @@ class ProductPageAdapter : ListAdapter<ProductPage, ProductPageViewHolder>(Produ
     override fun onBindViewHolder(holder: ProductPageViewHolder, index: Int) {
         val item = getItem(index)
         val listener = productClickListener
-        if (listener != null) {
-            holder.populate(item, listener)
-        } else {
-            holder.populate(item) {}
-        }
+        holder.populate(item, listener)
     }
 
 }
@@ -113,6 +122,7 @@ class ProductBrowserActivity : PanelActivity() {
     private val basketModel = getBasketModel()
     private val productsModel = getProductsModel()
     private lateinit var handler: Handler
+    private lateinit var adapter: ProductPageAdapter
 
     @SuppressLint("SetTextI18n")
     private val logInListener = {
@@ -143,16 +153,22 @@ class ProductBrowserActivity : PanelActivity() {
         super.onCreate(savedInstanceState)
         handler = Handler(mainLooper)
         setContentView(R.layout.activity_product_browser)
-        val adapter = ProductPageAdapter()
+        adapter = ProductPageAdapter()
         adapter.setProductClickListener {
             if (loginModel.currentUser?.canShelve == true) {
                 lockModel.openLineLock(it.line, reset = true)
+                productsModel.markNotEmpty(it) {
+                    runOnUiThread {
+                        adapter.notifyDataSetChanged()
+                    }
+                }
             } else {
-                selectProduct(it)
+                if (!it.empty) {
+                    selectProduct(it)
+                }
             }
         }
         basket_items_view.adapter = adapter
-        adapter.submitList(productsModel.productPages)
         val display = windowManager.defaultDisplay
         val size = Point()
         display.getSize(size)
@@ -219,6 +235,7 @@ class ProductBrowserActivity : PanelActivity() {
             show_profile_button.visibility = View.INVISIBLE
         }
         loginModel.addLogInListener(logInListener)
+        adapter.submitList(productsModel.productPages)
     }
 
     override fun onDestroy() {
@@ -250,6 +267,9 @@ class ProductBrowserActivity : PanelActivity() {
     override fun onResume() {
         super.onResume()
         search_box.requestFocus()
+        productsModel.refreshProductPages {
+            adapter.notifyDataSetChanged()
+        }
     }
 
     private fun scrollPage(layoutManager: LinearLayoutManager, edge: Boolean, direction: Int) {

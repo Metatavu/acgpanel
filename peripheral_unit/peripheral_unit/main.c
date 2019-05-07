@@ -18,6 +18,7 @@
 #define TARGET_BOX_DRIVER 1
 #define TARGET_CARD_READER 2
 #define TARGET_WIEGAND 3
+#define TARGET_LIGHTS 4
 
 #define MESSAGE_WAIT_TIME 200
 
@@ -51,7 +52,7 @@ void bdCommInit(void) {
   // 2549Q-AVR-02/2014 page 221
   UCSR1B = (1<<RXEN1) | (1<<TXEN1) | (1<<RXCIE1); // enable RX and TX
   UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
-  DDRC = 0x01;
+  DDRC |= 1 << PC0;
 }
 
 void crCommInit(void) {
@@ -86,11 +87,11 @@ void bdCommFlush(void) {
 }
 
 void bdCommInput(void) {
-  PORTC = 0x00;
+  PORTC &= ~(1<<PC0);
 }
 
 void bdCommOutput(void) {
-  PORTC = 0x01;
+  PORTC |= (1<<PC0);
 }
 
 void crCommWrite(uint8_t c) {
@@ -129,8 +130,7 @@ void timerInit(void) {
 #ifdef TEST
   uint16_t numCycles = 100;
 #else
-  // 40kHz timer
-  // uint16_t numCycles = 200; //F_OSC = 8_000_000, MS=40, F_OSC / (MS * 1000) = 160
+  // 25kHz timer
   uint16_t numCycles = F_OSC / (MS * 1000);
 #endif
   uint8_t sreg = SREG;
@@ -149,41 +149,28 @@ void timerInit(void) {
   SREG = sreg;
 }
 
-__attribute__ ((always_inline)) inline uint8_t wieReadValue() {
-  if ((PINE & (1<<PE2)) && !(PINE & (1<<PE3))) {
-    return 0x01;
-  } else if (!(PINE & (1<<PE2)) && (PINE & (1<<PE3))) {
-    return 0x00;
-  } else {
-    return 0xFF;
-  }
+uint16_t pwmValue = 0;
+uint16_t pwmCounter = 0;
+
+void pwmInit(void) {
+  DDRC |= (1 << PC2) | (1 << PC3);
 }
 
-const uint32_t WIEGAND_IDLE_TIME = 20000;
-uint8_t wieBuffer[128] = {};
-  
-__attribute__ ((always_inline)) inline void wieRead(void) {    
-  uint8_t wieCounter = 0;
-  uint8_t value = wieReadValue();
-  if (value == 0xFF) {
-    return;
+void pwmSetValue(uint16_t value) {
+  pwmValue = value;
+}
+
+__attribute__((always_inline)) inline void pwmTick() {
+  ++pwmCounter;
+  // there is a source of 50Hz noise on board,
+  // use 499 to minimize its impact
+  if (pwmCounter > 499) {
+    pwmCounter = 0;
   }
-  while (wieCounter < 128) {
-    while (wieReadValue() != 0xFF);
-    wieBuffer[wieCounter++] = '0' + value;
-    uint32_t idleTime = 0;
-    while ((value = wieReadValue()) == 0xFF) {
-      wdt_reset();
-      if (idleTime++ > WIEGAND_IDLE_TIME) {
-        goto codeRead;
-      }
-    }
-  }
-codeRead:
-  cuCommWrite(TARGET_WIEGAND);
-  for (uint8_t i=0; i<wieCounter; i++) {
-    wdt_reset();
-    cuCommWrite(wieBuffer[i]);
+  if (pwmCounter < pwmValue) {
+    PORTC |= (1 << PC2) | (1 << PC3);
+  } else {
+    PORTC &= ~((1 << PC2) | (1 << PC3));
   }
 }
 
@@ -200,7 +187,7 @@ ISR(TIMER1_COMPA_vect)
   } else {
     bdCommInput();
   }
-  wieRead();
+  pwmTick();
 }
 
 ISR(USART2_RX_vect) {
@@ -230,6 +217,13 @@ ISR(USART2_RX_vect) {
       case TARGET_CARD_READER:
         crCommWrite(input);
         break;
+      case TARGET_LIGHTS:
+        if (input == 0) {
+          pwmSetValue(0);
+        } else {
+          pwmSetValue(401 + input);
+        }
+        break;
     }
   }
 }
@@ -258,6 +252,44 @@ ISR(USART3_RX_vect) {
   cuCommWrite(UDR3);
 }
 
+const uint32_t WIEGAND_IDLE_TIME = 20000;
+uint8_t wieBuffer[128] = {};
+
+uint8_t wieReadValue() {
+  if ((PINE & (1<<PE2)) && !(PINE & (1<<PE3))) {
+    return 0x01;
+  } else if (!(PINE & (1<<PE2)) && (PINE & (1<<PE3))) {
+    return 0x00;
+  } else {
+    return 0xFF;
+  }
+}
+  
+void wieRead(void) {    
+  uint8_t wieCounter = 0;
+  uint8_t value = wieReadValue();
+  if (value == 0xFF) {
+    return;
+  }
+  while (wieCounter < 128) {
+    while (wieReadValue() != 0xFF);
+    wieBuffer[wieCounter++] = '0' + value;
+    uint32_t idleTime = 0;
+    while ((value = wieReadValue()) == 0xFF) {
+      wdt_reset();
+      if (idleTime++ > WIEGAND_IDLE_TIME) {
+        goto codeRead;
+      }
+    }
+  }
+codeRead:
+  cuCommWrite(TARGET_WIEGAND);
+  for (uint8_t i=0; i<wieCounter; i++) {
+    wdt_reset();
+    cuCommWrite(wieBuffer[i]);
+  }
+}
+
 void init(void) {
   wdtInit();
   wieInit();
@@ -265,6 +297,7 @@ void init(void) {
   bdCommInit();
   crCommInit();
   timerInit();
+  pwmInit();
   sei();
 }
 
@@ -292,6 +325,7 @@ int16_t main(void)
   init();
   while (1) 
   {
+    wieRead();
     wdt_reset();
   }
   return 0;

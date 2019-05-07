@@ -118,6 +118,7 @@ abstract class LoginModel {
     protected abstract val timeoutInSeconds: Long
 
     abstract val vendingMachineId: String
+    abstract var password: String
 
     private val logoutTimerCallback = Runnable {
         if (!isLocksOpen()) {

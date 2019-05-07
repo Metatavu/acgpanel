@@ -7,12 +7,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageInstaller
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.preference.PreferenceManager
 import android.util.Log
 import fi.metatavu.acgpanel.model.getServerSyncModel
+import net.schmizz.sshj.SSHClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -49,8 +49,42 @@ class ServerSyncService : Service() {
                 model.serverSync()
                 softwareUpdate(updateUrl)
                 Thread.sleep((syncInterval.toLongOrNull() ?: 10) * 60L * 1000L)
+                Thread.sleep(1000L)
             }
         } catch (ex: InterruptedException) {}
+    }
+
+    private fun syncSftpFolder(
+        host: String,
+        username: String,
+        password: String,
+        remotePath: String,
+        localPath: String
+    ) {
+        val ssh = SSHClient()
+        ssh.loadKnownHosts()
+        ssh.connect(host)
+        try {
+            ssh.authPassword(username, password)
+            val sftp = ssh.newSFTPClient()
+            val fileNames = mutableListOf<String>()
+            for (file in sftp.ls(remotePath)) {
+                val localFile = File(localPath, file.name)
+                if (!localFile.exists() ||
+                        localFile.lastModified() <= file.attributes.mtime) {
+                    sftp.get(file.path, localFile.absolutePath)
+                }
+                fileNames.add(file.name)
+            }
+            val localFiles = File(localPath).listFiles()
+            for (file in localFiles) {
+                if (!fileNames.contains(file.name)) {
+                    file.delete()
+                }
+            }
+        } finally {
+            ssh.disconnect()
+        }
     }
 
     private fun softwareUpdate(updateUrl: String?) {

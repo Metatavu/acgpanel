@@ -1,5 +1,6 @@
 package fi.metatavu.acgpanel
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
@@ -121,10 +122,23 @@ class BasketActivity : PanelActivity() {
         updateNumProducts()
         basket_items_view.adapter = adapter
         adapter.submitList(basketModel.basket)
-        adapter.setDeleteClickListener {
-            basketModel.deleteBasketItem(it)
-            updateNumProducts()
-            adapter.notifyDataSetChanged()
+        adapter.setDeleteClickListener { index ->
+            AlertDialog.Builder(this)
+                .setTitle(R.string.out_of_products_title)
+                .setMessage(R.string.out_of_products_message)
+                .setPositiveButton(R.string.yes) { _, _ ->
+                    basketModel.markProductEmpty(index)
+                    basketModel.deleteBasketItem(index)
+                    updateNumProducts()
+                    adapter.notifyDataSetChanged()
+                }
+                .setNegativeButton(R.string.no) { _, _ ->
+                    basketModel.deleteBasketItem(index)
+                    updateNumProducts()
+                    adapter.notifyDataSetChanged()
+                }
+                .create()
+                .show()
         }
         adapter.setModifyClickListener {
             basketModel.selectExistingBasketItem(it)

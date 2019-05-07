@@ -244,7 +244,14 @@ class MainActivity : Activity() {
      */
     private fun lockDownDevice() {
         // Configure app as device owner
-        runCommand("dpm set-device-owner fi.metatavu.acgpanel/.DeviceAdminReceiver")
+        when (installTarget) {
+            InstallTarget.ACGPanel -> {
+                runCommand("dpm set-device-owner fi.metatavu.acgpanel/.DeviceAdminReceiver")
+            }
+            InstallTarget.Cotio -> {
+                runCommand("dpm set-device-owner fi.metatavu.acgpanel.cotio/.DeviceAdminReceiver")
+            }
+        }
         // Disable other launchers so the user can't muck around
         runCommand("pm disable com.android.launcher3")
         runCommand("pm disable com.farmerbb.taskbar.androidx86")
@@ -278,7 +285,14 @@ class MainActivity : Activity() {
      */
     private fun installBootAnimation() {
         val bootAnimationPath = File(filesDir, "bootanimation.zip").absolutePath
-        writeResource(R.raw.bootanimation, bootAnimationPath)
+        when (installTarget) {
+            is InstallTarget.Cotio -> {
+                writeResource(R.raw.cotioanimation, bootAnimationPath)
+            }
+            is InstallTarget.ACGPanel -> {
+                writeResource(R.raw.bootanimation, bootAnimationPath)
+            }
+        }
         runCommand("cp $bootAnimationPath /system/media")
         runCommand("chmod 644 /system/media/bootanimation.zip")
         // Black background to remove awkward flash after boot animation
@@ -288,37 +302,11 @@ class MainActivity : Activity() {
     }
 
     /**
-     * The app uses F-Droid to manage its updates, and also updates for
-     * some other apps, like the keyboard
-     */
-    private fun installFDroidForUpdates() {
-        // Install F-Droid privileged extension for unattended updates
-        val fDroidPrivilegedApkPath = File(filesDir, "fdroid_privileged.apk").absolutePath
-        writeResource(R.raw.fdroid_privileged, fDroidPrivilegedApkPath)
-        runCommand("mkdir /system/priv-app/org.fdroid.fdroid.privileged")
-        runCommand("chmod 755 /system/priv-app/org.fdroid.fdroid.privileged")
-        runCommand("cp $fDroidPrivilegedApkPath /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
-        runCommand("chmod 644 /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
-        runCommand("pm install $fDroidPrivilegedApkPath")
-        // Install F-Droid for update management
-        val fDroidApkPath = File(filesDir, "fdroid.apk").absolutePath
-        writeResource(R.raw.fdroid, fDroidApkPath)
-        runCommand("pm install $fDroidApkPath")
-        // Add update repo
-        val addRepoIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("fdroidrepos://static.metatavu.io/acgpanel_repo/repo/")
-        )
-        startActivity(addRepoIntent)
-        incrementProgress()
-    }
-
-    /**
      * Make a thread that runs the installation process
      */
     private fun makeProcessThread(): Thread = thread(start = false) {
         try {
-            maxProgress = 40
+            maxProgress = 31
             disableGrubMenuScreen()
             when (installTarget) {
                 InstallTarget.ACGPanel -> {
@@ -333,7 +321,6 @@ class MainActivity : Activity() {
             lockDownDevice()
             installAndEnableSimpleKeyboard()
             installBootAnimation()
-            installFDroidForUpdates()
             completed()
         } catch (ex: Exception) {
             print("Exception: ${ex.javaClass.name}: ${ex.message}", error = true)

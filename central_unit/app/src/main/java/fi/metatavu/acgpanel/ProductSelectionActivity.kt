@@ -1,6 +1,7 @@
 package fi.metatavu.acgpanel
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -149,11 +150,34 @@ class ProductSelectionActivity : PanelActivity() {
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
+        val newCount = count_input.text.toString().toIntOrNull()
+        val oldCount = basketModel.currentBasketItem?.count
+        if (newCount != null && oldCount != null && newCount < oldCount) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.out_of_products_title)
+                .setMessage(R.string.out_of_products_message)
+                .setPositiveButton(R.string.yes) { _, _ ->
+                    proceed(markEmpty = true)
+                }
+                .setNegativeButton(R.string.no) { _, _ ->
+                    proceed(markEmpty = false)
+                }
+                .create()
+                .show()
+        } else {
+            proceed(markEmpty = false)
+        }
+    }
+
+    fun proceed(markEmpty: Boolean) {
         basketModel.saveSelectedItem(
             count_input.text.toString().toIntOrNull(),
             expenditure_input.text.toString(),
             reference_input.text.toString()
         )
+        if (markEmpty) {
+            basketModel.markCurrentProductEmpty()
+        }
         val intent = Intent(this, BasketActivity::class.java)
         finish()
         startActivity(intent)

@@ -57,6 +57,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product0_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product0_button"
                     android:layout_width="match_parent"
@@ -110,6 +120,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product1_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product1_button"
                     android:layout_width="match_parent"
@@ -163,6 +183,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product2_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product2_button"
                     android:layout_width="match_parent"
@@ -218,6 +248,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product3_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product3_button"
                     android:layout_width="match_parent"
@@ -271,6 +311,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product4_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product4_button"
                     android:layout_width="match_parent"
@@ -324,6 +374,16 @@
                     android:layout_marginRight="50dp"
                     android:layout_marginTop="9dp"
                     android:contentDescription="" />
+                <TextView
+                    android:id="@+id/product5_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#B0FFFFFF"
+                    android:textColor="@color/error"
+                    android:text="@string/line_empty"
+                    android:textSize="25sp"
+                    android:gravity="center"
+                    />
                 <Button
                     android:id="@+id/product5_button"
                     android:layout_width="match_parent"

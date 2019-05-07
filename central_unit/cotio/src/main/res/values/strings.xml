@@ -26,4 +26,7 @@
     <string name="code_prefix_http" translatable="false">http://www.cotios.com/</string>
     <string name="input_code_title">Please type the 8-digit code in the receipt</string>
     <string name="no_free_lockers_message">No free lockers.</string>
+    <string name="add_code">Add Code</string>
+    <string name="code_added">Code added</string>
+    <string name="code_add_error">Error when adding code: %s</string>
 </resources>

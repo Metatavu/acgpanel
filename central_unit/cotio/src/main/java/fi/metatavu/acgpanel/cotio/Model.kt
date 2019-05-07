@@ -153,6 +153,12 @@ sealed class CodeReadResult {
     object NoFreeLockers: CodeReadResult()
 }
 
+sealed class CodeAddResult {
+    object Success: CodeAddResult()
+    data class InvalidCode(val error: String): CodeAddResult()
+}
+
+
 class CotioModel(private val context: Context) {
 
     private var lastCodeReadTime = Instant.MIN;
@@ -223,6 +229,18 @@ class CotioModel(private val context: Context) {
             cotioDao.insertAll(*lockerCodes)
             cotioDao.updateAll(*lockerCodes)
         }
+    }
+
+    fun addCode(code: String): CodeAddResult {
+        val now = Instant.now()
+        val code = LockerCode(code, LockerCodeState.FREE, null, null, now)
+        try {
+            cotioDao.insertAll(code)
+            cotioDao.updateAll(code)
+        } catch (ex: Exception) {
+            return CodeAddResult.InvalidCode(ex.toString())
+        }
+        return CodeAddResult.Success
     }
 
     fun readCode(rawCode: String): CodeReadResult {

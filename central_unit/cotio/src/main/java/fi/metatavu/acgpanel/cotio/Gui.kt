@@ -1,6 +1,7 @@
 package fi.metatavu.acgpanel.cotio
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
@@ -16,6 +17,7 @@ import android.hardware.usb.UsbManager
 import android.os.*
 import android.preference.PreferenceActivity
 import android.preference.PreferenceFragment
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
@@ -29,6 +31,7 @@ import fi.metatavu.acgpanel.support.pucomm.PeripheralUnitCommunicator
 import fi.metatavu.acgpanel.support.ui.AppDrawerActivity
 import fi.metatavu.acgpanel.support.ui.LockedDownActivity
 import fi.metatavu.acgpanel.support.ui.showEditDialog
+import kotlinx.android.synthetic.main.activity_add_code.*
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
 import java.util.*
@@ -95,7 +98,9 @@ class CotioApplication: Application() {
             grantDevicePermissionMethod.invoke(iUsbManager, usbDevice, appInfo.uid)
             return true
         } catch (e: Exception) {
-            throw IllegalStateException("Couldn't grant permission", e)
+            Log.e(javaClass.name, "Couldn't grant auto permission: $e: " +
+                Log.getStackTraceString(e))
+            return false
         }
     }
 
@@ -108,6 +113,7 @@ class CotioApplication: Application() {
     @SuppressLint("WakelockTimeout")
     override fun onCreate() {
         super.onCreate()
+        cosuLockDown()
         model = CotioModel(applicationContext)
         if (wakeLock == null) {
             @Suppress("DEPRECATION")
@@ -117,7 +123,6 @@ class CotioApplication: Application() {
         val deviceList = usbManager.deviceList.values
         val device = deviceList.firstOrNull { it.vendorId == DEVICE_VENDOR_ID }
         grantAutomaticPermission(device ?: return)
-        cosuLockDown()
         puComm = PeripheralUnitCommunicator(
             {},
             {
@@ -126,8 +131,7 @@ class CotioApplication: Application() {
             },
             {},
             {!lockOpen})
-        puComm.start(device, usbManager.openDevice(device)
-            ?: throw IllegalStateException("Couldn't open device"))
+        puComm.start(device, usbManager.openDevice(device) ?: return)
         // not guaranteed to run, but better than nothing
         Runtime.getRuntime().addShutdownHook(thread(start = false) {
             puComm.stop()
@@ -416,3 +420,44 @@ class CotioSettingsActivity: PreferenceActivity() {
 
 }
 
+class AddCodeActivity : Activity() {
+
+    private lateinit var model: CotioModel
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_add_code)
+        add_code_input.setOnKeyListener { v, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER
+                    && event.action == KeyEvent.ACTION_UP) {
+                addCode(null)
+                true
+            } else {
+                false
+            }
+        }
+        model = (application as CotioApplication).model
+    }
+
+    fun addCode(@Suppress("UNUSED_PARAMETER") view: View?) {
+        thread(start = true) {
+            val result = model.addCode(add_code_input.text.toString())
+            runOnUiThread {
+                when (result) {
+                    is CodeAddResult.Success -> {
+                        info_text.text = getString(R.string.code_added)
+                    }
+                    is CodeAddResult.InvalidCode -> {
+                        info_text.text = getString(R.string.code_add_error, result.error)
+                    }
+                }
+                add_code_input.text.clear()
+            }
+        }
+    }
+
+    fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {
+        finishAffinity()
+    }
+
+}

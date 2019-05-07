@@ -40,4 +40,12 @@
         <item>@id/product4_button</item>
         <item>@id/product5_button</item>
     </integer-array>
+    <integer-array name="product_view_empty_ids">
+        <item>@id/product0_empty</item>
+        <item>@id/product1_empty</item>
+        <item>@id/product2_empty</item>
+        <item>@id/product3_empty</item>
+        <item>@id/product4_empty</item>
+        <item>@id/product5_empty</item>
+    </integer-array>
 </resources>
