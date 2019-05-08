@@ -26,11 +26,11 @@ import kotlin.concurrent.thread
     Product::class,
     ProductTransaction::class,
     ProductTransactionItem::class,
-    ProductSafetyCard::class,
+    ProductDocument::class,
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class
-], version = 9, exportSchema = false)
+], version = 10, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -53,7 +53,7 @@ private object Database {
             .addMigrations(
                 object: Migration(6, 7) {
                     override fun migrate(database: SupportSQLiteDatabase) {
-                        database.execSQL("DELETE FROM ProductSafetyCard")
+                        database.execSQL("DELETE FROM ProductDocument")
                     }
                 },
                 object: Migration(7, 8) {
@@ -71,7 +71,22 @@ private object Database {
                             ADD COLUMN serverStock INTEGER NOT NULL DEFAULT 0
                         """)
                     }
-                }
+                },
+                object: Migration(9, 10) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.execSQL("""
+                                    DROP TABLE ProductSafetyCard
+                                """)
+                    database.execSQL("""
+                                    CREATE TABLE ProductDocument (
+                                        productId INTEGER NOT NULL,
+                                        url TEXT NOT NULL,
+                                        removed INTEGER,
+                                        PRIMARY KEY (productId, url)
+                                    )
+                                """)
+        }
+    }
             )
             .build()
 
@@ -537,6 +552,8 @@ private object LightsModelImpl: LightsModel() {
 fun getLightsModel(): LightsModel = LightsModelImpl
 
 private object MessagingModelImpl: MessagingModel() {
+    override val emptyVendingMachineMessageTemplate: String
+        get() = ""
 
     override val messagingService: GiptoolMessagingService
         get() = Services.messagingService

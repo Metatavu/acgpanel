@@ -94,17 +94,19 @@ abstract class LockModel {
         }
     }
 
-    fun openSpecificLock(shelf: Int, compartment: Int, reset: Boolean = false) {
+    fun openSpecificLock(shelf: Int, compartment: Int, reset: Boolean = false, reopen: Boolean = false) {
         if (lockOpenRequestListeners.size != 1) {
             throw IllegalStateException("Exactly one request listener must be present")
         }
         for (listener in lockOpenRequestListeners) {
             listener(LockOpenRequest(shelf, compartment, reset))
-            reOpenLock = Runnable {
-                listener(LockOpenRequest(shelf, compartment, true))
+            if (reopen) {
+                reOpenLock = Runnable {
+                    listener(LockOpenRequest(shelf, compartment, true))
+                    schedule(reOpenLock, 58_000)
+                }
                 schedule(reOpenLock, 58_000)
             }
-            schedule(reOpenLock, 58_000)
         }
     }
 

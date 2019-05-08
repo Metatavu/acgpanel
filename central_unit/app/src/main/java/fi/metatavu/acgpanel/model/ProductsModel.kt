@@ -29,10 +29,10 @@ data class Product(
     var serverStock: Int
 )
 
-@Entity(primaryKeys = ["productId", "safetyCard"])
-data class ProductSafetyCard(
+@Entity(primaryKeys = ["productId", "url"])
+data class ProductDocument(
     var productId: Long,
-    var safetyCard: String,
+    var url: String,
     var removed: Boolean
 )
 
@@ -104,17 +104,17 @@ interface ProductDao {
     @Query("DELETE FROM product")
     fun clearProducts()
 
-    @Query("UPDATE productsafetycard SET removed = 1")
-    fun markAllSafetyCardsRemoved()
+    @Query("UPDATE productdocument SET removed = 1")
+    fun markAllDocumentsRemoved()
 
-    @Query("SELECT * FROM productsafetycard WHERE removed=0 AND productId=:productId")
-    fun listSafetyCardsByProductId(productId: Long): List<ProductSafetyCard>
+    @Query("SELECT * FROM productdocument WHERE removed=0 AND productId=:productId")
+    fun listDocumentsByProductId(productId: Long): List<ProductDocument>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    fun insertAll(vararg safetyCards: ProductSafetyCard): List<Long>
+    fun insertAll(vararg documents: ProductDocument): List<Long>
 
     @Update(onConflict = OnConflictStrategy.IGNORE)
-    fun updateAll(vararg safetyCards: ProductSafetyCard)
+    fun updateAll(vararg documents: ProductDocument)
 
 }
 
@@ -230,7 +230,7 @@ abstract class ProductsModel {
                     for (fileName in safetyCardFiles) {
                         if (fileName != "") {
                             productDao.insertAll(
-                                ProductSafetyCard(
+                                ProductDocument(
                                     product.id!!,
                                     fileName,
                                     false
@@ -284,9 +284,9 @@ abstract class ProductsModel {
             if (productId != null) {
                 callback(
                     productDao
-                        .listSafetyCardsByProductId(productId)
+                        .listDocumentsByProductId(productId)
                         .map {
-                            it.safetyCard
+                            it.url
                         }
                 )
             }
