@@ -149,6 +149,7 @@ void timerInit(void) {
   SREG = sreg;
 }
 
+uint16_t pwmCurrent = 0;
 uint16_t pwmValue = 0;
 uint16_t pwmCounter = 0;
 
@@ -166,8 +167,14 @@ __attribute__((always_inline)) inline void pwmTick() {
   // use 499 to minimize its impact
   if (pwmCounter > 499) {
     pwmCounter = 0;
+	if (pwmCurrent < pwmValue) {
+		pwmCurrent += 5;
+	}
+	else if (pwmCurrent > pwmValue) {
+		pwmCurrent -= 5;
+	}
   }
-  if (pwmCounter < pwmValue) {
+  if (pwmCounter < pwmCurrent) {
     PORTC |= (1 << PC2) | (1 << PC3);
   } else {
     PORTC &= ~((1 << PC2) | (1 << PC3));
@@ -221,7 +228,7 @@ ISR(USART2_RX_vect) {
         if (input == 0) {
           pwmSetValue(0);
         } else {
-          pwmSetValue(401 + input);
+          pwmSetValue(input * 5);
         }
         break;
     }

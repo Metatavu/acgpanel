@@ -288,7 +288,7 @@ class McuCommunicationService : Service() {
                             if (resetResp !is ResetLockConfirmation) {
                                 Log.e(javaClass.name, "BoxDriver didn't respond to reset")
                             }
-                            Thread.sleep(50)
+                            Thread.sleep(100)
                         }
                         messageWriter.writeMessage(OpenLock(action.shelf, action.compartment))
                         var resp = messageReader.readMessage()

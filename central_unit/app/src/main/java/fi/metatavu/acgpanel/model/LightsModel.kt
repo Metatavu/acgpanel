@@ -2,7 +2,7 @@ package fi.metatavu.acgpanel.model
 
 data class LightsRequest(
     /**
-     * Intensity of the lights, between 0 and 32 (*inclusive*)
+     * Intensity of the lights, between 0 and 100 (*inclusive*)
      */
     val intensity: Int
 )
