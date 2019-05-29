@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package fi.metatavu.acgpanel.cotio
 
 import android.annotation.SuppressLint
@@ -11,7 +13,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.graphics.Color
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.*
@@ -21,7 +22,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
-import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -32,6 +32,7 @@ import fi.metatavu.acgpanel.support.ui.AppDrawerActivity
 import fi.metatavu.acgpanel.support.ui.LockedDownActivity
 import fi.metatavu.acgpanel.support.ui.showEditDialog
 import kotlinx.android.synthetic.main.activity_add_code.*
+import kotlinx.android.synthetic.main.activity_fill.*
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
 import java.util.*
@@ -302,7 +303,6 @@ class ReadCodeActivity : CotioActivity() {
             if (keyEvent.action == KeyEvent.ACTION_UP &&
                 keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
                 readCode(code_textbox.text.toString())
-                true
             }
             false
         }
@@ -454,6 +454,70 @@ class AddCodeActivity : Activity() {
                 add_code_input.text.clear()
             }
         }
+    }
+
+    fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {
+        finishAffinity()
+    }
+
+}
+
+class FillActivity : Activity() {
+
+    private lateinit var model: CotioModel
+
+    private val cotioApplication: CotioApplication
+        get() = application as CotioApplication
+
+    private val onLockClosed = {
+        fill_locker_info_text.text = ""
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_fill)
+        fill_locker_input.setOnKeyListener { v, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER
+                && event.action == KeyEvent.ACTION_UP) {
+                fillLocker(null)
+                true
+            } else {
+                false
+            }
+        }
+        model = cotioApplication.model
+    }
+
+    fun fillLocker(@Suppress("UNUSED_PARAMETER") view: View?) {
+        thread(start = true) {
+            val code = fill_locker_input.text.toString()
+            val result = model.addCode(code)
+            when (result) {
+                is CodeAddResult.Success -> {
+                    model.readCode(code)
+                    runOnUiThread {
+                        fill_locker_info_text.text = getString(R.string.locker_filled)
+                        fill_locker_input.text.clear()
+                    }
+                }
+                is CodeAddResult.InvalidCode -> {
+                    runOnUiThread {
+                        fill_locker_info_text.text = getString(R.string.locker_fill_error, result.error)
+                        fill_locker_input.text.clear()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        cotioApplication.addLockerClosedListener(onLockClosed)
+    }
+
+    override fun onStop() {
+        cotioApplication.removeLockerClosedListener(onLockClosed)
+        super.onStop()
     }
 
     fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {

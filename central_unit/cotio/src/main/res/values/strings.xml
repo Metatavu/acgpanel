@@ -18,7 +18,7 @@
     <string name="code_used_message">The code is already used.</string>
     <string name="invalid_code_message">The code is invalid.</string>
     <string name="titlescreen_title">You get it back!</string>
-    <string name="titlescreen_subtitle"></string>
+    <string name="titlescreen_subtitle" />
     <string name="input_code_help">Scan not working?</string>
     <string name="input_code">Input code</string>
     <string name="finished_message">Thank you!</string>
@@ -26,7 +26,15 @@
     <string name="code_prefix_http" translatable="false">http://www.cotios.com/</string>
     <string name="input_code_title">Please type the 8-digit code in the receipt</string>
     <string name="no_free_lockers_message">No free lockers.</string>
-    <string name="add_code">Add Code</string>
+    <string name="add_code">Add code</string>
     <string name="code_added">Code added</string>
     <string name="code_add_error">Error when adding code: %s</string>
+    <string name="pref_key_clear_code_after_use">clear_code_after_use</string>
+    <string name="locker_filled">Code added. Please put the item in the locker and close it.</string>
+    <string name="locker_fill_error">Error when filling locker: %s</string>
+    <string name="fill_locker_info_text">Fill locker</string>
+    <string name="pref_key_use_demo_codes">use_demo_codes</string>
+    <string name="pref_title_clear_code_after_use">Wipe codes after use</string>
+    <string name="pref_title_use_demo_codes">Use demo codes</string>
+    <string name="fill_locker">Fill locker</string>
 </resources>

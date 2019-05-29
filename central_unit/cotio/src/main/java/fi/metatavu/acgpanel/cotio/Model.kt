@@ -58,6 +58,9 @@ private interface CotioDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg lockerCodeState: LockerCodeState)
 
+    @Delete
+    fun deleteAll(vararg lockerCode: LockerCode)
+
     @Query("""SELECT locker.*
               FROM locker
               WHERE compartment || '/' || driver
@@ -131,11 +134,17 @@ private class Preferences(private val context: Context) {
             return drivers.mapIndexed { driver, compartments ->
                     Pair(driver + 1, compartments)
                 }.flatMap { pair ->
-                    pair.second.map { compartment ->
+                    pair.second!!.map { compartment ->
                         LockerCoordinates(pair.first, compartment.toInt())
                     }
                 }
         }
+
+    val clearCodeAfterUse: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_clear_code_after_use), false)
+
+    val useDemoCodes: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_use_demo_codes), false)
 }
 
 data class LockerOpenRequest(
@@ -161,7 +170,7 @@ sealed class CodeAddResult {
 
 class CotioModel(private val context: Context) {
 
-    private var lastCodeReadTime = Instant.MIN;
+    private var lastCodeReadTime = Instant.MIN
 
     private val db = Room.databaseBuilder(
             context,
@@ -216,27 +225,30 @@ class CotioModel(private val context: Context) {
             for ((driver, compartment) in preferences.enabledLockers) {
                 cotioDao.insertAll(Locker(driver, compartment))
             }
-            val now = Instant.now()
-            val lockerCodes = arrayOf(
-                LockerCode("0001", LockerCodeState.FREE, null, null, now),
-                LockerCode("0002", LockerCodeState.FREE, null, null, now),
-                LockerCode("0003", LockerCodeState.FREE, null, null, now),
-                LockerCode("0004", LockerCodeState.FREE, null, null, now),
-                LockerCode("0005", LockerCodeState.FREE, null, null, now),
-                LockerCode("0006", LockerCodeState.FREE, null, null, now),
-                LockerCode("0007", LockerCodeState.FREE, null, null, now),
-                LockerCode("A9EAE4WM", LockerCodeState.FREE, null, null, now))
-            cotioDao.insertAll(*lockerCodes)
-            cotioDao.updateAll(*lockerCodes)
+            if (preferences.useDemoCodes) {
+                val now = Instant.now()
+                val lockerCodes = arrayOf(
+                    LockerCode("0001", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0002", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0003", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0004", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0005", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0006", LockerCodeState.FREE, null, null, now),
+                    LockerCode("0007", LockerCodeState.FREE, null, null, now),
+                    LockerCode("A9EAE4WM", LockerCodeState.FREE, null, null, now)
+                )
+                cotioDao.insertAll(*lockerCodes)
+                cotioDao.updateAll(*lockerCodes)
+            }
         }
     }
 
     fun addCode(code: String): CodeAddResult {
         val now = Instant.now()
-        val code = LockerCode(code, LockerCodeState.FREE, null, null, now)
+        val lockerCode = LockerCode(code, LockerCodeState.FREE, null, null, now)
         try {
-            cotioDao.insertAll(code)
-            cotioDao.updateAll(code)
+            cotioDao.insertAll(lockerCode)
+            cotioDao.updateAll(lockerCode)
         } catch (ex: Exception) {
             return CodeAddResult.InvalidCode(ex.toString())
         }
@@ -280,20 +292,24 @@ class CotioModel(private val context: Context) {
                         CodeReadResult.CheckIn
                     }
                     LockerCodeState.ACTIVE -> {
-                        cotioDao.updateAll(
-                            LockerCode(
-                                code,
-                                LockerCodeState.USED,
-                                lockerCode.lockerDriver!!,
-                                lockerCode.lockerCompartment!!,
-                                lockerCode.created,
-                                lockerCode.checkedIn,
-                                Instant.now()
+                        if (preferences.clearCodeAfterUse) {
+                            cotioDao.deleteAll(lockerCode)
+                        } else {
+                            cotioDao.updateAll(
+                                LockerCode(
+                                    code,
+                                    LockerCodeState.USED,
+                                    lockerCode.lockerDriver!!,
+                                    lockerCode.lockerCompartment!!,
+                                    lockerCode.created,
+                                    lockerCode.checkedIn,
+                                    Instant.now()
+                                )
                             )
-                        )
+                        }
                         openLocker(
-                            lockerCode.lockerDriver,
-                            lockerCode.lockerCompartment
+                            lockerCode.lockerDriver!!,
+                            lockerCode.lockerCompartment!!
                         )
                         CodeReadResult.CheckOut
                     }

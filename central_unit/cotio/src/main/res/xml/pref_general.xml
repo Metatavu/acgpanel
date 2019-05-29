@@ -34,4 +34,15 @@
         android:defaultValue="@array/empty_array"
         />
 
+    <CheckBoxPreference
+        android:key="@string/pref_key_clear_code_after_use"
+        android:title="@string/pref_title_clear_code_after_use"
+        />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_use_demo_codes"
+        android:title="@string/pref_title_use_demo_codes"
+        />
+
+
 </PreferenceScreen>

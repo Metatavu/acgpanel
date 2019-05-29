@@ -18,7 +18,7 @@
     <string name="code_used_message">Koodi on jo käytetty.</string>
     <string name="invalid_code_message">Koodi ei ole kelvollinen.</string>
     <string name="titlescreen_title">You get it back!</string>
-    <string name="titlescreen_subtitle"></string>
+    <string name="titlescreen_subtitle" />
     <string name="input_code_help">Eikö koodin luku onnistu?</string>
     <string name="input_code">Näppäile koodi</string>
     <string name="finished_message">Kiitos!</string>
@@ -29,4 +29,12 @@
     <string name="add_code">Lisää koodeja</string>
     <string name="code_added">Koodi lisätty</string>
     <string name="code_add_error">Virhe koodia lisättäessä: %s</string>
+    <string name="pref_key_clear_code_after_use">clear_code_after_use</string>
+    <string name="locker_filled">Koodi lisätty. Ole hyvä ja täytä sekä sulje luukku.</string>
+    <string name="locker_fill_error">Virhe koodia lisättäessä: %s</string>
+    <string name="fill_locker_info_text">Täytä lokero</string>
+    <string name="pref_key_use_demo_codes">use_demo_codes</string>
+    <string name="pref_title_clear_code_after_use">Pyyhi koodit käytön jälkeen</string>
+    <string name="pref_title_use_demo_codes">Käytä demokoodeja</string>
+    <string name="fill_locker">Täytä luukku</string>
 </resources>
