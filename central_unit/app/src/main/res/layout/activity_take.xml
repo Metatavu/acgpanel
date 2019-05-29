@@ -8,12 +8,37 @@
     >
 
     <ImageView
-        android:layout_width="wrap_content"
+        android:id="@+id/product_image"
+        android:layout_width="300dp"
         android:layout_height="300dp"
         android:layout_gravity="center"
-        android:layout_marginBottom="160dp"
-        android:src="@drawable/door_open_icon"
-        android:contentDescription="" />
+        android:layout_marginBottom="180dp"
+        android:layout_marginRight="300dp"
+        android:src="@drawable/image_placeholder"
+        />
+
+    <TextView
+        android:id="@+id/product_name"
+        android:layout_width="600dp"
+        android:layout_height="60dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="280dp"
+        android:layout_marginLeft="200dp"
+        android:textSize="40dp"
+        android:text="Lorem ipsum dolor sit amet"
+        />
+
+    <TextView
+        android:id="@+id/product_details"
+        android:layout_width="600dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="140dp"
+        android:layout_marginLeft="200dp"
+        android:textSize="30dp"
+        android:text="Lorem ipsum dolor sit amet"
+        />
+
 
     <TextView
         android:layout_width="wrap_content"

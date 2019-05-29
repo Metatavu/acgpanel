@@ -32,6 +32,12 @@ data class LogInAttempt(
     var uploaded: Boolean
 )
 
+@Entity
+data class Expenditure(
+    @PrimaryKey var code: String,
+    var description: String
+)
+
 @Dao
 interface UserDao {
 
@@ -71,6 +77,20 @@ interface LogInAttemptDao {
 
 }
 
+@Dao
+interface ExpenditureDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun upsertAll(vararg expenditures: Expenditure)
+
+    @Query("SELECT * FROM expenditure")
+    fun listAll(): List<Expenditure>
+
+    @Query("DELETE FROM expenditure")
+    fun clearExpenditures()
+
+}
+
 class GiptoolUser {
     var id: Long? = null
     var name: String = ""
@@ -91,6 +111,15 @@ class GiptoolLogInAttempt {
     var successful: Boolean = false
 }
 
+class GiptoolExpenditure {
+    var code: String = ""
+    var name: String = ""
+}
+
+class GiptoolExpenditures {
+    var expenditures: MutableList<GiptoolExpenditure> = mutableListOf()
+}
+
 interface GiptoolUsersService {
     @GET("users/vendingMachine/{vendingMachineId}")
     fun listUsers(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolUsers>
@@ -99,6 +128,10 @@ interface GiptoolUsersService {
     fun sendLogInAttempt(@Body productTransaction: GiptoolLogInAttempt): Call<GiptoolLogInAttempt>
 }
 
+interface GiptoolExpendituresService {
+    @GET("expenditures/vendingMachine/{vendingMachineId}")
+    fun listExpenditures(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolExpenditures>
+}
 
 abstract class LoginModel {
 
@@ -111,7 +144,9 @@ abstract class LoginModel {
     protected abstract fun clearBasket()
     protected abstract val userDao: UserDao
     protected abstract val logInAttemptDao: LogInAttemptDao
+    protected abstract val expenditureDao: ExpenditureDao
     protected abstract val usersService: GiptoolUsersService
+    protected abstract val expendituresService: GiptoolExpendituresService
     protected abstract val demoMode: Boolean
     protected abstract val useWiegandProfile1: Boolean
     protected abstract val useWiegandProfile2: Boolean
@@ -119,6 +154,7 @@ abstract class LoginModel {
 
     abstract val vendingMachineId: String
     abstract var password: String
+    abstract val shouldPickUserExpenditure: Boolean
 
     private val logoutTimerCallback = Runnable {
         if (!isLocksOpen()) {
@@ -281,6 +317,10 @@ abstract class LoginModel {
         clearLocks()
     }
 
+    fun listExpenditures(): List<String> {
+        return expenditureDao.listAll().map {it.code ?: ""}
+    }
+
     protected open fun syncUsers() {
         if (demoMode) {
             userDao.clearUsers()
@@ -289,7 +329,7 @@ abstract class LoginModel {
                 User(
                     2,
                     "Teppo Testikäyttäjä",
-                    "4BA9ACED00000000",
+                    "4BA9ACED0000000",
                     "000",
                     "000",
                     false,
@@ -345,6 +385,29 @@ abstract class LoginModel {
                 } else {
                     Log.e(javaClass.name, "Error when uploading login attempt: ${res.message()}")
                 }
+            }
+        }
+    }
+
+    protected open fun syncExpenditures() {
+        if (demoMode) {
+            expenditureDao.upsertAll(
+                Expenditure("KP1", "Kustannuspaikka 1"),
+                Expenditure("KP2", "Kustannuspaikka 2"),
+                Expenditure("KP3", "Kustannuspaikka 3"),
+                Expenditure("KP4", "Kustannuspaikka 4")
+            )
+        } else {
+            val result = expendituresService
+                .listExpenditures(vendingMachineId)
+                .execute()
+            val body = result.body()
+            if (result.isSuccessful && body != null) {
+                val expenditures = body.expenditures.map {
+                    Expenditure(it.code, it.name)
+                }
+                expenditureDao.clearExpenditures()
+                expenditureDao.upsertAll(*expenditures.toTypedArray())
             }
         }
     }

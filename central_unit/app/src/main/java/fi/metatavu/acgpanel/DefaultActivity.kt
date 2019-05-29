@@ -23,6 +23,7 @@ import fi.metatavu.acgpanel.model.getNotificationModel
 import kotlinx.android.synthetic.main.activity_default.*
 import java.io.File
 import java.time.Duration
+import kotlin.concurrent.thread
 
 class DefaultActivity : PanelActivity(lockAtStart = false) {
 
@@ -128,7 +129,8 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             @Suppress("DEPRECATION")
             wakeLock = powerManager.newWakeLock(
                 PowerManager.FULL_WAKE_LOCK,
-                "fi.metatavu.acgpanel:wakeLock")
+                "fi.metatavu.acgpanel:wakeLock"
+            )
             wakeLock!!.acquire()
         }
         setupLogin()

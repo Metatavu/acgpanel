@@ -26,6 +26,17 @@ class TakeActivity : PanelActivity() {
     var handler = Handler(Looper.getMainLooper())
 
     val onLockOpenedListener = listener@{
+        try {
+            val basketItem = basketModel.basket.first {
+                it.product.line == lockModel.currentLine
+            }
+            product_name.text = basketItem.product.name
+            product_details.text = basketItem.product.description
+            drawProduct(basketItem.product, product_image)
+        } catch (ex: Exception) {
+            product_name.text = ""
+            product_details.text = ""
+        }
         status_text.text = getString(
             R.string.complete_by_closing_door,
             lockModel.currentLock,
@@ -38,7 +49,6 @@ class TakeActivity : PanelActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_take)
-        onLockOpenedListener()
     }
 
     override fun onStart() {
@@ -52,6 +62,7 @@ class TakeActivity : PanelActivity() {
         alarm_overlay_front.animation = blink
         alarm_overlay_front.visibility = View.GONE
         alarm_overlay_back.visibility = View.GONE
+        onLockOpenedListener()
     }
 
     override fun onResume() {

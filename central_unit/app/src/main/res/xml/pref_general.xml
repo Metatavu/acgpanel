@@ -56,6 +56,10 @@
         android:title="@string/pref_title_user_expenditure" />
 
     <CheckBoxPreference
+        android:key="@string/pref_key_pick_user_expenditure"
+        android:title="@string/pref_title_pick_user_expenditure" />
+
+    <CheckBoxPreference
         android:key="@string/pref_key_user_reference"
         android:title="@string/pref_title_user_reference" />
 

@@ -125,4 +125,6 @@
     <string name="pref_title_lights_low_intensity">Valojen lepokirkkaus (0-100)</string>
     <string name="pref_title_lights_high_intensity">Valojen aktiivinen kirkkaus (0-100)</string>
     <string name="pref_title_user_asset_url">Kuvien ja dokumenttien osoite</string>
+    <string name="pref_key_pick_user_expenditure">pick_user_expenditure</string>
+    <string name="pref_title_pick_user_expenditure">Valitse kustannuspaikka listalta</string>
 </resources>

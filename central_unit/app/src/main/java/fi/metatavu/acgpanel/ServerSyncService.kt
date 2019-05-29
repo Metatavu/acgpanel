@@ -1,12 +1,11 @@
 package fi.metatavu.acgpanel
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
+import android.app.*
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageInstaller
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.preference.PreferenceManager
@@ -16,10 +15,10 @@ import net.schmizz.sshj.SSHClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
+import java.io.IOException
+import java.io.InputStream
 import kotlin.concurrent.thread
+
 
 const val SERVER_SYNC_SERVICE_ID = 2
 const val SERVER_SYNC_INTERVAL_MINUTES = "2"
@@ -36,6 +35,36 @@ class ServerSyncService : Service() {
     private val preferences: SharedPreferences
         get() = PreferenceManager.getDefaultSharedPreferences(this)
 
+
+    private fun installPackage(packageName: String, packageData: InputStream) {
+        val name = ComponentName(getPackageName(), DeviceAdminReceiver::class.java!!.canonicalName)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            val packageInstaller = packageManager.packageInstaller
+            val params = PackageInstaller.SessionParams(
+                PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            )
+            params.setAppPackageName(packageName)
+            try {
+                val sessionId = packageInstaller.createSession(params)
+                val session = packageInstaller.openSession(sessionId)
+                val out = session.openWrite("$packageName.apk", 0, -1)
+                packageData.copyTo(out)
+                session.fsync(out)
+                out.close()
+                Log.d(javaClass.name, "installing package $packageName")
+                session.commit(
+                    PendingIntent.getBroadcast(
+                        this, sessionId,
+                        Intent("android.intent.action.MAIN"), 0
+                    ).intentSender
+                )
+                Log.d(javaClass.name, "install intent sent")
+            } catch (e: IOException) {
+                Log.e(javaClass.name, "Error when installing package", e)
+            }
+        }
+    }
+
     private fun process() {
         try {
             while (running) {
@@ -49,7 +78,6 @@ class ServerSyncService : Service() {
                 model.serverSync()
                 softwareUpdate(updateUrl)
                 Thread.sleep((syncInterval.toLongOrNull() ?: 10) * 60L * 1000L)
-                Thread.sleep(1000L)
             }
         } catch (ex: InterruptedException) {}
     }
@@ -104,18 +132,9 @@ class ServerSyncService : Service() {
                         .newCall(Request.Builder().url("$updateUrl/app.apk").build())
                         .execute()
                     if (fileResult.isSuccessful) {
-                        val path = File(filesDir, "app.apk").absolutePath
                         fileResult.body()!!.byteStream().use {
-                            Files.copy(it, Paths.get(path), StandardCopyOption.REPLACE_EXISTING)
+                            installPackage("fi.metatavu.acgpanel", it)
                         }
-                        Runtime.getRuntime()
-                            .exec(
-                                arrayOf(
-                                    "su",
-                                    "-c",
-                                    "pm install -r $path"
-                                )
-                            )
                     } else {
                         Log.e(
                             javaClass.name, "Couldn't download software update:" +

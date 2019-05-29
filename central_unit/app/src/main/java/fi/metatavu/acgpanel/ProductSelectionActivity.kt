@@ -14,6 +14,7 @@ import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import fi.metatavu.acgpanel.model.getProductsModel
 import kotlinx.android.synthetic.main.activity_product_selection.*
+import kotlin.concurrent.thread
 
 class ProductSelectionActivity : PanelActivity() {
 
@@ -135,8 +136,35 @@ class ProductSelectionActivity : PanelActivity() {
 
     fun inputExpenditure(@Suppress("UNUSED_PARAMETER") view: View) {
         if (!basketModel.lockUserExpenditure) {
-            showEditDialog(getString(R.string.input_expenditure)) {
-                expenditure_input.text = it
+            if (loginModel.shouldPickUserExpenditure) {
+                thread(start = true) {
+                    val items = loginModel.listExpenditures()
+                    var expenditure: String = items[0]
+                    runOnUiThread {
+                        if (items.isEmpty()) {
+                            showEditDialog(getString(R.string.input_expenditure)) {
+                                expenditure_input.text = it
+                            }
+                        } else {
+                            AlertDialog.Builder(this)
+                                .setSingleChoiceItems(items.toTypedArray(), 0) { _, i ->
+                                    expenditure = items[i]
+                                }
+                                .setPositiveButton(R.string.ok) { dialog, _ ->
+                                    expenditure_input.text = expenditure
+                                    dialog.dismiss()
+                                }
+                                .setNegativeButton(R.string.cancel) { dialog, _ ->
+                                    dialog.cancel()
+                                }
+                                .show()
+                        }
+                    }
+                }
+            } else {
+                showEditDialog(getString(R.string.input_expenditure)) {
+                    expenditure_input.text = it
+                }
             }
         }
     }
