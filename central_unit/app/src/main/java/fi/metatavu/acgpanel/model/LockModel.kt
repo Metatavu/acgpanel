@@ -21,6 +21,12 @@ interface CompartmentMappingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun mapCompartments(vararg compartmentMappings: CompartmentMapping)
 
+    @Query("SELECT * FROM compartmentmapping WHERE shelf=:shelf AND compartment=:compartment")
+    fun getCompartmentMappingsInverse(shelf: Int, compartment: Int): List<CompartmentMapping>
+
+    @Query("DELETE FROM compartmentmapping WHERE shelf=:shelf AND compartment=:compartment")
+    fun clearCompartmentMappings(shelf: Int, compartment: Int)
+
 }
 
 data class LockOpenRequest(
@@ -57,6 +63,9 @@ abstract class LockModel {
         get() = numInitialLinesToOpen - linesToOpen.size
     val numLocks
         get() = numInitialLinesToOpen
+    var currentLine: String? = null
+        get
+        private set
 
     var isCalibrationMode = false
 
@@ -123,6 +132,21 @@ abstract class LockModel {
         compartmentMappingDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
     }
 
+    fun calibrationAssignLines(lines: List<String>, shelf: Int, compartment: Int) {
+        compartmentMappingDao.clearCompartmentMappings(shelf, compartment)
+        for (line in lines) {
+            if (line == "") {
+                continue
+            }
+            compartmentMappingDao.mapCompartments(CompartmentMapping(line, shelf, compartment))
+        }
+    }
+
+    fun calibrationGetLineAssignments(shelf: Int, compartment: Int): List<String> =
+        compartmentMappingDao
+            .getCompartmentMappingsInverse(shelf, compartment)
+            .map { it.line }
+
     fun isLineCalibrated(line: String, callback: (Boolean) -> Unit) {
         thread(start = true) {
             callback(unsafeIsLineCalibrated(line))
@@ -185,6 +209,7 @@ abstract class LockModel {
             }
         } else {
             val line = linesToOpen.removeAt(0)
+            currentLine = line
             disableAllItemsInBasket()
             enableItemsInLine(line)
             unSchedule(lockOpenTimerCallback)

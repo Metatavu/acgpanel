@@ -29,8 +29,9 @@ import kotlin.concurrent.thread
     ProductDocument::class,
     LogInAttempt::class,
     SystemProperties::class,
-    CompartmentMapping::class
-], version = 10, exportSchema = false)
+    CompartmentMapping::class,
+    Expenditure::class
+], version = 11, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -38,6 +39,7 @@ private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun logInAttemptDao(): LogInAttemptDao
     abstract fun systemPropertiesDao(): SystemPropertiesDao
     abstract fun compartmentMappingDao(): CompartmentMappingDao
+    abstract fun expenditureDao(): ExpenditureDao
 }
 
 private const val DATABASE_NAME = "acgpanel.db"
@@ -73,20 +75,32 @@ private object Database {
                     }
                 },
                 object: Migration(9, 10) {
-                override fun migrate(database: SupportSQLiteDatabase) {
-                    database.execSQL("""
-                                    DROP TABLE ProductSafetyCard
-                                """)
-                    database.execSQL("""
-                                    CREATE TABLE ProductDocument (
-                                        productId INTEGER NOT NULL,
-                                        url TEXT NOT NULL,
-                                        removed INTEGER,
-                                        PRIMARY KEY (productId, url)
-                                    )
-                                """)
-        }
-    }
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            DROP TABLE ProductSafetyCard
+                        """)
+                        database.execSQL("""
+                            CREATE TABLE ProductDocument (
+                                productId INTEGER NOT NULL,
+                                url TEXT NOT NULL,
+                                removed INTEGER NOT NULL,
+                                PRIMARY KEY (productId, url)
+                            )
+                        """)
+                    }
+                },
+                object: Migration(10, 11) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `Expenditure` (
+                                `code` TEXT NOT NULL,
+                                `description` TEXT NOT NULL,
+                                PRIMARY KEY(`code`)
+                            )
+                            """
+                        )
+                    }
+                }
             )
             .build()
 
@@ -107,6 +121,9 @@ private object Database {
 
     val compartmentMappingDao: CompartmentMappingDao
         get() = db.compartmentMappingDao()
+
+    val expenditureDao: ExpenditureDao
+        get() = db.expenditureDao()
 
     fun transaction(tx: () -> Unit) {
         db.runInTransaction(tx)
@@ -156,6 +173,9 @@ private object Services {
     val messagingService: GiptoolMessagingService =
         makeRetrofitService(GiptoolMessagingService::class.java)
 
+    val expendituresService: GiptoolExpendituresService =
+        makeRetrofitService(GiptoolExpendituresService::class.java)
+
 }
 
 private object Preferences {
@@ -191,6 +211,9 @@ private object Preferences {
 
     val lockUserExpenditure: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_expenditure), false)
+        
+    val pickUserExpenditure: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_pick_user_expenditure), false)
 
     val lockUserReference: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_reference), false)
@@ -370,6 +393,15 @@ private object LockModelImpl: LockModel() {
 fun getLockModel(): LockModel = LockModelImpl
 
 private object LoginModelImpl: LoginModel() {
+    override val expenditureDao: ExpenditureDao
+        get() = Database.expenditureDao
+
+    override val expendituresService: GiptoolExpendituresService
+        get() = Services.expendituresService
+
+    override val shouldPickUserExpenditure: Boolean
+        get() = Preferences.pickUserExpenditure
+
     override val userDao: UserDao
         get() = Database.userDao
 
@@ -429,6 +461,10 @@ private object LoginModelImpl: LoginModel() {
 
     public override fun syncLogInAttempts() {
         super.syncLogInAttempts()
+    }
+
+    public override fun syncExpenditures() {
+        super.syncExpenditures()
     }
 
 }
@@ -493,6 +529,7 @@ private object ServerSyncModelImpl: ServerSyncModel() {
             ProductsModelImpl.syncProducts()
             BasketModelImpl.syncProductTransactions()
             LoginModelImpl.syncLogInAttempts()
+            LoginModelImpl.syncExpenditures()
         } catch (ex: IOException) {
             Log.d(javaClass.name, "IOException: $ex")
             // device offline, do nothing

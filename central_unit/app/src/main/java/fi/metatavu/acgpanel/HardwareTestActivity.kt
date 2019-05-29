@@ -2,8 +2,13 @@ package fi.metatavu.acgpanel
 
 import android.app.Activity
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.EditText
 import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getServerSyncModel
 import kotlinx.android.synthetic.main.activity_hardware_test.*
@@ -14,11 +19,76 @@ class HardwareTestActivity : Activity() {
     private val lockModel = getLockModel()
     private val serverSyncModel = getServerSyncModel()
     private var lockerOpenerThread: Thread? = null
+    private var shelfNumber: Int? = null
+    private val lineListeners = mutableMapOf<Int, TextWatcher>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hardware_test)
-        shelf_input.transformationMethod = null
+        ArrayAdapter.createFromResource(
+            this,
+            R.array.shelves_array,
+            R.layout.spinner_item
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            shelf_input.adapter = adapter
+        }
+        shelf_input.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                shelfNumber = null
+            }
+
+            override fun onItemSelected(
+                    parent: AdapterView<*>,
+                    view: View?,
+                    pos: Int,
+                    id: Long) {
+                shelfNumber = (parent.getItemAtPosition(pos) as String).toIntOrNull()
+                assignLineInputs()
+            }
+        }
+        assignLineInputs()
+    }
+
+    private fun assignLineInputs() {
+        for (i in 1..12) {
+            val lineInput = root.findViewWithTag<EditText>("line-$i")
+            if (lineListeners.containsKey(i)) {
+                lineInput.removeTextChangedListener(lineListeners[i])
+            }
+        }
+        lineListeners.clear()
+        for (i in 1..12) {
+            val shelf = shelfNumber ?: 1
+            val lineInput = root.findViewWithTag<EditText>("line-$i")
+            var enabled = false
+            thread(start = true) {
+                val lines = lockModel.calibrationGetLineAssignments(shelf, i).joinToString(",")
+                runOnUiThread {
+                    lineInput.text.clear()
+                    lineInput.text.insert(0, lines)
+                    enabled = true
+                }
+            }
+            val listener = object : TextWatcher {
+                override fun onTextChanged(text: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                    if (!enabled) {
+                        return
+                    }
+                    thread(start = true) {
+                        lockModel.calibrationAssignLines(text.toString().split(","), shelf, i)
+                    }
+                }
+
+                override fun afterTextChanged(p0: Editable?) {
+                }
+
+                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                }
+            }
+            lineListeners[i] = listener
+            lineInput.addTextChangedListener(listener)
+        }
     }
 
     override fun onResume() {
@@ -33,7 +103,7 @@ class HardwareTestActivity : Activity() {
     }
 
     fun programShelf(@Suppress("UNUSED_PARAMETER") view: View?) {
-        val shelf = shelf_input.text.toString().toIntOrNull()
+        val shelf = shelfNumber
         if (shelf == null) {
             message.text = getString(R.string.test_invalid_shelf_id)
             return
@@ -42,8 +112,8 @@ class HardwareTestActivity : Activity() {
     }
 
     fun openSingleLocker(view: View) {
+        val shelf = shelfNumber
         val compartment = (view.tag as String).toInt()
-        val shelf = shelf_input.text.toString().toIntOrNull()
         if (shelf == null) {
             message.text = getString(R.string.test_invalid_shelf_id)
             return
@@ -73,7 +143,7 @@ class HardwareTestActivity : Activity() {
         }
         lockerOpenerThread = thread(start = true) {
             try {
-                val shelf = shelf_input.text.toString().toIntOrNull()
+                val shelf = shelfNumber
                 if (shelf == null) {
                     message.text = getString(R.string.test_invalid_shelf_id)
                     return@thread
@@ -106,7 +176,7 @@ class HardwareTestActivity : Activity() {
                 )
             }
             lockModel.openSpecificLock(shelf, compartment, reset = true)
-            Thread.sleep(4000)
+            Thread.sleep(6000)
         }
     }
 
