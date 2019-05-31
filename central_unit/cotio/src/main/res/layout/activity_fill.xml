@@ -17,6 +17,16 @@
         android:background="@android:color/transparent"
         />
 
+    <TextView
+        android:id="@+id/fill_locker_info_text"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginTop="120dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:textSize="50sp"
+        android:text="@string/info_text_fill"
+        />
 
     <EditText
         android:id="@+id/fill_locker_input"
@@ -24,6 +34,7 @@
         android:layout_width="600dp"
         android:layout_height="100dp"
         android:layout_gravity="center"
+        android:layout_marginTop="120dp"
         android:textSize="50sp"
         android:singleLine="true"
         android:maxLines="1"
@@ -33,24 +44,10 @@
         android:onClick="fillLocker"
         android:layout_width="wrap_content"
         android:layout_height="100dp"
-        android:layout_marginTop="120dp"
+        android:layout_marginTop="220dp"
         android:layout_gravity="center"
         android:text="@string/fill_locker_info_text"
         android:textSize="50sp"
         />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_marginTop="240dp"
-        android:layout_gravity="center"
-        >
-        <TextView
-            android:id="@+id/fill_locker_info_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="50sp"
-            />
-    </ScrollView>
 
 </FrameLayout>

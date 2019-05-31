@@ -9,13 +9,15 @@ import android.view.View
 import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 import java.time.Duration
 
-abstract class LockedDownActivity(private val lockAtStart: Boolean = true)
+abstract class LockedDownActivity(
+            private val lockAtStart: Boolean = true,
+            numTaps: Int = 10)
         : Activity(){
 
     private val activityManager: ActivityManager
         get() = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
-    private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
+    private val unlockTickCounter = TimedTickCounter(numTaps, Duration.ofSeconds(1)) {
         val dialog = UnlockDialog(this, maintenancePasscode)
         dialog.setFinishListener {
             @Suppress("DEPRECATION")

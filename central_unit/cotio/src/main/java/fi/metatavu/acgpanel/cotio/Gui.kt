@@ -13,17 +13,23 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.*
 import android.preference.PreferenceActivity
 import android.preference.PreferenceFragment
+import android.support.v7.recyclerview.extensions.ListAdapter
+import android.support.v7.util.DiffUtil
+import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.Toast
 import com.zeugmasolutions.localehelper.LocaleHelperActivityDelegateImpl
 import com.zeugmasolutions.localehelper.LocaleHelperApplicationDelegate
@@ -33,6 +39,7 @@ import fi.metatavu.acgpanel.support.ui.LockedDownActivity
 import fi.metatavu.acgpanel.support.ui.showEditDialog
 import kotlinx.android.synthetic.main.activity_add_code.*
 import kotlinx.android.synthetic.main.activity_fill.*
+import kotlinx.android.synthetic.main.activity_open_lockers.*
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
 import java.util.*
@@ -191,7 +198,7 @@ class CotioApplication: Application() {
 
 }
 
-abstract class CotioActivity : LockedDownActivity() {
+abstract class CotioActivity : LockedDownActivity(numTaps = 3) {
     private val localeDelegate = LocaleHelperActivityDelegateImpl()
 
     override fun attachBaseContext(newBase: Context) {
@@ -470,7 +477,7 @@ class FillActivity : Activity() {
         get() = application as CotioApplication
 
     private val onLockClosed = {
-        fill_locker_info_text.text = ""
+        fill_locker_info_text.text = getString(R.string.info_text_fill)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -518,6 +525,91 @@ class FillActivity : Activity() {
     override fun onStop() {
         cotioApplication.removeLockerClosedListener(onLockClosed)
         super.onStop()
+    }
+
+    fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {
+        finishAffinity()
+    }
+
+}
+
+private data class OpenLockerButtonModel(
+    val driver: Int,
+    val compartment: Int,
+    val onClick: () -> Unit
+)
+
+private fun openLockerButtonView(context: Context): View {
+    val dp = Resources.getSystem().displayMetrics.density
+    val result = Button(context)
+    result.layoutParams = RecyclerView.LayoutParams(
+        (200*dp).toInt(),
+        (100*dp).toInt()
+    )
+    result.textSize = 30*dp
+    return result
+}
+
+private class OpenLockerButtonViewHolder(val context: Context):
+        RecyclerView.ViewHolder(openLockerButtonView(context)) {
+
+    @SuppressLint("SetTextI18n")
+    fun populate(model: OpenLockerButtonModel) {
+        with (itemView as Button) {
+            text = "${model.driver}:${model.compartment}"
+            setOnClickListener {
+                model.onClick()
+            }
+        }
+    }
+
+}
+
+private class OpenLockerButtonCallback: DiffUtil.ItemCallback<OpenLockerButtonModel>() {
+    override fun areItemsTheSame(a: OpenLockerButtonModel, b: OpenLockerButtonModel): Boolean =
+        a == b
+
+    override fun areContentsTheSame(a: OpenLockerButtonModel, b: OpenLockerButtonModel): Boolean =
+        a == b
+}
+
+class OpenLockersActivity: Activity() {
+
+    private lateinit var model: CotioModel
+
+    private val cotioApplication: CotioApplication
+        get() = application as CotioApplication
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_open_lockers)
+        model = cotioApplication.model
+        val adapter = object:
+            ListAdapter<OpenLockerButtonModel, OpenLockerButtonViewHolder>(
+                    OpenLockerButtonCallback()) {
+            override fun onCreateViewHolder(parent: ViewGroup, index: Int): OpenLockerButtonViewHolder {
+                return OpenLockerButtonViewHolder(parent.context)
+            }
+            override fun onBindViewHolder(holder: OpenLockerButtonViewHolder, index: Int) {
+                holder.populate(getItem(index))
+            }
+        }
+        open_lockers_buttons_grid.adapter = adapter
+        val lockerButtonModels = model.enabledLockers
+            .sortedBy {it.compartment}
+            .sortedBy {it.driver}
+            .map { locker ->
+                OpenLockerButtonModel(locker.driver, locker.compartment) {
+                    if (open_lockers_remove_reservation.isChecked) {
+                        thread(start = true) {
+                            model.clearLocker(locker.driver, locker.compartment)
+                        }
+                    }
+                    model.openLocker(locker.driver, locker.compartment)
+                    open_lockers_remove_reservation.isChecked = false
+                }
+            }
+        adapter.submitList(lockerButtonModels)
     }
 
     fun goBack(@Suppress("UNUSED_PARAMETER") view: View) {

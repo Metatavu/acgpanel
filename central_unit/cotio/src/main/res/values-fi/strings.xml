@@ -26,7 +26,7 @@
     <!-- code_prefix_http -->
     <string name="input_code_title">Näppäile 8-merkkinen koodi kuitistasi</string>
     <string name="no_free_lockers_message">Ei vapaita lokeroita.</string>
-    <string name="add_code">Lisää koodeja</string>
+    <string name="add_code">TESTAUS: Lisää koodeja</string>
     <string name="code_added">Koodi lisätty</string>
     <string name="code_add_error">Virhe koodia lisättäessä: %s</string>
     <string name="pref_key_clear_code_after_use">clear_code_after_use</string>
@@ -36,5 +36,9 @@
     <string name="pref_key_use_demo_codes">use_demo_codes</string>
     <string name="pref_title_clear_code_after_use">Pyyhi koodit käytön jälkeen</string>
     <string name="pref_title_use_demo_codes">Käytä demokoodeja</string>
-    <string name="fill_locker">Täytä luukku</string>
+    <string name="fill_locker">Täytä lokero</string>
+    <string name="info_text_fill">Ole hyvä ja näytä QR-koodi laitteen alaosassa olevalle koodinlukijalle, tai syötä koodi alla olevaan kenttään.</string>
+    <string name="open_lockers_activity_name">Lokeroiden avaus</string>
+    <string name="remove_reservation">Poista varaus (käytä varoen!)</string>
+    <string name="open_locker_with_button">Avaa luukku painamalla nappia.</string>
 </resources>

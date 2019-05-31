@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import java.time.Instant
+import kotlin.concurrent.thread
 
 @Entity(primaryKeys = ["driver", "compartment"])
 private data class Locker(
@@ -58,9 +59,6 @@ private interface CotioDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg lockerCodeState: LockerCodeState)
 
-    @Delete
-    fun deleteAll(vararg lockerCode: LockerCode)
-
     @Query("""SELECT locker.*
               FROM locker
               WHERE compartment || '/' || driver
@@ -86,6 +84,18 @@ private interface CotioDao {
     @Update(onConflict = OnConflictStrategy.IGNORE)
     fun updateAll(vararg lockerCodeState: LockerCodeState)
 
+    @Delete
+    fun deleteAll(vararg lockerCode: LockerCode)
+
+    @Delete
+    fun deleteAll(vararg locker: Locker)
+
+    @Query("""DELETE FROM lockerCode
+              WHERE lockerDriver = :driver
+                AND lockerCompartment = :compartment
+                AND state = 'ACTIVE'""")
+    fun clearLocker(driver: Int, compartment: Int)
+
 }
 
 class Converters {
@@ -108,7 +118,7 @@ private abstract class CotioDatabase: RoomDatabase() {
     abstract fun cotioDao(): CotioDao
 }
 
-private data class LockerCoordinates(
+data class LockerCoordinates(
     val driver: Int,
     val compartment: Int
 )
@@ -190,10 +200,12 @@ class CotioModel(private val context: Context) {
 
     private val lockOpenRequestListeners: MutableList<(LockerOpenRequest) -> Unit> = mutableListOf()
 
+    @Suppress("unused")
     fun addLockOpenedListener(listener: () -> Unit) {
         lockOpenedListeners.add(listener)
     }
 
+    @Suppress("unused")
     fun removeLockOpenedListener(listener: () -> Unit) {
         lockOpenedListeners.remove(listener)
     }
@@ -202,11 +214,12 @@ class CotioModel(private val context: Context) {
         lockOpenRequestListeners.add(listener)
     }
 
+    @Suppress("unused")
     fun removeLockOpenRequestListener(listener: (LockerOpenRequest) -> Unit) {
         lockOpenRequestListeners.remove(listener)
     }
 
-    private fun openLocker(driver: Int, compartment: Int, reset: Boolean = false) {
+    fun openLocker(driver: Int, compartment: Int, reset: Boolean = false) {
         if (lockOpenRequestListeners.size != 1) {
             throw IllegalStateException("Exactly one request listener must be present")
         }
@@ -222,8 +235,15 @@ class CotioModel(private val context: Context) {
                 LockerCodeState(LockerCodeState.ACTIVE),
                 LockerCodeState(LockerCodeState.USED)
             )
-            for ((driver, compartment) in preferences.enabledLockers) {
-                cotioDao.insertAll(Locker(driver, compartment))
+            val lockers = preferences.enabledLockers
+            for (driver in 1..4) {
+                for (compartment in 1..12) {
+                    if (lockers.contains(LockerCoordinates(driver, compartment))) {
+                        cotioDao.insertAll(Locker(driver, compartment))
+                    } else {
+                        cotioDao.deleteAll(Locker(driver, compartment))
+                    }
+                }
             }
             if (preferences.useDemoCodes) {
                 val now = Instant.now()
@@ -243,6 +263,9 @@ class CotioModel(private val context: Context) {
         }
     }
 
+    val enabledLockers: List<LockerCoordinates>
+        get() = preferences.enabledLockers
+
     fun addCode(code: String): CodeAddResult {
         val now = Instant.now()
         val lockerCode = LockerCode(code, LockerCodeState.FREE, null, null, now)
@@ -253,6 +276,10 @@ class CotioModel(private val context: Context) {
             return CodeAddResult.InvalidCode(ex.toString())
         }
         return CodeAddResult.Success
+    }
+
+    fun clearLocker(driver: Int, compartment: Int) {
+        cotioDao.clearLocker(driver, compartment)
     }
 
     fun readCode(rawCode: String): CodeReadResult {

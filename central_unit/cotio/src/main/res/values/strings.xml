@@ -37,4 +37,8 @@
     <string name="pref_title_clear_code_after_use">Wipe codes after use</string>
     <string name="pref_title_use_demo_codes">Use demo codes</string>
     <string name="fill_locker">Fill locker</string>
+    <string name="info_text_fill">Please show the QR code to the code reader.</string>
+    <string name="open_lockers_activity_name">Open lockers</string>
+    <string name="remove_reservation">Remove reservation (use with caution!)</string>
+    <string name="open_locker_with_button">Open locker with button</string>
 </resources>
