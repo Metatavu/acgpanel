@@ -121,6 +121,8 @@ class ProductSelectionActivity : PanelActivity() {
         if (!loginModel.loggedIn) {
             ok_button.isEnabled = false
         }
+        return_button.visibility = View.GONE
+        borrow_button.visibility = View.GONE
     }
 
     override fun onDestroy() {

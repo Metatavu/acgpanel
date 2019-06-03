@@ -83,7 +83,7 @@
     <string name="pref_key_user_asset_url">user_asset_url</string>
     <string name="pref_key_developer_mode">developer_mode</string>
     <string name="pref_title_developer_mode">Kehittäjätila</string>
-    <string name="safety_card_placeholder">...</string>
+    <string name="safety_card_placeholder" tools:ignore="TypographyEllipsis">...</string>
     <string name="pref_key_carousel_slide_interval">carousel_slide_interval</string>
     <string name="pref_title_carousel_slide_interval">Sisällön vaihtoväli aloitusnäytössä</string>
     <string name="pref_key_wiegand_profile_1">use_wiegand</string>
@@ -122,9 +122,11 @@
     <string name="pref_key_lights_low_intensity">lights_low_intensity</string>
     <string name="pref_key_lights_high_intensity">lights_high_intensity</string>
     <string name="pref_title_lights_timeout_in_s">Valojen sammumisaika (s)</string>
-    <string name="pref_title_lights_low_intensity">Valojen lepokirkkaus (0-100)</string>
-    <string name="pref_title_lights_high_intensity">Valojen aktiivinen kirkkaus (0-100)</string>
+    <string name="pref_title_lights_low_intensity">Valojen lepokirkkaus (0–100)</string>
+    <string name="pref_title_lights_high_intensity">Valojen aktiivinen kirkkaus (0–100)</string>
     <string name="pref_title_user_asset_url">Kuvien ja dokumenttien osoite</string>
     <string name="pref_key_pick_user_expenditure">pick_user_expenditure</string>
     <string name="pref_title_pick_user_expenditure">Valitse kustannuspaikka listalta</string>
+    <string name="product_selection_borrow">Lainaa</string>
+    <string name="product_selection_return">Palauta</string>
 </resources>

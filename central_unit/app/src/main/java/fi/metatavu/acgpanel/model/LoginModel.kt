@@ -1,3 +1,5 @@
+@file:Suppress("EXPERIMENTAL_API_USAGE", "EXPERIMENTAL_UNSIGNED_LITERALS")
+
 package fi.metatavu.acgpanel.model
 
 import android.arch.persistence.room.*
@@ -7,6 +9,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import java.lang.IllegalStateException
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -38,26 +41,57 @@ data class Expenditure(
     var description: String
 )
 
+@Entity(
+    primaryKeys = ["userId", "customerCode"],
+    foreignKeys = [
+        ForeignKey(
+            entity = User::class,
+            childColumns = ["userId"],
+            parentColumns = ["id"]
+        )
+    ]
+)
+data class UserCustomer(
+    var userId: Long,
+    var customerCode: String
+)
+
+@Entity(
+    primaryKeys = ["code", "customerCode"]
+)
+data class CustomerExpenditure(
+    var code: String,
+    var customerCode: String,
+    var description: String
+)
+
 @Dao
 interface UserDao {
-
-    @Query("UPDATE user SET removed = 1")
-    fun markAllRemoved()
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertAll(vararg users: User): List<Long>
 
-    @Update(onConflict = OnConflictStrategy.IGNORE)
-    fun updateAll(vararg users: User)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAll(vararg userCustomers: UserCustomer): List<Long>
 
     @Query("SELECT * FROM user WHERE removed = 0 AND cardCode IN (:cardCodes)")
     fun findUserByCardCode(cardCodes: List<String>): User?
 
+    @Query("SELECT * FROM user WHERE id = :id")
+    fun findUserById(id: Long?): User?
+
+    @Query("SELECT DISTINCT customerCode FROM userCustomer")
+    fun listCustomerCodes(): List<String>
+
+    @Query("UPDATE user SET removed = 1")
+    fun markAllRemoved()
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg users: User)
+
     @Query("DELETE FROM user")
     fun clearUsers()
 
-    @Query("SELECT * FROM user WHERE id = :id")
-    fun findUserById(id: Long?): User?
 }
 
 @Dao
@@ -80,11 +114,28 @@ interface LogInAttemptDao {
 @Dao
 interface ExpenditureDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun upsertAll(vararg expenditures: Expenditure)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAll(vararg expenditures: Expenditure)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAll(vararg customerExpenditures: CustomerExpenditure)
 
     @Query("SELECT * FROM expenditure")
     fun listAll(): List<Expenditure>
+
+    @Query("""SELECT DISTINCT CustomerExpenditure.*
+              FROM CustomerExpenditure
+              INNER JOIN UserCustomer
+                  ON UserCustomer.customerCode = CustomerExpenditure.customerCode
+              WHERE UserCustomer.userId = :userId""")
+    fun listUserExpenditures(userId: Long): List<CustomerExpenditure>
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg expenditures: Expenditure)
+
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    fun updateAll(vararg customerExpenditures: CustomerExpenditure)
+
 
     @Query("DELETE FROM expenditure")
     fun clearExpenditures()
@@ -98,6 +149,7 @@ class GiptoolUser {
     var expenditure: String? = null
     var reference: String? = null
     var canShelve: Boolean? = null
+    var customerCodes: List<String> = listOf()
 }
 
 class GiptoolUsers {
@@ -131,6 +183,9 @@ interface GiptoolUsersService {
 interface GiptoolExpendituresService {
     @GET("expenditures/vendingMachine/{vendingMachineId}")
     fun listExpenditures(@Path("vendingMachineId") vendingMachineId: String): Call<GiptoolExpenditures>
+
+    @GET("expenditures/customer/{customerId}")
+    fun listUserExpenditures(@Path("customerId") customerId: String): Call<GiptoolExpenditures>
 }
 
 abstract class LoginModel {
@@ -223,7 +278,7 @@ abstract class LoginModel {
                 .padEnd(CODE_LENGTH, '0'))
         } else if (useWiegandProfile2) {
             var binary = cardCode.padEnd(35, '0').toULong(2)
-            binary = binary xor 0x400000000UL;
+            binary = binary xor 0x400000000UL
             val hex = binary
                 .toString(16)
                 .toUpperCase()
@@ -237,7 +292,7 @@ abstract class LoginModel {
         } else {
             convertedCodes = listOf(cardCode.take(CODE_LENGTH))
         }
-        Log.d(javaClass.name, "Converted codes: $convertedCodes");
+        Log.d(javaClass.name, "Converted codes: $convertedCodes")
         refresh()
         thread(start = true) {
             val user = userDao.findUserByCardCode(convertedCodes)
@@ -318,7 +373,17 @@ abstract class LoginModel {
     }
 
     fun listExpenditures(): List<String> {
-        return expenditureDao.listAll().map {it.code ?: ""}
+        val user = currentUser
+        return if (user != null) {
+            val expenditures = expenditureDao.listUserExpenditures(user.id ?: -1)
+            if (expenditures.isEmpty()) {
+                expenditureDao.listAll().map { it.code }
+            } else {
+                expenditures.map { it.code }
+            }
+        } else {
+            expenditureDao.listAll().map { it.code }
+        }
     }
 
     protected open fun syncUsers() {
@@ -332,8 +397,8 @@ abstract class LoginModel {
                     "4BA9ACED0000000",
                     "000",
                     "000",
-                    false,
-                    false
+                    canShelve = false,
+                    removed = false
                 )
             )
         } else {
@@ -342,7 +407,8 @@ abstract class LoginModel {
                 .execute()
             val body = result.body()
             if (result.isSuccessful && body != null) {
-                val users = body.users.map {
+                val giptoolUsers = body.users
+                val users = giptoolUsers.map {
                     User(
                         it.id,
                         it.name.trim(),
@@ -359,6 +425,15 @@ abstract class LoginModel {
                     userDao.markAllRemoved()
                     userDao.insertAll(*users)
                     userDao.updateAll(*users)
+                    for (giptoolUser in giptoolUsers) {
+                        for (code in giptoolUser.customerCodes.filter{it.isBlank()}) {
+                            userDao.insertAll(
+                                UserCustomer(
+                                    giptoolUser.id
+                                        ?: throw IllegalStateException("Giptool user with no id"),
+                                    code))
+                        }
+                    }
                 }
             } else {
                 Log.e(javaClass.name, "Couldn't sync users: ${result.errorBody()}")
@@ -391,23 +466,41 @@ abstract class LoginModel {
 
     protected open fun syncExpenditures() {
         if (demoMode) {
-            expenditureDao.upsertAll(
+            expenditureDao.insertAll(
                 Expenditure("KP1", "Kustannuspaikka 1"),
                 Expenditure("KP2", "Kustannuspaikka 2"),
                 Expenditure("KP3", "Kustannuspaikka 3"),
                 Expenditure("KP4", "Kustannuspaikka 4")
             )
         } else {
-            val result = expendituresService
-                .listExpenditures(vendingMachineId)
-                .execute()
-            val body = result.body()
-            if (result.isSuccessful && body != null) {
-                val expenditures = body.expenditures.map {
-                    Expenditure(it.code, it.name)
+            transaction {
+                val expendituresResult = expendituresService
+                    .listExpenditures(vendingMachineId)
+                    .execute()
+                val expendituresBody = expendituresResult.body()
+                if (expendituresResult.isSuccessful && expendituresBody != null) {
+                    val expenditures = expendituresBody.expenditures.map {
+                        Expenditure(it.code, it.name)
+                    }
+                    expenditureDao.clearExpenditures()
+                    expenditureDao.insertAll(*expenditures.toTypedArray())
+                    expenditureDao.updateAll(*expenditures.toTypedArray())
                 }
-                expenditureDao.clearExpenditures()
-                expenditureDao.upsertAll(*expenditures.toTypedArray())
+                for (customerCode in userDao.listCustomerCodes()) {
+                    val customerExpendituresResult = expendituresService
+                        .listUserExpenditures(customerCode)
+                        .execute()
+                    val customerExpendituresBody = customerExpendituresResult.body()
+                    if (customerExpendituresResult.isSuccessful &&
+                        customerExpendituresBody != null
+                    ) {
+                        val customerExpenditures = customerExpendituresBody.expenditures.map {
+                            CustomerExpenditure(it.code, customerCode, it.name)
+                        }.toTypedArray()
+                        expenditureDao.insertAll(*customerExpenditures)
+                        expenditureDao.updateAll(*customerExpenditures)
+                    }
+                }
             }
         }
     }

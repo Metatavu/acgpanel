@@ -30,8 +30,10 @@ import kotlin.concurrent.thread
     LogInAttempt::class,
     SystemProperties::class,
     CompartmentMapping::class,
-    Expenditure::class
-], version = 11, exportSchema = false)
+    Expenditure::class,
+    UserCustomer::class,
+    CustomerExpenditure::class
+], version = 12, exportSchema = false)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -96,6 +98,29 @@ private object Database {
                                 `code` TEXT NOT NULL,
                                 `description` TEXT NOT NULL,
                                 PRIMARY KEY(`code`)
+                            )
+                            """
+                        )
+                    }
+                },
+                object: Migration(11, 12) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `UserCustomer` (
+                                `userId` INTEGER NOT NULL,
+                                `customerCode` TEXT NOT NULL,
+                                PRIMARY KEY(`userId`, `customerCode`),
+                                FOREIGN KEY(`userId`) REFERENCES `User`(`id`)
+                                ON UPDATE NO ACTION ON DELETE NO ACTION
+                            )
+                            """
+                        )
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `CustomerExpenditure` (
+                                `code` TEXT NOT NULL,
+                                `customerCode` TEXT NOT NULL,
+                                 `description` TEXT NOT NULL,
+                                 PRIMARY KEY(`code`, `customerCode`)
                             )
                             """
                         )
