@@ -155,13 +155,15 @@ sealed class CodeReadResult {
 
 sealed class CodeAddResult {
     object Success: CodeAddResult()
+    object TooFrequentAdds: CodeAddResult()
     data class InvalidCode(val error: String): CodeAddResult()
 }
 
 
 class CotioModel(private val context: Context) {
 
-    private var lastCodeReadTime = Instant.MIN;
+    private var lastCodeReadTime = Instant.MIN
+    private var lastCodeAddTime = Instant.MIN
 
     private val db = Room.databaseBuilder(
             context,
@@ -234,6 +236,10 @@ class CotioModel(private val context: Context) {
     fun addCode(code: String): CodeAddResult {
         val now = Instant.now()
         val code = LockerCode(code, LockerCodeState.FREE, null, null, now)
+        if (now.isBefore(lastCodeAddTime.plusSeconds(10))) {
+            return CodeAddResult.TooFrequentAdds
+        }
+        lastCodeAddTime = now
         try {
             cotioDao.insertAll(code)
             cotioDao.updateAll(code)
@@ -250,7 +256,7 @@ class CotioModel(private val context: Context) {
             .removePrefix(" ")
         val now = Instant.now()
         if (now.isBefore(lastCodeReadTime.plusSeconds(10))) {
-            CodeReadResult.TooFrequentReads
+            return CodeReadResult.TooFrequentReads
         }
         lastCodeReadTime = now
         return transaction tx@{
