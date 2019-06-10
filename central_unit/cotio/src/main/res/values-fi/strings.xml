@@ -15,8 +15,8 @@
     <string name="pref_title_enabled_lockers_4">Käytössä olevat lokerot (torni 4)</string>
     <string name="read_code_prompt">Näytä kuitillasi olevaa QR-koodia näytön alareunassa olevaan lukijaan.\n\nOdota oven aukeamista.</string>
     <string name="close_door_prompt">Sulje luukku, kiitos!</string>
-    <string name="code_used_message">Koodi on jo käytetty.</string>
-    <string name="invalid_code_message">Koodi ei ole kelvollinen.</string>
+    <string name="code_used_message">Jotain meni pieleen. Ole hyvä ja soita 050 431 4982.</string>
+    <string name="invalid_code_message">Jotain meni pieleen. Ole hyvä ja soita 050 431 4982.</string>
     <string name="titlescreen_title">You get it back!</string>
     <string name="titlescreen_subtitle" />
     <string name="input_code_help">Eikö koodin luku onnistu?</string>
@@ -41,4 +41,6 @@
     <string name="open_lockers_activity_name">Lokeroiden avaus</string>
     <string name="remove_reservation">Poista varaus (käytä varoen!)</string>
     <string name="open_locker_with_button">Avaa luukku painamalla nappia.</string>
+    <string name="pref_title_maintenance_passcode">Huoltokoodi</string>
+    <string name="pref_key_maintenance_passcode">maintenance_passcode</string>
 </resources>

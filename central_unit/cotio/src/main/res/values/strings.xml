@@ -15,8 +15,8 @@
     <string name="pref_title_enabled_lockers_4">Lockers in use (driver 4)</string>
     <string name="read_code_prompt">Show the QR code on your receipt to the scanner below the screen.\n\nWait for the locker door to open.</string>
     <string name="close_door_prompt">Please close the locker door.</string>
-    <string name="code_used_message">The code is already used.</string>
-    <string name="invalid_code_message">The code is invalid.</string>
+    <string name="code_used_message">Something went wrong. Please call +358 50 431 4982.</string>
+    <string name="invalid_code_message">Something went wrong. Please call +358 50 431 4982.</string>
     <string name="titlescreen_title">You get it back!</string>
     <string name="titlescreen_subtitle" />
     <string name="input_code_help">Scan not working?</string>
@@ -41,4 +41,6 @@
     <string name="open_lockers_activity_name">Open lockers</string>
     <string name="remove_reservation">Remove reservation (use with caution!)</string>
     <string name="open_locker_with_button">Open locker with button</string>
+    <string name="pref_title_maintenance_passcode">Huoltokoodi</string>
+    <string name="pref_key_maintenance_passcode">maintenance_passcode</string>
 </resources>

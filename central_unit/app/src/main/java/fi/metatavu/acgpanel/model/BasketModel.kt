@@ -5,6 +5,7 @@ import android.util.Log
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
+import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -12,21 +13,56 @@ import kotlin.concurrent.thread
  * One item (row) in a batch of items an user purchases
  * from the vending machine.
  */
-@Entity
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = ProductTransactionItemType::class,
+            childColumns = ["type"],
+            parentColumns = ["type"]
+        )
+    ],
+    indices = [
+        Index("type")
+    ]
+)
 data class ProductTransactionItem(
     @PrimaryKey var id: Long?,
     var transactionId: Long,
     var productId: Long,
     var count: Int,
     var expenditure: String,
-    var reference: String
+    var reference: String,
+    var type: String
 )
+
+@Entity(
+    primaryKeys = ["type"]
+)
+data class ProductTransactionItemType(
+    val type: String
+) {
+    companion object {
+        val PURCHASE = "PURCHASE"
+        val BORROW = "BORROW"
+    }
+}
 
 @Entity
 data class ProductTransaction(
     @PrimaryKey var id: Long?,
     var userId: Long,
     var uploaded: Boolean = false
+)
+
+@Entity
+data class ProductBorrow(
+    @PrimaryKey var id: Long?,
+    var productId: Long,
+    var userId: Long,
+    var expenditure: String,
+    var reference: String,
+    var started: Instant,
+    var ended: Instant?
 )
 
 @Dao
@@ -53,6 +89,23 @@ interface ProductTransactionDao {
     @Query("DELETE FROM producttransactionitem")
     fun clearProductTransactionsItems()
 
+}
+
+@Dao
+interface ProductBorrowDao {
+
+    @Insert
+    fun insertAll(vararg borrows: ProductBorrow)
+
+    @Query("""
+        SELECT *
+        FROM ProductBorrow
+        WHERE ended IS NULL
+          AND productId = :productId
+        ORDER BY started DESC
+        LIMIT 1
+    """)
+    fun getActiveBorrowForProduct(productId: Long)
 }
 
 class GiptoolProductTransactionItem {
@@ -225,7 +278,8 @@ abstract class BasketModel {
                             it.product.id!!,
                             it.count,
                             it.expenditure,
-                            it.reference
+                            it.reference,
+                            ProductTransactionItemType.PURCHASE
                         )
                     }.toTypedArray()
                     productTransactionDao.insertProductTransactionItems(*items)

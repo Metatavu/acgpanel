@@ -3,6 +3,8 @@ package fi.metatavu.acgpanel.model
 import android.arch.persistence.db.SupportSQLiteDatabase
 import android.arch.persistence.room.Database as RoomDatabase
 import android.arch.persistence.room.Room
+import android.arch.persistence.room.TypeConverter
+import android.arch.persistence.room.TypeConverters
 import android.arch.persistence.room.migration.Migration
 import android.arch.persistence.room.RoomDatabase as RoomRoomDatabase
 import android.content.SharedPreferences
@@ -19,7 +21,18 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.time.Duration
+import java.time.Instant
 import kotlin.concurrent.thread
+
+class Converters {
+    @TypeConverter
+    fun fromTimestamp(value: Long?): Instant? =
+        if (value != null) Instant.ofEpochMilli(value) else null
+
+    @TypeConverter
+    fun instantToTimestamp(value: Instant?): Long? =
+        value?.toEpochMilli()
+}
 
 @RoomDatabase(entities = [
     User::class,
@@ -32,8 +45,10 @@ import kotlin.concurrent.thread
     CompartmentMapping::class,
     Expenditure::class,
     UserCustomer::class,
-    CustomerExpenditure::class
-], version = 12, exportSchema = false)
+    CustomerExpenditure::class,
+    ProductTransactionItemType::class
+], version = 13, exportSchema = false)
+@TypeConverters(Converters::class)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun userDao(): UserDao
@@ -122,6 +137,32 @@ private object Database {
                                  `description` TEXT NOT NULL,
                                  PRIMARY KEY(`code`, `customerCode`)
                             )
+                            """
+                        )
+                        database.execSQL("""
+                            ALTER TABLE `ProductTransactionItem`
+                                ADD COLUMN `type` TEXT NOT NULL DEFAULT ''
+                            """
+                        )
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `ProductTransactionItemType` (
+                                `type` TEXT NOT NULL DEFAULT '',
+                                PRIMARY KEY (`type`)
+                            )
+                            """
+                        )
+                        database.execSQL("""
+                            ALTER TABLE `Product`
+                                ADD COLUMN `borrowable` INTEGER NOT NULL
+                            """
+                        )
+                    }
+                },
+                object: Migration(12, 13) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            INSERT INTO `ProductTransactionItemType`(`type`)
+                            VALUES ('PURCHASE'), ('BORROW')
                             """
                         )
                     }

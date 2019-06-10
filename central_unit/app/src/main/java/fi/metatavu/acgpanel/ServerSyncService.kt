@@ -37,31 +37,28 @@ class ServerSyncService : Service() {
 
 
     private fun installPackage(packageName: String, packageData: InputStream) {
-        val name = ComponentName(getPackageName(), DeviceAdminReceiver::class.java!!.canonicalName)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            val packageInstaller = packageManager.packageInstaller
-            val params = PackageInstaller.SessionParams(
-                PackageInstaller.SessionParams.MODE_FULL_INSTALL
+        val packageInstaller = packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(
+            PackageInstaller.SessionParams.MODE_FULL_INSTALL
+        )
+        params.setAppPackageName(packageName)
+        try {
+            val sessionId = packageInstaller.createSession(params)
+            val session = packageInstaller.openSession(sessionId)
+            val out = session.openWrite("$packageName.apk", 0, -1)
+            packageData.copyTo(out)
+            session.fsync(out)
+            out.close()
+            Log.d(javaClass.name, "installing package $packageName")
+            session.commit(
+                PendingIntent.getBroadcast(
+                    this, sessionId,
+                    Intent("android.intent.action.MAIN"), 0
+                ).intentSender
             )
-            params.setAppPackageName(packageName)
-            try {
-                val sessionId = packageInstaller.createSession(params)
-                val session = packageInstaller.openSession(sessionId)
-                val out = session.openWrite("$packageName.apk", 0, -1)
-                packageData.copyTo(out)
-                session.fsync(out)
-                out.close()
-                Log.d(javaClass.name, "installing package $packageName")
-                session.commit(
-                    PendingIntent.getBroadcast(
-                        this, sessionId,
-                        Intent("android.intent.action.MAIN"), 0
-                    ).intentSender
-                )
-                Log.d(javaClass.name, "install intent sent")
-            } catch (e: IOException) {
-                Log.e(javaClass.name, "Error when installing package", e)
-            }
+            Log.d(javaClass.name, "install intent sent")
+        } catch (e: IOException) {
+            Log.e(javaClass.name, "Error when installing package", e)
         }
     }
 
@@ -82,6 +79,7 @@ class ServerSyncService : Service() {
         } catch (ex: InterruptedException) {}
     }
 
+    @Suppress("unused")
     private fun syncSftpFolder(
         host: String,
         username: String,

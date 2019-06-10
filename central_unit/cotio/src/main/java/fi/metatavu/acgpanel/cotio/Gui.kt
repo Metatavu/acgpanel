@@ -201,6 +201,15 @@ class CotioApplication: Application() {
 abstract class CotioActivity : LockedDownActivity(numTaps = 3) {
     private val localeDelegate = LocaleHelperActivityDelegateImpl()
 
+    protected val model: CotioModel
+        get() = cotioApplication.model
+
+    protected val cotioApplication: CotioApplication
+        get() = application as CotioApplication
+
+    override val maintenancePasscode: String
+        get() = model.maintenancePasscode
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(localeDelegate.attachBaseContext(newBase))
     }
@@ -226,9 +235,6 @@ abstract class CotioActivity : LockedDownActivity(numTaps = 3) {
 }
 
 class DefaultActivity : CotioActivity() {
-
-    override val maintenancePasscode: String
-        get() = "0000"
 
     override val unlockButton: View
         get() = default_activity_unlock_button
@@ -264,15 +270,11 @@ class DefaultActivity : CotioActivity() {
 
 class ReadCodeActivity : CotioActivity() {
 
-    private lateinit var model: CotioModel
     private lateinit var handler: Handler
 
     private val lockClosedListener = {
         startActivity(Intent(this, FinishedActivity::class.java))
     }
-
-    override val maintenancePasscode: String
-        get() = "0000"
 
     override val unlockButton: View
         get() = read_code_unlock_button
@@ -302,7 +304,6 @@ class ReadCodeActivity : CotioActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         handler = Handler(mainLooper)
-        model = (application as CotioApplication).model
         setContentView(R.layout.activity_read_code)
         super.onCreate(savedInstanceState)
         code_textbox.setOnTouchListener { _, _ -> true }
@@ -351,13 +352,11 @@ class ReadCodeActivity : CotioActivity() {
 
     override fun onPause() {
         super.onPause()
-        val cotioApplication = application as CotioApplication
         cotioApplication.removeLockerClosedListener(lockClosedListener)
     }
 
     override fun onResume() {
         super.onResume()
-        val cotioApplication = application as CotioApplication
         cotioApplication.addLockerClosedListener(lockClosedListener)
         code_textbox.requestFocus()
     }
@@ -379,9 +378,6 @@ class ReadCodeActivity : CotioActivity() {
 }
 
 class FinishedActivity : CotioActivity() {
-
-    override val maintenancePasscode: String
-        get() = "0000"
 
     override val unlockButton: View
         get() = finished_activity_unlock_button
@@ -429,7 +425,8 @@ class CotioSettingsActivity: PreferenceActivity() {
 
 class AddCodeActivity : Activity() {
 
-    private lateinit var model: CotioModel
+    private val model: CotioModel
+        get() = (application as CotioApplication).model
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -443,7 +440,6 @@ class AddCodeActivity : Activity() {
                 false
             }
         }
-        model = (application as CotioApplication).model
     }
 
     fun addCode(@Suppress("UNUSED_PARAMETER") view: View?) {
@@ -471,14 +467,12 @@ class AddCodeActivity : Activity() {
 
 class FillActivity : Activity() {
 
-    private lateinit var model: CotioModel
-
-    private val cotioApplication: CotioApplication
-        get() = application as CotioApplication
-
     private val onLockClosed = {
         fill_locker_info_text.text = getString(R.string.info_text_fill)
     }
+
+    private val model: CotioModel
+        get() = (application as CotioApplication).model
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -492,7 +486,6 @@ class FillActivity : Activity() {
                 false
             }
         }
-        model = cotioApplication.model
     }
 
     fun fillLocker(@Suppress("UNUSED_PARAMETER") view: View?) {
@@ -519,10 +512,12 @@ class FillActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
+        val cotioApplication = application as CotioApplication
         cotioApplication.addLockerClosedListener(onLockClosed)
     }
 
     override fun onStop() {
+        val cotioApplication = application as CotioApplication
         cotioApplication.removeLockerClosedListener(onLockClosed)
         super.onStop()
     }
@@ -575,15 +570,12 @@ private class OpenLockerButtonCallback: DiffUtil.ItemCallback<OpenLockerButtonMo
 
 class OpenLockersActivity: Activity() {
 
-    private lateinit var model: CotioModel
-
-    private val cotioApplication: CotioApplication
-        get() = application as CotioApplication
+    private val model: CotioModel
+        get() = (application as CotioApplication).model
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_open_lockers)
-        model = cotioApplication.model
         val adapter = object:
             ListAdapter<OpenLockerButtonModel, OpenLockerButtonViewHolder>(
                     OpenLockerButtonCallback()) {

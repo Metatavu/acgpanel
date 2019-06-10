@@ -44,5 +44,10 @@
         android:title="@string/pref_title_use_demo_codes"
         />
 
+    <EditTextPreference
+        android:key="@string/pref_key_maintenance_passcode"
+        android:title="@string/pref_title_maintenance_passcode"
+        />
+
 
 </PreferenceScreen>

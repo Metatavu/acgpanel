@@ -26,7 +26,8 @@ data class Product(
     var barcode: String,
     var removed: Boolean,
     var empty: Boolean,
-    var serverStock: Int
+    var serverStock: Int,
+    var borrowable: Boolean
 )
 
 @Entity(primaryKeys = ["productId", "url"])
@@ -170,7 +171,8 @@ abstract class ProductsModel {
                     barcode = "",
                     removed = false,
                     empty = false,
-                    serverStock = 0
+                    serverStock = 0,
+                    borrowable = false
                 )
             }
             productDao.insertAll(*products.toTypedArray())
@@ -200,11 +202,11 @@ abstract class ProductsModel {
                         barcode = it.barcode?.trim() ?: "",
                         removed = false,
                         empty = false,
-                        serverStock = it.stock ?: 0
+                        serverStock = it.stock ?: 0,
+                        borrowable = false
                     )
                 }
                 .toTypedArray()
-            // TODO delete removed
             transaction {
                 productDao.markAllProductsRemoved()
                 for (product in products) {

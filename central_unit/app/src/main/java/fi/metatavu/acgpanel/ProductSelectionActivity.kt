@@ -107,6 +107,21 @@ class ProductSelectionActivity : PanelActivity() {
             reference_input.isEnabled = !basketModel.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
+            if (basketItem.product.borrowable) {
+                count_input.visibility = View.INVISIBLE
+                count_units.visibility = View.INVISIBLE
+                count_label.visibility = View.INVISIBLE
+                ok_button.visibility = View.INVISIBLE
+                borrow_button.visibility = View.VISIBLE
+                return_button.visibility = View.VISIBLE
+            } else {
+                count_input.visibility = View.VISIBLE
+                count_units.visibility = View.VISIBLE
+                count_label.visibility = View.VISIBLE
+                ok_button.visibility = View.VISIBLE
+                borrow_button.visibility = View.INVISIBLE
+                return_button.visibility = View.INVISIBLE
+            }
             lockModel.isLineCalibrated(product.line) { calibrated ->
                 runOnUiThread {
                     if (calibrated) {
@@ -121,8 +136,6 @@ class ProductSelectionActivity : PanelActivity() {
         if (!loginModel.loggedIn) {
             ok_button.isEnabled = false
         }
-        return_button.visibility = View.GONE
-        borrow_button.visibility = View.GONE
     }
 
     override fun onDestroy() {

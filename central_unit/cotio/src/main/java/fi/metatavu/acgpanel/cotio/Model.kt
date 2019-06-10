@@ -105,7 +105,7 @@ class Converters {
 
     @TypeConverter
     fun instantToTimestamp(value: Instant?): Long? =
-        if (value != null) value.toEpochMilli() else null
+        value?.toEpochMilli()
 }
 
 @Database(entities = [
@@ -155,6 +155,9 @@ private class Preferences(private val context: Context) {
 
     val useDemoCodes: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_use_demo_codes), false)
+
+    val maintenancePasscode: String
+        get() = preferences().getString(getString(R.string.pref_key_maintenance_passcode), "0000") ?: "0000"
 }
 
 data class LockerOpenRequest(
@@ -199,6 +202,9 @@ class CotioModel(private val context: Context) {
     private val lockOpenedListeners: MutableList<() -> Unit> = mutableListOf()
 
     private val lockOpenRequestListeners: MutableList<(LockerOpenRequest) -> Unit> = mutableListOf()
+
+    val maintenancePasscode: String
+        get() = preferences.maintenancePasscode
 
     @Suppress("unused")
     fun addLockOpenedListener(listener: () -> Unit) {
