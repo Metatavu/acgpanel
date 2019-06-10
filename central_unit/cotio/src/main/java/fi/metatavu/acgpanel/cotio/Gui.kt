@@ -337,6 +337,9 @@ class ReadCodeActivity : CotioActivity() {
                     CodeReadResult.NoFreeLockers -> {
                         flashMessage(getString(R.string.no_free_lockers_message))
                     }
+                    CodeReadResult.TooFrequentReads -> {
+                        // do nothing
+                    }
                 }
             }
         }
