@@ -39,6 +39,7 @@
 
     <Button
         android:id="@+id/borrow_button"
+        android:onClick="borrowItem"
         android:layout_width="450dp"
         android:layout_height="100dp"
         android:layout_marginLeft="40dp"
@@ -54,6 +55,7 @@
 
     <Button
         android:id="@+id/return_button"
+        android:onClick="returnItem"
         android:layout_width="450dp"
         android:layout_height="100dp"
         android:layout_marginLeft="40dp"

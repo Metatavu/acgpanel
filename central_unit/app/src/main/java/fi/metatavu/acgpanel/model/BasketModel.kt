@@ -9,10 +9,6 @@ import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
 
-/**
- * One item (row) in a batch of items an user purchases
- * from the vending machine.
- */
 @Entity(
     foreignKeys = [
         ForeignKey(
@@ -42,8 +38,9 @@ data class ProductTransactionItemType(
     val type: String
 ) {
     companion object {
-        val PURCHASE = "PURCHASE"
-        val BORROW = "BORROW"
+        const val PURCHASE = "PURCHASE"
+        const val BORROW = "BORROW"
+        const val RETURN = "RETURN"
     }
 }
 
@@ -73,6 +70,9 @@ interface ProductTransactionDao {
 
     @Insert
     fun insertProductTransactionItems(vararg items: ProductTransactionItem)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertProductTransactionItemTypes(vararg itemTypes: ProductTransactionItemType)
 
     @Query("SELECT * FROM producttransaction WHERE uploaded=0")
     fun listNonUploadedTransactions(): List<ProductTransaction>
@@ -145,31 +145,38 @@ interface GiptoolProductTransactionsService {
     fun sendProductTransaction(@Body productTransaction: GiptoolProductTransaction): Call<GiptoolProductTransaction>
 }
 
+sealed class BasketItemType {
+    object Purchase : BasketItemType()
+    object Borrow : BasketItemType()
+    object Return : BasketItemType()
+}
+
 data class BasketItem(
     val product: Product,
     val count: Int,
     val expenditure: String,
     val reference: String,
-    val enabled: Boolean = true) {
+    val enabled: Boolean = true,
+    val type: BasketItemType = BasketItemType.Purchase) {
 
     fun withCount(count: Int): BasketItem {
-        return BasketItem(product, count, expenditure, reference, enabled)
+        return BasketItem(product, count, expenditure, reference, enabled, type)
     }
 
     fun withExpenditure(expenditure: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference, enabled)
+        return BasketItem(product, count, expenditure, reference, enabled, type)
     }
 
     fun withReference(reference: String): BasketItem {
-        return BasketItem(product, count, expenditure, reference, enabled)
+        return BasketItem(product, count, expenditure, reference, enabled, type)
     }
 
     fun disabled(): BasketItem {
-        return BasketItem(product, count, expenditure, reference, false)
+        return BasketItem(product, count, expenditure, reference, false, type)
     }
 
     fun enabled(): BasketItem {
-        return BasketItem(product, count, expenditure, reference, true)
+        return BasketItem(product, count, expenditure, reference, true, type)
     }
 
 }
@@ -189,6 +196,7 @@ abstract class BasketModel {
     protected abstract val productTransactionsService: GiptoolProductTransactionsService
     protected abstract val vendingMachineId: String
     protected abstract val demoMode: Boolean
+    protected abstract val currentUser: User?
     abstract fun acceptBasket()
     abstract val lockUserExpenditure: Boolean
     abstract val lockUserReference: Boolean
@@ -196,14 +204,12 @@ abstract class BasketModel {
     private var selectedBasketItem: SelectedBasketItem? = null
     private val mutableBasket: MutableList<BasketItem> = mutableListOf()
 
-    protected abstract val currentUser: User?
     val basket: List<BasketItem>
         get() = mutableBasket
 
     val currentBasketItem: BasketItem?
         get() {
-            val item = selectedBasketItem
-            return when (item) {
+            return when (val item = selectedBasketItem) {
                 is SelectedBasketItem.Existing -> basket[item.index]
                 is SelectedBasketItem.New -> BasketItem(
                     item.product,
@@ -226,7 +232,8 @@ abstract class BasketModel {
     fun saveSelectedItem(
         count: Int?,
         expenditure: String,
-        reference: String
+        reference: String,
+        type: BasketItemType = BasketItemType.Purchase
     ) {
         val item = selectedBasketItem
         when (item) {
@@ -240,9 +247,10 @@ abstract class BasketModel {
                 val existingIndex = mutableBasket.indexOfFirst {
                     it.product.id == item.product.id &&
                             it.expenditure == expenditure &&
-                            it.reference == reference
+                            it.reference == reference &&
+                            it.type == BasketItemType.Purchase
                 }
-                if (existingIndex >= 0) {
+                if (existingIndex >= 0 && type == BasketItemType.Purchase) {
                     val old = mutableBasket[existingIndex]
                     mutableBasket[existingIndex] = old
                         .withCount(old.count + (count ?: 1))
@@ -252,7 +260,8 @@ abstract class BasketModel {
                             item.product,
                             count ?: 1,
                             expenditure,
-                            reference
+                            reference,
+                            type = type
                         )
                     )
                 }
@@ -265,6 +274,11 @@ abstract class BasketModel {
             val user = currentUser
             if (user != null) {
                 transaction {
+                    productTransactionDao.insertProductTransactionItemTypes(
+                        ProductTransactionItemType(ProductTransactionItemType.PURCHASE),
+                        ProductTransactionItemType(ProductTransactionItemType.BORROW),
+                        ProductTransactionItemType(ProductTransactionItemType.RETURN)
+                    )
                     val tx = ProductTransaction(
                         null,
                         user.id!!
@@ -279,7 +293,11 @@ abstract class BasketModel {
                             it.count,
                             it.expenditure,
                             it.reference,
-                            ProductTransactionItemType.PURCHASE
+                            when (it.type) {
+                                BasketItemType.Purchase -> ProductTransactionItemType.PURCHASE
+                                BasketItemType.Borrow -> ProductTransactionItemType.BORROW
+                                BasketItemType.Return -> ProductTransactionItemType.RETURN
+                            }
                         )
                     }.toTypedArray()
                     productTransactionDao.insertProductTransactionItems(*items)

@@ -274,7 +274,11 @@ class CotioModel(private val context: Context) {
     val enabledLockers: List<LockerCoordinates>
         get() = preferences.enabledLockers
 
-    fun addCode(code: String): CodeAddResult {
+    fun addCode(rawCode: String): CodeAddResult {
+        val code = rawCode
+            .removePrefix(context.getString(R.string.code_prefix_https))
+            .removePrefix(context.getString(R.string.code_prefix_http))
+            .removePrefix(" ")
         val now = Instant.now()
         val lockerCode = LockerCode(code, LockerCodeState.FREE, null, null, now)
         if (now.isBefore(lastCodeAddTime.plusSeconds(10))) {

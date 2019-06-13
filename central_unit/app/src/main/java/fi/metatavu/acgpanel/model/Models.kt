@@ -34,6 +34,7 @@ class Converters {
         value?.toEpochMilli()
 }
 
+// TODO: Add foreign keys to all tables
 @RoomDatabase(entities = [
     User::class,
     Product::class,
@@ -153,18 +154,13 @@ private object Database {
                         )
                         database.execSQL("""
                             ALTER TABLE `Product`
-                                ADD COLUMN `borrowable` INTEGER NOT NULL
+                                ADD COLUMN `borrowable` INTEGER NOT NULL DEFAULT 0
                             """
                         )
                     }
                 },
-                object: Migration(12, 13) {
+                object: Migration(11, 12) {
                     override fun migrate(database: SupportSQLiteDatabase) {
-                        database.execSQL("""
-                            INSERT INTO `ProductTransactionItemType`(`type`)
-                            VALUES ('PURCHASE'), ('BORROW')
-                            """
-                        )
                     }
                 }
             )
@@ -407,7 +403,7 @@ private object BasketModelImpl: BasketModel() {
         Database.transaction(tx)
 
     override fun acceptBasket() {
-        LockModelImpl.openLines(basket.map{it.product.line })
+        LockModelImpl.openLines(basket.map{it.product.line})
     }
 
     override fun unsafeUpdateProducts() {

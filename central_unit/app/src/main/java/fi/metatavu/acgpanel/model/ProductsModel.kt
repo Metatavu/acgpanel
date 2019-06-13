@@ -172,7 +172,7 @@ abstract class ProductsModel {
                     removed = false,
                     empty = false,
                     serverStock = 0,
-                    borrowable = false
+                    borrowable = it < 4
                 )
             }
             productDao.insertAll(*products.toTypedArray())

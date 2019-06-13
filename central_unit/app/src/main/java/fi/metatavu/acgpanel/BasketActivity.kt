@@ -9,9 +9,11 @@ import android.os.Handler
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import fi.metatavu.acgpanel.model.BasketItem
+import fi.metatavu.acgpanel.model.BasketItemType
 import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_basket.*
@@ -45,10 +47,33 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.product.unit.trim()
                         )
             }
-            product_description.text =
-                   context.getString(R.string.basket_product_details,
-                       item.expenditure,
-                       item.reference)
+            Log.d(javaClass.name, "ITEM TYPE: ${item.type}")
+            when (item.type) {
+                BasketItemType.Purchase -> {
+                    product_description.text =
+                        context.getString(
+                            R.string.basket_product_details,
+                            item.expenditure,
+                            item.reference
+                        )
+                }
+                BasketItemType.Borrow -> {
+                    product_description.text =
+                        context.getString(
+                            R.string.basket_product_details_borrow,
+                            item.expenditure,
+                            item.reference
+                        )
+                }
+                BasketItemType.Return -> {
+                    product_description.text =
+                        context.getString(
+                            R.string.basket_product_details_return,
+                            item.expenditure,
+                            item.reference
+                        )
+                }
+            }
             if (item.enabled) {
                 disabled_overlay.visibility = View.GONE
                 product_delete_button.setOnClickListener {

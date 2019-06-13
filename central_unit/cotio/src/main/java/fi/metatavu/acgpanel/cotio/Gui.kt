@@ -497,7 +497,8 @@ class FillActivity : Activity() {
             val result = model.addCode(code)
             when (result) {
                 is CodeAddResult.Success -> {
-                    model.readCode(code)
+                    val result = model.readCode(code)
+                    Log.d(javaClass.name, result.toString())
                     runOnUiThread {
                         fill_locker_info_text.text = getString(R.string.locker_filled)
                         fill_locker_input.text.clear()

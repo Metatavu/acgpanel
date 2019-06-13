@@ -9,10 +9,7 @@ import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
-import fi.metatavu.acgpanel.model.getBasketModel
-import fi.metatavu.acgpanel.model.getLockModel
-import fi.metatavu.acgpanel.model.getLoginModel
-import fi.metatavu.acgpanel.model.getProductsModel
+import fi.metatavu.acgpanel.model.*
 import kotlinx.android.synthetic.main.activity_product_selection.*
 import kotlin.concurrent.thread
 
@@ -192,6 +189,14 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
+    fun borrowItem(@Suppress("UNUSED_PARAMETER") view: View) {
+        proceed(false, BasketItemType.Borrow)
+    }
+
+    fun returnItem(@Suppress("UNUSED_PARAMETER") view: View) {
+        proceed(false, BasketItemType.Return)
+    }
+
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
         val newCount = count_input.text.toString().toIntOrNull()
         val oldCount = basketModel.currentBasketItem?.count
@@ -212,11 +217,12 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
-    fun proceed(markEmpty: Boolean) {
+    fun proceed(markEmpty: Boolean, type: BasketItemType = BasketItemType.Purchase) {
         basketModel.saveSelectedItem(
             count_input.text.toString().toIntOrNull(),
             expenditure_input.text.toString(),
-            reference_input.text.toString()
+            reference_input.text.toString(),
+            type
         )
         if (markEmpty) {
             basketModel.markCurrentProductEmpty()
