@@ -148,22 +148,29 @@ class BasketActivity : PanelActivity() {
         basket_items_view.adapter = adapter
         adapter.submitList(basketModel.basket)
         adapter.setDeleteClickListener { index ->
-            AlertDialog.Builder(this)
-                .setTitle(R.string.out_of_products_title)
-                .setMessage(R.string.out_of_products_message)
-                .setPositiveButton(R.string.yes) { _, _ ->
-                    basketModel.markProductEmpty(index)
-                    basketModel.deleteBasketItem(index)
-                    updateNumProducts()
-                    adapter.notifyDataSetChanged()
-                }
-                .setNegativeButton(R.string.no) { _, _ ->
-                    basketModel.deleteBasketItem(index)
-                    updateNumProducts()
-                    adapter.notifyDataSetChanged()
-                }
-                .create()
-                .show()
+            val basketItem = basketModel.basket[index]
+            if (basketItem.type == BasketItemType.Purchase) {
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.out_of_products_title)
+                    .setMessage(R.string.out_of_products_message)
+                    .setPositiveButton(R.string.yes) { _, _ ->
+                        basketModel.markProductEmpty(index)
+                        basketModel.deleteBasketItem(index)
+                        updateNumProducts()
+                        adapter.notifyDataSetChanged()
+                    }
+                    .setNegativeButton(R.string.no) { _, _ ->
+                        basketModel.deleteBasketItem(index)
+                        updateNumProducts()
+                        adapter.notifyDataSetChanged()
+                    }
+                    .create()
+                    .show()
+            } else {
+                basketModel.deleteBasketItem(index)
+                updateNumProducts()
+                adapter.notifyDataSetChanged()
+            }
         }
         adapter.setModifyClickListener {
             basketModel.selectExistingBasketItem(it)

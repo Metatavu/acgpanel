@@ -1,22 +1,93 @@
 package fi.metatavu.acgpanel
 
+import android.content.Context
+import android.content.res.Resources
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.support.v7.recyclerview.extensions.ListAdapter
+import android.support.v7.util.DiffUtil
+import android.support.v7.widget.RecyclerView
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.Interpolator
+import fi.metatavu.acgpanel.model.BasketItem
 import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLockModel
 import fi.metatavu.acgpanel.model.getLoginModel
 import kotlinx.android.synthetic.main.activity_take.*
+import kotlinx.android.synthetic.main.view_take_item.view.*
+
+private fun takeItemView(context: Context): View {
+    val dp = Resources.getSystem().displayMetrics.density
+    val view = View.inflate(context, R.layout.view_take_item, null)!!
+    view.layoutParams = RecyclerView.LayoutParams(
+        RecyclerView.LayoutParams.MATCH_PARENT,
+        (150*dp).toInt()
+    )
+    return view
+}
+
+private class TakeItemViewHolder(context: Context)
+        : RecyclerView.ViewHolder(takeItemView(context)) {
+
+    fun populate(item: BasketItem) {
+        with (itemView) {
+            if (item.count == 1) {
+                product_name.text = item.product.name
+            } else {
+                product_name.text =
+                    context.getString(
+                        R.string.basket_product_title,
+                        item.product.name,
+                        item.count,
+                        item.product.unit.trim()
+                    )
+            }
+            product_description.text =
+                context.getString(
+                    R.string.basket_product_details,
+                    item.expenditure,
+                    item.reference
+                )
+            drawProduct(item.product, product_image)
+        }
+    }
+}
+
+private class TakeItemCallback: DiffUtil.ItemCallback<BasketItem>() {
+
+    override fun areContentsTheSame(a: BasketItem, b: BasketItem): Boolean {
+        return a == b
+    }
+
+    override fun areItemsTheSame(a: BasketItem, b: BasketItem): Boolean {
+        return a == b
+    }
+}
+
+private class TakeItemAdapter : ListAdapter<BasketItem, TakeItemViewHolder>(TakeItemCallback()) {
+
+    override fun onCreateViewHolder(parent: ViewGroup, index: Int): TakeItemViewHolder {
+        return TakeItemViewHolder(parent.context)
+    }
+
+    override fun onBindViewHolder(holder: TakeItemViewHolder, position: Int) {
+        val item = getItem(position)
+        holder.populate(item)
+    }
+
+}
 
 class TakeActivity : PanelActivity() {
 
     private val lockModel = getLockModel()
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
+    private val takeOutAdapter = TakeItemAdapter()
+    private val putInAdapter = TakeItemAdapter()
 
     private val alarmCallback = Runnable {
         alarm_overlay_back.visibility = View.VISIBLE
@@ -26,23 +97,26 @@ class TakeActivity : PanelActivity() {
     var handler = Handler(Looper.getMainLooper())
 
     val onLockOpenedListener = listener@{
-        try {
-            val basketItem = basketModel.basket.first {
-                it.product.line == lockModel.currentLine
-            }
-            product_name.text = basketItem.product.name
-            product_details.text = basketItem.product.description
-            drawProduct(basketItem.product, product_image)
-        } catch (ex: Exception) {
-            product_name.text = ""
-            product_details.text = ""
-        }
         status_text.text = getString(
             R.string.complete_by_closing_door,
             lockModel.currentLock,
             lockModel.numLocks)
         handler.removeCallbacks(alarmCallback)
         handler.postDelayed(alarmCallback, ALARM_TIMEOUT)
+        val takeOutItems = basketModel.takeOutItems
+        takeOutAdapter.submitList(takeOutItems)
+        if (takeOutItems.isEmpty()) {
+            takeout_products_title.visibility = View.GONE
+        } else {
+            takeout_products_title.visibility = View.VISIBLE
+        }
+        val putInItems = basketModel.putInItems
+        if (putInItems.isEmpty()) {
+            putin_products_title.visibility = View.GONE
+        } else {
+            putin_products_title.visibility = View.VISIBLE
+        }
+        putInAdapter.submitList(putInItems)
         return@listener
     }
 
@@ -62,6 +136,10 @@ class TakeActivity : PanelActivity() {
         alarm_overlay_front.animation = blink
         alarm_overlay_front.visibility = View.GONE
         alarm_overlay_back.visibility = View.GONE
+        takeout_products_list.adapter = takeOutAdapter
+        putin_products_list.adapter = putInAdapter
+        takeOutAdapter.submitList(basketModel.takeOutItems)
+        putInAdapter.submitList(basketModel.putInItems)
         onLockOpenedListener()
     }
 

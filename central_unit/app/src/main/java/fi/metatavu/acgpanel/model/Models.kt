@@ -47,7 +47,8 @@ class Converters {
     Expenditure::class,
     UserCustomer::class,
     CustomerExpenditure::class,
-    ProductTransactionItemType::class
+    ProductTransactionItemType::class,
+    ProductTransactionItemCondition::class
 ], version = 13, exportSchema = false)
 @TypeConverters(Converters::class)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
@@ -141,15 +142,31 @@ private object Database {
                             """
                         )
                         database.execSQL("""
-                            ALTER TABLE `ProductTransactionItem`
-                                ADD COLUMN `type` TEXT NOT NULL DEFAULT ''
-                            """
-                        )
-                        database.execSQL("""
                             CREATE TABLE IF NOT EXISTS `ProductTransactionItemType` (
                                 `type` TEXT NOT NULL DEFAULT '',
                                 PRIMARY KEY (`type`)
                             )
+                            """
+                        )
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `ProductTransactionItemCondition` (
+                                `condition` TEXT NOT NULL DEFAULT '',
+                                PRIMARY KEY (`type`)
+                            )
+                            """
+                        )
+                        database.execSQL("""
+                            ALTER TABLE `ProductTransactionItem`
+                                ADD COLUMN `type` TEXT NOT NULL DEFAULT ''
+                                    CONSTRAINT `FK_ProductTransactionItem_Type`
+                                    REFERENCES `ProductTransactionItemType`(`type`)
+                            """
+                        )
+                        database.execSQL("""
+                            ALTER TABLE `ProductTransactionItem`
+                                ADD COLUMN `condition` TEXT NOT NULL DEFAULT ''
+                                    CONSTRAINT `FK_ProductTransactionItem_Condition`
+                                    REFERENCES `ProductTransactionItemCondition`(`condition`)
                             """
                         )
                         database.execSQL("""
@@ -159,7 +176,7 @@ private object Database {
                         )
                     }
                 },
-                object: Migration(11, 12) {
+                object: Migration(12, 13) {
                     override fun migrate(database: SupportSQLiteDatabase) {
                     }
                 }
@@ -367,6 +384,8 @@ private object ProductsModelImpl: ProductsModel() {
 fun getProductsModel(): ProductsModel = ProductsModelImpl
 
 private object BasketModelImpl: BasketModel() {
+    override val currentLine: String?
+        get() = LockModelImpl.currentLine
 
     override val productDao: ProductDao
         get() = Database.productDao

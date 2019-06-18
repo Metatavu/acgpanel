@@ -2,13 +2,6 @@ import serial
 import serial.tools.list_ports
 import msvcrt
 
-def checksum(s):
-    res = 0
-    for c in s:
-        res = res ^ c
-    return res
-
-
 port = None
 while port == None:
     for val in serial.tools.list_ports.comports():

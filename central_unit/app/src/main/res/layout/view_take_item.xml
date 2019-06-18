@@ -1,0 +1,38 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="150dp"
+    >
+
+    <ImageView
+        android:id="@+id/product_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:padding="10dp"
+        android:src="@drawable/image_placeholder"
+        android:contentDescription="" />
+
+    <TextView
+        android:id="@+id/product_name"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginLeft="170dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/basket_item_placeholder"
+        android:textStyle="bold"
+        android:textSize="40sp"
+        />
+
+    <TextView
+        android:id="@+id/product_description"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginLeft="170dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="80dp"
+        android:text="@string/basket_product_details"
+        android:textSize="20sp"
+        />
+
+</FrameLayout>

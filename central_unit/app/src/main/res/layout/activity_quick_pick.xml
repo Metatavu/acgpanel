@@ -84,18 +84,6 @@
         android:gravity="center"
         />
 
-    <TextView
-        android:layout_width="65dp"
-        android:layout_height="30dp"
-        android:layout_marginRight="85dp"
-        app:layout_constraintRight_toRightOf="@id/basket_items_container"
-        app:layout_constraintBottom_toTopOf="@id/basket_items_container"
-        android:textSize="20sp"
-        android:text="@string/count"
-        android:textStyle="bold"
-        android:gravity="center"
-        />
-
     <ScrollView
         android:id="@+id/basket_items_container"
         android:layout_width="0dp"

@@ -2,43 +2,11 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".TakeActivity"
     >
-
-    <ImageView
-        android:id="@+id/product_image"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="180dp"
-        android:layout_marginRight="300dp"
-        android:src="@drawable/image_placeholder"
-        />
-
-    <TextView
-        android:id="@+id/product_name"
-        android:layout_width="600dp"
-        android:layout_height="60dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="280dp"
-        android:layout_marginLeft="200dp"
-        android:textSize="40dp"
-        android:text="Lorem ipsum dolor sit amet"
-        />
-
-    <TextView
-        android:id="@+id/product_details"
-        android:layout_width="600dp"
-        android:layout_height="200dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="140dp"
-        android:layout_marginLeft="200dp"
-        android:textSize="30dp"
-        android:text="Lorem ipsum dolor sit amet"
-        />
-
 
     <TextView
         android:layout_width="wrap_content"
@@ -55,21 +23,68 @@
         android:id="@+id/status_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="160dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="120dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginRight="40dp"
         android:text="@string/complete_by_closing_door"
-        android:textSize="40sp"
-        android:gravity="center_horizontal"
+        android:textSize="30sp"
         />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="200dp"
+        android:layout_marginBottom="140dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginRight="40dp"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            >
+            <TextView
+                android:id="@+id/takeout_products_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/pickup_products"
+                android:textSize="40sp"
+                android:background="@color/colorPrimaryLight"
+                android:padding="15dp"
+                />
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/takeout_products_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layoutManager="android.support.v7.widget.LinearLayoutManager"
+                />
+            <!-- https://pbs.twimg.com/media/BiKp7LLIIAAq1ad.jpg -->
+            <TextView
+                android:id="@+id/putin_products_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/putin_products"
+                android:textSize="40sp"
+                android:background="@color/colorPrimaryLight"
+                android:padding="15dp"
+                />
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/putin_products_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layoutManager="android.support.v7.widget.LinearLayoutManager"
+                />
+        </LinearLayout>
+    </ScrollView>
 
     <Button
         android:onClick="back"
         android:layout_width="280dp"
         android:layout_height="50dp"
-        android:layout_gravity="center"
-        android:layout_marginTop="270dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="40dp"
+        android:layout_marginLeft="40dp"
         android:text="@string/modify_checkout"
         android:textSize="30sp"
         android:background="@color/colorPrimary"

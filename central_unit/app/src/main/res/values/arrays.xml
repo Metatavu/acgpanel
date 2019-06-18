@@ -17,4 +17,9 @@
         <item>14</item>
         <item>15</item>
     </string-array>
+    <string-array name="borrow_statuses_array">
+        <item>Ei lainausta</item>
+        <item>Lainaus</item>
+        <item>Palautus</item>
+    </string-array>
 </resources>

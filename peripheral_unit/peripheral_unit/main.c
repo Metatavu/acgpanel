@@ -24,7 +24,7 @@
 
 #define F_OSC 8000000
 #define BAUD_RATE_CU 9600
-#define BAUD_RATE_BD 9600
+#define BAUD_RATE_BD 2400
 #define BAUD_RATE_CR 9600
 
 #define MS 25
@@ -41,18 +41,6 @@ void cuCommInit(void) {
   // 2549Q-AVR-02/2014 page 221
   UCSR2B = (1<<RXEN2) | (1<<TXEN2) | (1<<RXCIE2); // enable RX and TX
   UCSR2C = (1<<UCSZ20) | (1<<UCSZ21); // 8 data bits
-}
-
-void bdCommInit(void) {
-  // init USART, 8 data bits, 1 stop bit
-  // 2549Q-AVR-02/2014 page 206
-  uint16_t ubrr = F_OSC/16/BAUD_RATE_BD - 1;
-  UBRR1H = (uint8_t)(ubrr>>8);
-  UBRR1L = (uint8_t)ubrr;
-  // 2549Q-AVR-02/2014 page 221
-  UCSR1B = (1<<RXEN1) | (1<<TXEN1) | (1<<RXCIE1); // enable RX and TX
-  UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
-  DDRC |= 1 << PC0;
 }
 
 void crCommInit(void) {
@@ -73,11 +61,54 @@ void cuCommWrite(uint8_t c) {
   UDR2 = c;
 }
 
+#define BD_RING_BUFFER_LENGTH 256
+uint8_t bdRingBuffer[BD_RING_BUFFER_LENGTH];
+uint8_t *pBdRingBufferEnd;
+uint8_t *pBdRingBufferRead;
+uint8_t *pBdRingBufferWrite;
+volatile int16_t rs485_enable_timer;
+
+void bdCommInit(void) {
+  // init USART, 8 data bits, 1 stop bit
+  // 2549Q-AVR-02/2014 page 206
+  uint16_t ubrr = F_OSC/16/BAUD_RATE_BD - 1;
+  UBRR1H = (uint8_t)(ubrr>>8);
+  UBRR1L = (uint8_t)ubrr;
+  // 2549Q-AVR-02/2014 page 221
+  UCSR1B = (1<<RXEN1) | (1<<TXEN1) | (1<<RXCIE1); // enable RX and TX
+  UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
+  DDRC |= 1 << PC0;
+  pBdRingBufferEnd = bdRingBuffer + BD_RING_BUFFER_LENGTH;
+  pBdRingBufferRead = bdRingBuffer;
+  pBdRingBufferWrite = bdRingBuffer;
+}
+
 void bdCommWrite(uint8_t c) {
+  *pBdRingBufferWrite++ = c;
+  if (pBdRingBufferWrite == pBdRingBufferRead) {
+    pBdRingBufferWrite--;
+  }
+  if (pBdRingBufferWrite > pBdRingBufferEnd) {
+    pBdRingBufferWrite = bdRingBuffer;
+  }
+}
+
+void bdCommWriteUnbuffered(uint8_t c) {
   // 2549Q-AVR-02/2014 page 207
   while (!(UCSR1A & (1<<UDRE1))) {
   }
   UDR1 = c;
+}
+
+void bdCommUnBuffer() {
+  if (pBdRingBufferRead == pBdRingBufferWrite) {
+    return;
+  }
+  bdCommWriteUnbuffered(*pBdRingBufferRead++);
+  rs485_enable_timer = 10*MS;
+  if (pBdRingBufferRead > pBdRingBufferEnd) {
+    pBdRingBufferRead = bdRingBuffer;
+  }
 }
 
 void bdCommFlush(void) {
@@ -104,7 +135,6 @@ void crCommWrite(uint8_t c) {
 volatile uint8_t target = 0;
 volatile int16_t source_timer = 0;
 volatile int16_t target_timer = 0;
-volatile int16_t rs485_enable_timer;
 
 void wdtInit(void) {
   uint8_t sreg = SREG;
@@ -219,7 +249,9 @@ ISR(USART2_RX_vect) {
       case TARGET_BOX_DRIVER:
         bdCommOutput();
         bdCommWrite(input);
-        rs485_enable_timer = 5*MS;
+        // the actual delay will be set when unbuffering
+        // see bdCommUnBuffer()
+        rs485_enable_timer = 100*MS;
         break;
       case TARGET_CARD_READER:
         crCommWrite(input);
@@ -333,6 +365,7 @@ int16_t main(void)
   while (1) 
   {
     wieRead();
+    bdCommUnBuffer();
     wdt_reset();
   }
   return 0;

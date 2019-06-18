@@ -194,13 +194,24 @@ class ProductSelectionActivity : PanelActivity() {
     }
 
     fun returnItem(@Suppress("UNUSED_PARAMETER") view: View) {
-        proceed(false, BasketItemType.Return)
+        val dialog = ReturnDialog(this)
+        dialog.setGoodConditionListener {
+            proceed(false, BasketItemType.Return, BasketItemCondition.Good)
+        }
+        dialog.setBadConditionListener {
+            proceed(false, BasketItemType.Return, BasketItemCondition.Bad, it)
+        }
+        dialog.show()
     }
 
     fun proceed(@Suppress("UNUSED_PARAMETER") view: View) {
         val newCount = count_input.text.toString().toIntOrNull()
-        val oldCount = basketModel.currentBasketItem?.count
-        if (newCount != null && oldCount != null && newCount < oldCount) {
+        val currentBasketItem = basketModel.currentBasketItem
+        val oldCount = currentBasketItem?.count
+        if (newCount != null &&
+                oldCount != null &&
+                newCount < oldCount &&
+                currentBasketItem.type == BasketItemType.Purchase) {
             AlertDialog.Builder(this)
                 .setTitle(R.string.out_of_products_title)
                 .setMessage(R.string.out_of_products_message)
@@ -217,12 +228,18 @@ class ProductSelectionActivity : PanelActivity() {
         }
     }
 
-    fun proceed(markEmpty: Boolean, type: BasketItemType = BasketItemType.Purchase) {
+    fun proceed(
+            markEmpty: Boolean,
+            type: BasketItemType = BasketItemType.Purchase,
+            condition: BasketItemCondition? = null,
+            conditionDetails: String? = null) {
         basketModel.saveSelectedItem(
             count_input.text.toString().toIntOrNull(),
             expenditure_input.text.toString(),
             reference_input.text.toString(),
-            type
+            type,
+            condition,
+            conditionDetails
         )
         if (markEmpty) {
             basketModel.markCurrentProductEmpty()

@@ -9,13 +9,13 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import fi.metatavu.acgpanel.model.BasketItem
-import fi.metatavu.acgpanel.model.getBasketModel
-import fi.metatavu.acgpanel.model.getLockModel
-import fi.metatavu.acgpanel.model.getLoginModel
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import fi.metatavu.acgpanel.model.*
 import kotlinx.android.synthetic.main.activity_quick_pick.*
 import kotlinx.android.synthetic.main.view_quick_pick_item.view.*
 
@@ -29,7 +29,7 @@ internal fun quickPickItemView(context: Context): View {
     return view
 }
 
-class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickPickItemView(context)) {
+class QuickPickItemViewHolder(private val context: Context) : RecyclerView.ViewHolder(quickPickItemView(context)) {
 
     var disableCountListener = false
     var index = -1
@@ -72,8 +72,7 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                  onCountUpdated: (Int, Int) -> Unit,
                  onExpenditureClick: (Int, ((String) -> Unit)) -> Unit,
                  onReferenceClick: (Int, ((String) -> Unit)) -> Unit,
-                 onPrevious: (Int) -> Unit,
-                 onNext: (Int) -> Unit) {
+                 onBasketItemTypeUpdated: (Int, BasketItemType?) -> Unit) {
         with (itemView) {
             setBackgroundColor(index, item.count, item.enabled)
             count_input.transformationMethod = null
@@ -123,9 +122,52 @@ class QuickPickItemViewHolder(context: Context) : RecyclerView.ViewHolder(quickP
                     setBackgroundColor(index, 0, item.enabled)
                     onDeleteClick(index)
                 }
+                borrow_spinner.isEnabled = true
             } else {
                 product_delete_button.isEnabled = false
                 product_delete_button.setOnClickListener {}
+                borrow_spinner.isEnabled = false
+            }
+            if (item.product.borrowable) {
+                borrow_spinner.visibility = View.VISIBLE
+                count_input.visibility = View.INVISIBLE
+                unit_text.visibility = View.INVISIBLE
+                product_delete_button.visibility = View.INVISIBLE
+                val adapter = ArrayAdapter.createFromResource(
+                    context,
+                    R.array.borrow_statuses_array,
+                    R.layout.spinner_item_small
+                )
+                adapter.setDropDownViewResource(
+                    android.R.layout.simple_spinner_dropdown_item
+                )
+                borrow_spinner.adapter = adapter
+                borrow_spinner.onItemSelectedListener = object: AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: AdapterView<*>?) {
+                        setBackgroundColor(index, 0, true)
+                        onBasketItemTypeUpdated(index, null)
+                    }
+                    override fun onItemSelected(
+                        parent: AdapterView<*>,
+                        view: View?,
+                        pos: Int,
+                        id: Long
+                    ) {
+                        setBackgroundColor(index, if (pos != 0) 1 else 0, true)
+                        Log.d(javaClass.name, "onItemSelected pos: $pos")
+                        onBasketItemTypeUpdated(index, when (pos) {
+                            0 -> null
+                            1 -> BasketItemType.Borrow
+                            2 -> BasketItemType.Return
+                            else -> null
+                        })
+                    }
+                }
+            } else {
+                borrow_spinner.visibility = View.INVISIBLE
+                count_input.visibility = View.VISIBLE
+                unit_text.visibility = View.VISIBLE
+                product_delete_button.visibility = View.VISIBLE
             }
         }
     }
@@ -150,8 +192,7 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
     private var countUpdatedListener: (Int, Int) -> Unit = {_, _ ->}
     private var expenditureClickListener: (Int, ((String)->Unit)) -> Unit = {_, _ ->}
     private var referenceClickListener: (Int, ((String)->Unit)) -> Unit = {_, _ ->}
-    private var previousClickListener: (Int) -> Unit = {}
-    private var nextClickListener: (Int) -> Unit = {}
+    private var basketItemTypeUpdatedListener: (Int, BasketItemType?) -> Unit = {_, _ ->}
 
     fun setDeleteClickListener(listener: (Int) -> Unit) {
         deleteClickListener = listener
@@ -169,12 +210,8 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
         referenceClickListener = listener
     }
 
-    fun setPreviousClickListener(listener: (Int) -> Unit) {
-        previousClickListener = listener
-    }
-
-    fun setNextClickListener(listener: (Int) -> Unit) {
-        nextClickListener = listener
+    fun setBasketItemTypeUpdatedListener(listener: (Int, BasketItemType?) -> Unit) {
+        basketItemTypeUpdatedListener = listener
     }
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, index: Int): QuickPickItemViewHolder {
@@ -190,8 +227,7 @@ class QuickPickAdapter : ListAdapter<BasketItem, QuickPickItemViewHolder>(QuickP
             countUpdatedListener,
             expenditureClickListener,
             referenceClickListener,
-            previousClickListener,
-            nextClickListener)
+            basketItemTypeUpdatedListener)
     }
 
 }
@@ -230,7 +266,8 @@ class QuickPickActivity : PanelActivity() {
             basketModel.saveSelectedItem(
                 count,
                 item?.expenditure ?: "",
-                item?.reference ?: ""
+                item?.reference ?: "",
+                type = item?.type ?: BasketItemType.Purchase
             )
             updateNumProducts()
         }
@@ -241,7 +278,8 @@ class QuickPickActivity : PanelActivity() {
                 basketModel.saveSelectedItem(
                     item?.count ?: 0,
                     it,
-                    item?.reference ?: ""
+                    item?.reference ?: "",
+                    type = item?.type ?: BasketItemType.Purchase
                 )
                 updateNumProducts()
                 updateExpenditure(it)
@@ -254,25 +292,27 @@ class QuickPickActivity : PanelActivity() {
                 basketModel.saveSelectedItem(
                     item?.count ?: 0,
                     item?.expenditure ?: "",
-                    it
+                    it,
+                    type = item?.type ?: BasketItemType.Purchase
                 )
                 updateNumProducts()
                 updateReference(it)
             }
         }
-        adapter.setPreviousClickListener {
-            if (it > 0) {
-                with (basket_items_view.getChildAt(it - 1)) {
-                    count_input.requestFocus()
-                }
-            }
-        }
-        adapter.setNextClickListener {
-            if (it < adapter.itemCount - 1) {
-                with (basket_items_view.getChildAt(it - 1)) {
-                    count_input.requestFocus()
-                }
-            }
+        adapter.setBasketItemTypeUpdatedListener { i, basketItemType ->
+            basketModel.selectExistingBasketItem(i)
+            val item = basketModel.currentBasketItem
+            Log.d(javaClass.name, "i: $i, BasketItemType: $basketItemType")
+            basketModel.saveSelectedItem(
+                when (basketItemType) {
+                    null -> 0
+                    else -> 1
+                },
+                item?.expenditure ?: "",
+                item?.reference ?: "",
+                type = basketItemType ?: BasketItemType.Borrow
+            )
+            updateNumProducts()
         }
     }
 
