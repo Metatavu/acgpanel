@@ -99,6 +99,7 @@
         android:src="@drawable/back_arrow"
         android:scaleType="fitCenter"
         android:background="@android:color/transparent"
+        android:visibility="invisible"
         />
 
     <EditText
@@ -106,6 +107,8 @@
         android:layout_width="200dp"
         android:layout_height="50dp"
         android:layout_gravity="bottom|end"
+        android:inputType="textCapCharacters"
+        android:capitalize="characters"
         android:focusableInTouchMode="true"
         android:focusedByDefault="true"
         android:singleLine="true"

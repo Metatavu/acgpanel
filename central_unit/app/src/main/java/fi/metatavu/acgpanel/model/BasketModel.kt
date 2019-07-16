@@ -6,7 +6,6 @@ import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
 import java.time.Instant
-import java.util.*
 import kotlin.concurrent.thread
 
 @Entity
@@ -54,7 +53,20 @@ data class ProductTransaction(
     var uploaded: Boolean = false
 )
 
-@Entity
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = Product::class,
+            childColumns = ["productId"],
+            parentColumns = ["id"]
+        ),
+        ForeignKey(
+            entity = User::class,
+            childColumns = ["userId"],
+            parentColumns = ["id"]
+        )
+    ]
+)
 data class ProductBorrow(
     @PrimaryKey var id: Long?,
     var productId: Long,
@@ -103,6 +115,9 @@ interface ProductBorrowDao {
     @Insert
     fun insertAll(vararg borrows: ProductBorrow)
 
+    @Update
+    fun updateAll(vararg borrows: ProductBorrow)
+
     @Query("""
         SELECT *
         FROM ProductBorrow
@@ -111,7 +126,16 @@ interface ProductBorrowDao {
         ORDER BY started DESC
         LIMIT 1
     """)
-    fun getActiveBorrowForProduct(productId: Long)
+    fun getActiveBorrowForProduct(productId: Long): ProductBorrow?
+
+    @Query("""
+        SELECT *
+        FROM ProductBorrow
+        WHERE ended IS NULL
+          AND userId = :userId
+        ORDER BY started DESC
+    """)
+    fun getActiveBorrowsForUser(userId: Long): List<ProductBorrow>
 }
 
 class GiptoolProductTransactionItem {
@@ -210,8 +234,10 @@ abstract class BasketModel {
     protected abstract fun schedule(callback: Runnable, timeout: Long)
     protected abstract fun transaction(tx: () -> Unit)
     protected abstract fun unsafeUpdateProducts()
+    protected abstract val userDao: UserDao
     protected abstract val productDao: ProductDao
     protected abstract val productTransactionDao: ProductTransactionDao
+    protected abstract val productBorrowDao: ProductBorrowDao
     protected abstract val productTransactionsService: GiptoolProductTransactionsService
     protected abstract val vendingMachineId: String
     protected abstract val demoMode: Boolean
@@ -325,29 +351,59 @@ abstract class BasketModel {
                     )
                     val id = productTransactionDao.insertProductTransaction(tx)
                     Log.d(javaClass.name, "ProductTransaction: $tx")
-                    val items = basket.map {
-                        ProductTransactionItem(
+                    val items = mutableListOf<ProductTransactionItem>()
+                    for (basketItem in basket) {
+                        val product = basketItem.product
+                        when (basketItem.type) {
+                            BasketItemType.Borrow -> {
+                                productBorrowDao.insertAll(
+                                    ProductBorrow(
+                                        null,
+                                        product.id!!,
+                                        currentUser!!.id!!,
+                                        basketItem.expenditure,
+                                        basketItem.reference,
+                                        Instant.now(),
+                                        null
+                                    )
+                                )
+                                product.borrowed = true
+                                productDao.updateAll(product)
+                            }
+                            BasketItemType.Return -> {
+                                val activeBorrow = productBorrowDao.getActiveBorrowForProduct(
+                                    basketItem.product.id!!
+                                )
+                                if (activeBorrow != null) {
+                                    activeBorrow.ended = Instant.now()
+                                    productBorrowDao.updateAll(activeBorrow)
+                                }
+                                product.borrowed = false
+                                productDao.updateAll(product)
+                            }
+                        }
+                        items.add(ProductTransactionItem(
                             null,
                             id,
-                            it.product.id!!,
-                            it.count,
-                            it.expenditure,
-                            it.reference,
-                            when (it.type) {
+                            basketItem.product.id!!,
+                            basketItem.count,
+                            basketItem.expenditure,
+                            basketItem.reference,
+                            when (basketItem.type) {
                                 BasketItemType.Purchase -> ProductTransactionItemType.PURCHASE
                                 BasketItemType.Borrow -> ProductTransactionItemType.BORROW
                                 BasketItemType.Return -> ProductTransactionItemType.RETURN
                             },
-                            when (it.condition) {
+                            when (basketItem.condition) {
                                 null -> null
                                 BasketItemCondition.Bad -> ProductTransactionItemCondition.BAD
                                 BasketItemCondition.Good -> ProductTransactionItemCondition.GOOD
                             },
-                            it.conditionDetails
-                        )
-                    }.toTypedArray()
-                    productTransactionDao.insertProductTransactionItems(*items)
-                    Log.d(javaClass.name, "ProductTransactionItems: ${Arrays.toString(items)}")
+                            basketItem.conditionDetails
+                        ))
+                    }
+                    productTransactionDao.insertProductTransactionItems(*items.toTypedArray())
+                    Log.d(javaClass.name, "ProductTransactionItems: $items")
                     Log.d(javaClass.name, "Completed product transaction")
                     schedule(Runnable { callback() }, 100)
                 }
@@ -413,6 +469,19 @@ abstract class BasketModel {
         }
     }
 
+    fun userBorrowedProducts(user: User): List<Product> {
+        return productBorrowDao.getActiveBorrowsForUser(user.id!!)
+            .mapNotNull {productDao.findProductById(it.productId)}
+    }
+
+    fun userBorrowingProduct(product: Product): User? {
+        val borrow = productBorrowDao.getActiveBorrowForProduct(product.id!!)
+        return if (borrow != null) {
+            userDao.findUserById(borrow.userId)
+        } else {
+            null
+        }
+    }
 
     protected open fun syncProductTransactions() {
         if (demoMode) {

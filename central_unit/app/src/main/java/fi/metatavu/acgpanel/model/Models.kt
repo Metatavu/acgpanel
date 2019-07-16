@@ -48,8 +48,9 @@ class Converters {
     UserCustomer::class,
     CustomerExpenditure::class,
     ProductTransactionItemType::class,
-    ProductTransactionItemCondition::class
-], version = 13, exportSchema = false)
+    ProductTransactionItemCondition::class,
+    ProductBorrow::class
+], version = 14, exportSchema = false)
 @TypeConverters(Converters::class)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
@@ -59,6 +60,7 @@ private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun systemPropertiesDao(): SystemPropertiesDao
     abstract fun compartmentMappingDao(): CompartmentMappingDao
     abstract fun expenditureDao(): ExpenditureDao
+    abstract fun productBorrowDao(): ProductBorrowDao
 }
 
 private const val DATABASE_NAME = "acgpanel.db"
@@ -130,8 +132,7 @@ private object Database {
                                 FOREIGN KEY(`userId`) REFERENCES `User`(`id`)
                                 ON UPDATE NO ACTION ON DELETE NO ACTION
                             )
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             CREATE TABLE IF NOT EXISTS `CustomerExpenditure` (
                                 `code` TEXT NOT NULL,
@@ -139,45 +140,60 @@ private object Database {
                                  `description` TEXT NOT NULL,
                                  PRIMARY KEY(`code`, `customerCode`)
                             )
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             CREATE TABLE IF NOT EXISTS `ProductTransactionItemType` (
                                 `type` TEXT NOT NULL DEFAULT '',
                                 PRIMARY KEY (`type`)
                             )
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             CREATE TABLE IF NOT EXISTS `ProductTransactionItemCondition` (
-                                `condition` TEXT NOT NULL DEFAULT '',
-                                PRIMARY KEY (`type`)
+                                `condition` TEXT NOT NULL DEFAULT ''
                             )
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             ALTER TABLE `ProductTransactionItem`
                                 ADD COLUMN `type` TEXT NOT NULL DEFAULT ''
                                     CONSTRAINT `FK_ProductTransactionItem_Type`
                                     REFERENCES `ProductTransactionItemType`(`type`)
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             ALTER TABLE `ProductTransactionItem`
                                 ADD COLUMN `condition` TEXT NOT NULL DEFAULT ''
                                     CONSTRAINT `FK_ProductTransactionItem_Condition`
                                     REFERENCES `ProductTransactionItemCondition`(`condition`)
-                            """
-                        )
+                        """)
                         database.execSQL("""
                             ALTER TABLE `Product`
                                 ADD COLUMN `borrowable` INTEGER NOT NULL DEFAULT 0
-                            """
-                        )
+                        """)
                     }
                 },
                 object: Migration(12, 13) {
                     override fun migrate(database: SupportSQLiteDatabase) {
+                    }
+                },
+                object: Migration(13, 14) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            CREATE TABLE IF NOT EXISTS `ProductBorrow` (
+                                `id` INTEGER,
+                                `productId` INTEGER NOT NULL,
+                                `userId` INTEGER NOT NULL,
+                                `expenditure` TEXT NOT NULL,
+                                `reference` TEXT NOT NULL,
+                                `started` INTEGER NOT NULL,
+                                `ended` INTEGER,
+                                PRIMARY KEY(`id`),
+                                FOREIGN KEY (`productId`) REFERENCES `Product`(`id`),
+                                FOREIGN KEY (`userId`) REFERENCES `User`(`id`)
+                            )
+                        """)
+                        database.execSQL("""
+                            ALTER TABLE `Product`
+                                ADD COLUMN `borrowed` INTEGER NOT NULL DEFAULT 0
+                        """)
                     }
                 }
             )
@@ -203,6 +219,9 @@ private object Database {
 
     val expenditureDao: ExpenditureDao
         get() = db.expenditureDao()
+
+    val productBorrowDao: ProductBorrowDao
+        get() = db.productBorrowDao()
 
     fun transaction(tx: () -> Unit) {
         db.runInTransaction(tx)
@@ -387,6 +406,9 @@ private object BasketModelImpl: BasketModel() {
     override val currentLine: String?
         get() = LockModelImpl.currentLine
 
+    override val userDao: UserDao
+        get() = Database.userDao
+
     override val productDao: ProductDao
         get() = Database.productDao
 
@@ -395,6 +417,9 @@ private object BasketModelImpl: BasketModel() {
 
     override val productTransactionsService: GiptoolProductTransactionsService
         get() = Services.productTransactionsService
+
+    override val productBorrowDao: ProductBorrowDao
+        get() = Database.productBorrowDao
 
     override val vendingMachineId: String
         get() = Preferences.vendingMachineId

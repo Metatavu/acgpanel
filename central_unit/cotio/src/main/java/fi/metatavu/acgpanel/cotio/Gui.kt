@@ -23,10 +23,9 @@ import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+import android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -42,10 +41,13 @@ import kotlinx.android.synthetic.main.activity_fill.*
 import kotlinx.android.synthetic.main.activity_open_lockers.*
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
+import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
 import kotlinx.android.synthetic.main.activity_default.unlock_button
     as default_activity_unlock_button
+import kotlinx.android.synthetic.main.activity_default.code_textbox
+    as default_activity_code_textbox
 import kotlinx.android.synthetic.main.activity_read_code.unlock_button
     as read_code_unlock_button
 import kotlinx.android.synthetic.main.activity_finished.unlock_button
@@ -198,8 +200,11 @@ class CotioApplication: Application() {
 
 }
 
-abstract class CotioActivity : LockedDownActivity(numTaps = 3) {
+abstract class CotioActivity(lockAtStart: Boolean = true) : LockedDownActivity(numTaps = 3, lockAtStart = lockAtStart) {
     private val localeDelegate = LocaleHelperActivityDelegateImpl()
+
+    private val rootView: View
+        get() = findViewById(android.R.id.content)!!
 
     protected val model: CotioModel
         get() = cotioApplication.model
@@ -217,6 +222,9 @@ abstract class CotioActivity : LockedDownActivity(numTaps = 3) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         localeDelegate.onCreate(this)
+        rootView.systemUiVisibility =
+            SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR and
+            FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
     }
 
     override fun onResume() {
@@ -239,9 +247,20 @@ class DefaultActivity : CotioActivity() {
     override val unlockButton: View
         get() = default_activity_unlock_button
 
+    private val inputMethodManager: InputMethodManager
+        get() = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(R.layout.activity_default)
         super.onCreate(savedInstanceState)
+        default_activity_code_textbox.setOnKeyListener { _, _, keyEvent ->
+            if (keyEvent.action == KeyEvent.ACTION_UP &&
+                keyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                readCode(code_textbox.text.toString())
+                code_textbox.text.clear()
+            }
+            false
+        }
     }
 
     override fun afterUnlock() {
@@ -265,6 +284,18 @@ class DefaultActivity : CotioActivity() {
         startActivity(intent)
     }
 
+    private fun readCode(code: String) {
+        val intent = Intent(this, ReadCodeActivity::class.java)
+        intent.putExtra(ReadCodeActivity.EXTRA_CODE, code)
+        startActivity(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        default_activity_code_textbox.requestFocus()
+        val view = currentFocus ?: View(this)
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+    }
 
 }
 
@@ -286,8 +317,12 @@ class ReadCodeActivity : CotioActivity() {
         code_prompt.text = msg
         code_prompt.setTextColor(getColor(R.color.colorError))
         handler.postDelayed({
-            code_prompt.text = getString(R.string.read_code_prompt)
-            code_prompt.setTextColor(getColor(R.color.colorPrimaryText))
+            if (intent.hasExtra(EXTRA_CODE)) {
+                finish()
+            } else {
+                code_prompt.text = getString(R.string.read_code_prompt)
+                code_prompt.setTextColor(getColor(R.color.colorPrimaryText))
+            }
         }, 5000)
     }
 
@@ -362,6 +397,8 @@ class ReadCodeActivity : CotioActivity() {
         super.onResume()
         cotioApplication.addLockerClosedListener(lockClosedListener)
         code_textbox.requestFocus()
+        val view = currentFocus ?: View(this)
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     override fun onStart() {
@@ -376,6 +413,14 @@ class ReadCodeActivity : CotioActivity() {
                 arrow.startAnimation(it)
             }
         }, 2000)
+
+        if (intent.hasExtra(EXTRA_CODE)) {
+            readCode(intent.getStringExtra(EXTRA_CODE))
+        }
+    }
+
+    companion object {
+        val EXTRA_CODE = "fi.metatavu.acgpanel.CODE"
     }
 
 }

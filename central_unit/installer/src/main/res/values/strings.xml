@@ -2,7 +2,8 @@
     <string name="app_name">ACGPanel Asennusohjelma</string>
     <string name="ok">OK</string>
     <string name="resume">Jatka</string>
-    <string name="acgpanel">ACGPanel</string>
     <string name="cotio">Cotio</string>
     <string name="select_install_target">Valitse asennettava ohjelma</string>
+    <string name="acgpanel">ACGPanel (ACG Pulse logo)</string>
+    <string name="etrapanel">ACGPanel (ETRA logo)</string>
 </resources>

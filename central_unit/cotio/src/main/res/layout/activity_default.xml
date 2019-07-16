@@ -5,7 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/heroimage"
-    tools:context=".DefaultActivity">
+    android:theme="@style/AppTheme"
+    tools:context=".DefaultActivity"
+    >
 
     <Button
         android:id="@+id/unlock_button"
@@ -68,5 +70,16 @@
         android:src="@drawable/english"
         />
 
+    <EditText
+        android:id="@+id/code_textbox"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:focusableInTouchMode="true"
+        android:focusedByDefault="true"
+        android:singleLine="true"
+        android:maxLines="1"
+        android:alpha="0"
+        />
 
 </FrameLayout>

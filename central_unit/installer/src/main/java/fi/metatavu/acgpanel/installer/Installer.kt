@@ -40,6 +40,7 @@ class MainActivity : Activity() {
 
     private sealed class InstallTarget {
         object ACGPanel : InstallTarget()
+        object ETRAPanel : InstallTarget()
         object Cotio : InstallTarget()
     }
 
@@ -57,7 +58,7 @@ class MainActivity : Activity() {
     /**
      * The program to install
      */
-    private var installTarget: InstallTarget = InstallTarget.ACGPanel
+    private var installTarget: InstallTarget = InstallTarget.ETRAPanel
 
     /**
      * Output a line to the screen and scroll to bottom
@@ -207,6 +208,7 @@ class MainActivity : Activity() {
         runCommand("chmod 644 /system/priv-app/fi.metatavu.acgpanel.cotio/cotio.apk")
         runCommand("pm install $cotioApkPath")
         runCommand("pm grant fi.metatavu.acgpanel.cotio android.permission.READ_EXTERNAL_STORAGE")
+        runCommand("pm grant fi.metatavu.acgpanel.cotio android.permission.ACCESS_SUPERUSER")
     }
 
     /**
@@ -248,6 +250,9 @@ class MainActivity : Activity() {
             InstallTarget.ACGPanel -> {
                 runCommand("dpm set-device-owner fi.metatavu.acgpanel/.DeviceAdminReceiver")
             }
+            InstallTarget.ETRAPanel -> {
+                runCommand("dpm set-device-owner fi.metatavu.acgpanel/.DeviceAdminReceiver")
+            }
             InstallTarget.Cotio -> {
                 runCommand("dpm set-device-owner fi.metatavu.acgpanel.cotio/.DeviceAdminReceiver")
             }
@@ -264,8 +269,18 @@ class MainActivity : Activity() {
         runCommand("pm disable com.google.android.gms")
         // Hide snackbars and toasts
         runCommand("appops set android TOAST_WINDOW deny")
-        // Hide top and bottom bars
-        runCommand("wm overscan 0,-48,0,-72")
+        when (installTarget) {
+            InstallTarget.Cotio -> {
+                // Customize nav bar
+                runCommand("settings put secure sysui_nav_bar \"back;recent;home,space[125]\"")
+                runCommand("wm overscan 0,-48,0,0")
+            }
+            else -> {
+                // Hide top and bottom bars
+                incrementProgress()
+                runCommand("wm overscan 0,-48,0,-72")
+            }
+        }
     }
 
     /**
@@ -289,8 +304,11 @@ class MainActivity : Activity() {
             is InstallTarget.Cotio -> {
                 writeResource(R.raw.cotioanimation, bootAnimationPath)
             }
-            is InstallTarget.ACGPanel -> {
+            is InstallTarget.ETRAPanel -> {
                 writeResource(R.raw.bootanimation, bootAnimationPath)
+            }
+            is InstallTarget.ACGPanel -> {
+                writeResource(R.raw.acgpulseanimation, bootAnimationPath)
             }
         }
         runCommand("cp $bootAnimationPath /system/media")
@@ -302,14 +320,80 @@ class MainActivity : Activity() {
     }
 
     /**
+     * Install custom logos to override the default ones in the UI
+     */
+    private fun installLogos() {
+        when (installTarget) {
+            is InstallTarget.ACGPanel -> {
+                val blueLogoPath = File(filesDir, "logo_blue.png").absolutePath
+                writeResource(R.raw.logo_blue_small, blueLogoPath)
+                val whiteLogoPath = File(filesDir, "logo_white.png").absolutePath
+                writeResource(R.raw.logo_white_small, whiteLogoPath)
+                val bigLogoPath = File(filesDir, "logo_big.png").absolutePath
+                writeResource(R.raw.logo_white_big, bigLogoPath)
+                runCommand("mkdir /data/data/fi.metatavu.acgpanel/files/")
+                runCommand("chmod 777 /data/data/fi.metatavu.acgpanel/files/")
+                runCommand("cp $blueLogoPath /data/data/fi.metatavu.acgpanel/files/logo_blue.png")
+                runCommand("chmod 644 /data/data/fi.metatavu.acgpanel/files/logo_blue.png")
+                runCommand("cp $whiteLogoPath /data/data/fi.metatavu.acgpanel/files/logo_white.png")
+                runCommand("chmod 644 /data/data/fi.metatavu.acgpanel/files/logo_white.png")
+                runCommand("cp $bigLogoPath /data/data/fi.metatavu.acgpanel/files/logo_big.png")
+                runCommand("chmod 644 /data/data/fi.metatavu.acgpanel/files/logo_big.png")
+            }
+            else -> {
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+                incrementProgress()
+            }
+        }
+    }
+
+     /**
+     * The app uses F-Droid to manage its updates, and also updates for
+     * some other apps, like the keyboard
+     */
+    private fun installFDroidForUpdates() {
+        // Install F-Droid privileged extension for unattended updates
+        val fDroidPrivilegedApkPath = File(filesDir, "fdroid_privileged.apk").absolutePath
+        writeResource(R.raw.fdroid_privileged, fDroidPrivilegedApkPath)
+        runCommand("mkdir /system/priv-app/org.fdroid.fdroid.privileged")
+        runCommand("chmod 755 /system/priv-app/org.fdroid.fdroid.privileged")
+        runCommand("cp $fDroidPrivilegedApkPath /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
+        runCommand("chmod 644 /system/priv-app/org.fdroid.fdroid.privileged/fdroid_privileged.apk")
+        runCommand("pm install $fDroidPrivilegedApkPath")
+        // Install F-Droid for update management
+        val fDroidApkPath = File(filesDir, "fdroid.apk").absolutePath
+        writeResource(R.raw.fdroid, fDroidApkPath)
+        runCommand("pm install $fDroidApkPath")
+        // Add update repo
+        val addRepoIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("fdroidrepos://static.metatavu.io/acgpanel_repo/repo/")
+        )
+        startActivity(addRepoIntent)
+    }
+
+    /**
      * Make a thread that runs the installation process
      */
     private fun makeProcessThread(): Thread = thread(start = false) {
         try {
-            maxProgress = 31
+            maxProgress = 51
             disableGrubMenuScreen()
             when (installTarget) {
                 InstallTarget.ACGPanel -> {
+                    installMainAppAsPrivileged()
+                    startAcgPanelConfiguration()
+                }
+                InstallTarget.ETRAPanel -> {
                     installMainAppAsPrivileged()
                     startAcgPanelConfiguration()
                 }
@@ -321,6 +405,8 @@ class MainActivity : Activity() {
             lockDownDevice()
             installAndEnableSimpleKeyboard()
             installBootAnimation()
+            installLogos()
+            installFDroidForUpdates()
             completed()
         } catch (ex: Exception) {
             print("Exception: ${ex.javaClass.name}: ${ex.message}", error = true)
@@ -344,6 +430,9 @@ class MainActivity : Activity() {
         val acgPanelButton = RadioButton(this)
         acgPanelButton.text = getString(R.string.acgpanel)
         radioGroup.addView(acgPanelButton)
+        val etraPanelButton = RadioButton(this)
+        etraPanelButton.text = getString(R.string.etrapanel)
+        radioGroup.addView(etraPanelButton)
         val cotioButton = RadioButton(this)
         cotioButton.text = getString(R.string.cotio)
         radioGroup.addView(cotioButton)
@@ -353,6 +442,9 @@ class MainActivity : Activity() {
             .setPositiveButton(getString(R.string.ok)) { _, _ ->
                 if (acgPanelButton.isChecked) {
                     installTarget = InstallTarget.ACGPanel
+                }
+                if (etraPanelButton.isChecked) {
+                    installTarget = InstallTarget.ETRAPanel
                 }
                 if (cotioButton.isChecked) {
                     installTarget = InstallTarget.Cotio

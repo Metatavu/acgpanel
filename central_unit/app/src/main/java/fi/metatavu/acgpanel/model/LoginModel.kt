@@ -388,7 +388,6 @@ abstract class LoginModel {
 
     protected open fun syncUsers() {
         if (demoMode) {
-            userDao.clearUsers()
             userDao.insertAll(
                 User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true, false),
                 User(

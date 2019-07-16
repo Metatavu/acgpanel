@@ -27,7 +27,8 @@ data class Product(
     var removed: Boolean,
     var empty: Boolean,
     var serverStock: Int,
-    var borrowable: Boolean
+    var borrowable: Boolean,
+    var borrowed: Boolean
 )
 
 @Entity(primaryKeys = ["productId", "url"])
@@ -131,6 +132,7 @@ class GiptoolProduct {
     var line: String? = null
     var barcode: String? = null
     var stock: Int? = null
+    var borrowable: Boolean? = null
 }
 
 class GiptoolProducts {
@@ -156,7 +158,6 @@ abstract class ProductsModel {
 
     protected open fun syncProducts() {
         if (demoMode) {
-            productDao.clearProducts()
             val products = (1L..20L).map {
                 Product(
                     id = it,
@@ -172,7 +173,8 @@ abstract class ProductsModel {
                     removed = false,
                     empty = false,
                     serverStock = 0,
-                    borrowable = it < 4
+                    borrowable = it < 4,
+                    borrowed = false
                 )
             }
             productDao.insertAll(*products.toTypedArray())
@@ -203,7 +205,8 @@ abstract class ProductsModel {
                         removed = false,
                         empty = false,
                         serverStock = it.stock ?: 0,
-                        borrowable = false
+                        borrowable = it.borrowable == true,
+                        borrowed = false
                     )
                 }
                 .toTypedArray()
@@ -214,6 +217,7 @@ abstract class ProductsModel {
                         product.externalId, product.line)
                     if (existing != null) {
                         product.id = existing.id
+                        product.borrowed = existing.borrowed
                         if (product.serverStock > existing.serverStock) {
                             product.empty = false
                         } else {

@@ -3,18 +3,21 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:acgpanel="http://www.metatavu.fi/acgpanel"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".IdentifyActivity">
 
-    <ImageView
+    <!--suppress AndroidUnknownAttribute -->
+    <fi.metatavu.acgpanel.FileSystemImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="30dp"
         android:contentDescription="@string/logo"
         android:src="@drawable/logo_blue"
+        acgpanel:source="logo_blue.png"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -90,7 +93,7 @@
             android:lineSpacingMultiplier="1.3"
             />
 
-        <ImageView
+        <fi.metatavu.acgpanel.FileSystemImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="30dp"
@@ -98,6 +101,7 @@
             android:layout_gravity="end|top"
             android:contentDescription="@string/logo"
             android:src="@drawable/logo_white"
+            acgpanel:source="logo_white.png"
             android:background="@android:color/transparent"
             />
 

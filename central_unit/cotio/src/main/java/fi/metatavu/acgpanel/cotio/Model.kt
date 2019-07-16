@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import java.time.Instant
+import java.util.*
 import kotlin.concurrent.thread
 
 @Entity(primaryKeys = ["driver", "compartment"])
@@ -279,6 +280,7 @@ class CotioModel(private val context: Context) {
             .removePrefix(context.getString(R.string.code_prefix_https))
             .removePrefix(context.getString(R.string.code_prefix_http))
             .removePrefix(" ")
+            .toUpperCase(Locale.ROOT)
         val now = Instant.now()
         val lockerCode = LockerCode(code, LockerCodeState.FREE, null, null, now)
         if (now.isBefore(lastCodeAddTime.plusSeconds(10))) {
@@ -303,6 +305,7 @@ class CotioModel(private val context: Context) {
             .removePrefix(context.getString(R.string.code_prefix_https))
             .removePrefix(context.getString(R.string.code_prefix_http))
             .removePrefix(" ")
+            .toUpperCase(Locale.ROOT)
         val now = Instant.now()
         if (now.isBefore(lastCodeReadTime.plusSeconds(10))) {
             return CodeReadResult.TooFrequentReads

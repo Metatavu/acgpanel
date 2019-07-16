@@ -50,6 +50,7 @@ class QuickPickItemViewHolder(private val context: Context) : RecyclerView.ViewH
         }
     }
 
+    @Suppress("BooleanLiteralArgument")
     fun setBackgroundColor(index: Int, count: Int, enabled: Boolean) {
         with (itemView) {
             background = if (enabled) {
@@ -366,7 +367,7 @@ class QuickPickActivity : PanelActivity() {
     }
 
     fun showProfileDialog(@Suppress("UNUSED_PARAMETER") view: View) {
-        val dialog = ProfileDialog(this, loginModel)
+        val dialog = ProfileDialog(this, loginModel, basketModel)
         dialog.setLogoutListener {
             loginModel.logOut()
         }

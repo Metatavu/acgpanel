@@ -75,10 +75,24 @@ class ProductSelectionActivity : PanelActivity() {
                     info_button.visibility = View.INVISIBLE
                 }
             }
+            thread(start = true) {
+                val borrower = basketModel.userBorrowingProduct(product)
+                runOnUiThread {
+                    if (borrower != null) {
+                        product_description.text =
+                            "Lainaaja: ${borrower.userName}\n\n" +
+                            "Tuotekoodi: ${product.code}\n\n" +
+                            "Linja: ${product.line}\n\n" +
+                            "Kuvaus:\n${product.productInfo}"
+                    } else {
+                        product_description.text =
+                            "Tuotekoodi: ${product.code}\n\n" +
+                            "Linja: ${product.line}\n\n" +
+                            "Kuvaus:\n${product.productInfo}"
+                    }
+                }
+            }
             product_name.text = product.name
-            product_description.text = "Tuotekoodi: ${product.code}\n\n" +
-                                       "Linja: ${product.line}\n\n" +
-                                       "Kuvaus:\n${product.productInfo}"
             count_input.text.clear()
             count_input.transformationMethod = null
             count_input.addTextChangedListener(object: TextWatcher{
@@ -119,6 +133,7 @@ class ProductSelectionActivity : PanelActivity() {
                 borrow_button.visibility = View.INVISIBLE
                 return_button.visibility = View.INVISIBLE
             }
+            borrow_button.isEnabled = !basketItem.product.borrowed
             lockModel.isLineCalibrated(product.line) { calibrated ->
                 runOnUiThread {
                     if (calibrated) {

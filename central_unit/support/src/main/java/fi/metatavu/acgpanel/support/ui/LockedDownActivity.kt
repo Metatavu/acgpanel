@@ -20,6 +20,7 @@ abstract class LockedDownActivity(
     private val unlockTickCounter = TimedTickCounter(numTaps, Duration.ofSeconds(1)) {
         val dialog = UnlockDialog(this, maintenancePasscode)
         dialog.setFinishListener {
+            dialog.dismiss()
             @Suppress("DEPRECATION")
             if (activityManager.isInLockTaskMode) {
                 stopLockTask()

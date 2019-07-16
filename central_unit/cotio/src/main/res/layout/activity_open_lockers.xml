@@ -16,6 +16,7 @@
         android:src="@drawable/back_arrow"
         android:scaleType="fitCenter"
         android:background="@android:color/transparent"
+        android:visibility="invisible"
         />
 
     <TextView

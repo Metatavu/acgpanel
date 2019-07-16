@@ -34,7 +34,9 @@
             android:excludeFromRecents="true"
             android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="stateHidden"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -80,6 +82,7 @@
 
         <activity
             android:name=".AddCodeActivity"
+            android:windowSoftInputMode="stateHidden"
             android:label="@string/add_code">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -90,6 +93,7 @@
 
         <activity
             android:name=".FillActivity"
+            android:windowSoftInputMode="stateHidden"
             android:label="@string/fill_locker">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

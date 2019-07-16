@@ -68,8 +68,17 @@ class ProductPageViewHolder(val context: Context) : RecyclerView.ViewHolder(prod
                 button.setOnClickListener {
                     onProductClick(product)
                 }
-                getView<TextView>(emptyMessageIds, i).visibility =
-                    if (product.empty) View.VISIBLE else View.INVISIBLE
+                if (product.empty) {
+                    getView<TextView>(emptyMessageIds, i).visibility = View.VISIBLE
+                    getView<TextView>(emptyMessageIds, i).text = context.getText(R.string.line_empty)
+                } else if (product.borrowed) {
+                    getView<TextView>(emptyMessageIds, i).visibility = View.VISIBLE
+                    getView<TextView>(emptyMessageIds, i).text = context.getText(R.string.line_borrowed)
+                } else {
+                    getView<TextView>(emptyMessageIds, i).visibility = View.INVISIBLE
+                    getView<TextView>(emptyMessageIds, i).text = ""
+                }
+
             } else {
                getView<View>(parentViewIds, i).visibility = View.INVISIBLE
             }
@@ -312,7 +321,7 @@ class ProductBrowserActivity : PanelActivity() {
     }
 
     fun showProfileDialog(@Suppress("UNUSED_PARAMETER") target: View) {
-        val dialog = ProfileDialog(this, loginModel)
+        val dialog = ProfileDialog(this, loginModel, basketModel)
         dialog.setLogoutListener {
             loginModel.logOut()
         }

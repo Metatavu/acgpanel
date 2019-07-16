@@ -133,4 +133,7 @@
     <string name="basket_product_details_return">Palautus\nkustannuspaikka: %1$s, lisäviite: %2$s</string>
     <string name="pickup_products">Ota lokerosta seuraavat tuotteet</string>
     <string name="putin_products">Aseta lokeroon seuraavat tuotteet</string>
+    <string name="line_borrowed">Lainassa</string>
+    <string name="profile_borrows">Lainaukset</string>
+    <string name="profile_no_borrows">Ei lainauksia</string>
 </resources>
