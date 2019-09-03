@@ -92,14 +92,11 @@
         android:singleLine="true"
         />
 
-    <CheckBoxPreference
-        android:key="@string/pref_key_wiegand_profile_1"
-        android:title="@string/pref_title_wiegand_profile_1"
-        />
-
-    <CheckBoxPreference
-        android:key="@string/pref_key_wiegand_profile_2"
-        android:title="@string/pref_title_wiegand_profile_2"
+    <ListPreference
+        android:key="@string/pref_key_card_reader_type"
+        android:title="@string/pref_title_card_reader_type"
+        android:entries="@array/card_reader_type_entries"
+        android:entryValues="@array/card_reader_type_values"
         />
 
     <EditTextPreference
@@ -140,6 +137,11 @@
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
+        />
+
+    <CheckBoxPreference
+        android:key="@string/pref_key_show_stock"
+        android:title="@string/pref_title_show_stock"
         />
 
 </PreferenceScreen>

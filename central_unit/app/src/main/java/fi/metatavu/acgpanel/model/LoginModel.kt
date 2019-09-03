@@ -65,6 +65,13 @@ data class CustomerExpenditure(
     var description: String
 )
 
+enum class CardReaderType {
+    ACCESS_7C,
+    ACCESS_7AH,
+    SCHNEIDER_HID,
+    IR6090B
+}
+
 @Dao
 interface UserDao {
 
@@ -203,9 +210,8 @@ abstract class LoginModel {
     protected abstract val usersService: GiptoolUsersService
     protected abstract val expendituresService: GiptoolExpendituresService
     protected abstract val demoMode: Boolean
-    protected abstract val useWiegandProfile1: Boolean
-    protected abstract val useWiegandProfile2: Boolean
     protected abstract val timeoutInSeconds: Long
+    protected abstract val cardReaderType: CardReaderType
 
     abstract val vendingMachineId: String
     abstract var password: String
@@ -221,6 +227,12 @@ abstract class LoginModel {
     private val loginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private val failedLoginEventListeners: MutableList<() -> Unit> = mutableListOf()
     private var lastRefresh = Instant.now()
+    private var lastLogInAttempt = Instant.now()
+
+    val shouldPollCardReader: Boolean
+        get() = cardReaderType == CardReaderType.IR6090B
+                && !loggedIn
+                && Instant.now().isAfter(lastLogInAttempt.plusSeconds(LOGIN_COOLDOWN_IN_SECONDS))
 
     var currentUser: User? = null
         private set
@@ -266,33 +278,15 @@ abstract class LoginModel {
     }
 
     fun logIn(cardCode: String) {
+        lastLogInAttempt = Instant.now()
         if (loggedIn) {
             return
         }
-        val convertedCodes: List<String>
-        if (useWiegandProfile1) {
-            // 24 data bits + 2 (discarded) parity bits
-            convertedCodes = listOf(cardCode
-                .drop(1).take(24)
-                .toInt(2).toString()
-                .padEnd(CODE_LENGTH, '0'))
-        } else if (useWiegandProfile2) {
-            var binary = cardCode.padEnd(35, '0').toULong(2)
-            binary = binary xor 0x400000000UL
-            val hex = binary
-                .toString(16)
-                .toUpperCase()
-            convertedCodes = listOf(
-                hex
-                    .padStart(10, '0')
-                    .padEnd(CODE_LENGTH, '0'),
-                hex
-                    .padStart(9, '0')
-                    .padEnd(CODE_LENGTH, '0'))
-        } else {
-            convertedCodes = listOf(cardCode.take(CODE_LENGTH))
-        }
+        val convertedCodes: List<String> = processCardCode(cardReaderType, cardCode)
         Log.d(javaClass.name, "Converted codes: $convertedCodes")
+        if (convertedCodes.isEmpty()) {
+            return
+        }
         refresh()
         thread(start = true) {
             val user = userDao.findUserByCardCode(convertedCodes)
@@ -310,8 +304,8 @@ abstract class LoginModel {
                             null,
                             user.id,
                             user.cardCode,
-                            true,
-                            false
+                            successful = true,
+                            uploaded = false
                         )
                     )
                 }
@@ -332,8 +326,8 @@ abstract class LoginModel {
                             null,
                             null,
                             convertedCodes[0],
-                            false,
-                            false
+                            successful = false,
+                            uploaded = false
                         )
                     )
                 }
@@ -389,7 +383,7 @@ abstract class LoginModel {
     protected open fun syncUsers() {
         if (demoMode) {
             userDao.insertAll(
-                User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true, false),
+                User(1, "Harri Hyllyttäjä", "123456789012345", "123", "123", true, removed = false),
                 User(
                     2,
                     "Teppo Testikäyttäjä",
@@ -505,8 +499,7 @@ abstract class LoginModel {
     }
 
     companion object {
-        private const val CODE_LENGTH = 15
+        private const val LOGIN_COOLDOWN_IN_SECONDS = 2L
     }
 
 }
-

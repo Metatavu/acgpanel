@@ -11,10 +11,13 @@ import android.view.View
 import android.widget.Button
 import fi.metatavu.acgpanel.model.*
 import kotlinx.android.synthetic.main.activity_product_selection.*
+import java.lang.StringBuilder
 import kotlin.concurrent.thread
 
 class ProductSelectionActivity : PanelActivity() {
 
+    private var productBorrowed = false
+    private var lineCalibrated = true
     private val basketModel = getBasketModel()
     private val loginModel = getLoginModel()
     private val lockModel = getLockModel()
@@ -33,9 +36,10 @@ class ProductSelectionActivity : PanelActivity() {
         if (basketItem != null) {
             lockModel.isLineCalibrated(basketItem.product.line) { calibrated ->
                 runOnUiThread {
-                    if (calibrated) {
-                        ok_button.isEnabled = true
-                    }
+                    lineCalibrated = calibrated
+                    ok_button.isEnabled = okButtonEnabled
+                    borrow_button.isEnabled = borrowButtonEnabled
+                    return_button.isEnabled = returnButtonEnabled
                 }
             }
         }
@@ -44,6 +48,30 @@ class ProductSelectionActivity : PanelActivity() {
     private val failedLoginListener = {
         UnauthorizedDialog(this).show()
     }
+
+    private val okButtonVisible: Boolean
+        get() = basketModel.currentBasketItem?.product?.borrowable != true
+
+    private val okButtonEnabled: Boolean
+        get() = lineCalibrated && loginModel.loggedIn
+
+    private val borrowButtonVisible: Boolean
+        get() = basketModel.currentBasketItem?.product?.borrowable == true
+
+    private val borrowButtonEnabled: Boolean
+        get() = loginModel.loggedIn &&
+                lineCalibrated &&
+                basketModel.currentBasketItem?.product?.empty != true &&
+                !productBorrowed
+
+    private val returnButtonVisible: Boolean
+        get() = basketModel.currentBasketItem?.product?.borrowable == true
+
+    private val returnButtonEnabled: Boolean
+        get() = loginModel.loggedIn && lineCalibrated
+
+    private val countVisible: Boolean
+        get() = !borrowButtonVisible
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,19 +105,18 @@ class ProductSelectionActivity : PanelActivity() {
             }
             thread(start = true) {
                 val borrower = basketModel.userBorrowingProduct(product)
+                val descriptionText = StringBuilder()
+                if (borrower != null) {
+                    descriptionText.append("Lainaaja: ${borrower.userName}\n\n")
+                }
+                if (productsModel.stocksVisible) {
+                    descriptionText.append("Varastossa ${product.serverStock} ${product.unit}\n\n")
+                }
+                descriptionText.append("Tuotekoodi: ${product.code}\n\n")
+                descriptionText.append("Linja: ${product.line}\n\n")
+                descriptionText.append("Kuvaus:\n${product.productInfo}")
                 runOnUiThread {
-                    if (borrower != null) {
-                        product_description.text =
-                            "Lainaaja: ${borrower.userName}\n\n" +
-                            "Tuotekoodi: ${product.code}\n\n" +
-                            "Linja: ${product.line}\n\n" +
-                            "Kuvaus:\n${product.productInfo}"
-                    } else {
-                        product_description.text =
-                            "Tuotekoodi: ${product.code}\n\n" +
-                            "Linja: ${product.line}\n\n" +
-                            "Kuvaus:\n${product.productInfo}"
-                    }
+                    product_description.text = descriptionText.toString()
                 }
             }
             product_name.text = product.name
@@ -118,36 +145,31 @@ class ProductSelectionActivity : PanelActivity() {
             reference_input.isEnabled = !basketModel.lockUserReference
             reference_input.text = basketItem.reference
             drawProduct(product, product_picture)
-            if (basketItem.product.borrowable) {
-                count_input.visibility = View.INVISIBLE
-                count_units.visibility = View.INVISIBLE
-                count_label.visibility = View.INVISIBLE
-                ok_button.visibility = View.INVISIBLE
-                borrow_button.visibility = View.VISIBLE
-                return_button.visibility = View.VISIBLE
-            } else {
-                count_input.visibility = View.VISIBLE
-                count_units.visibility = View.VISIBLE
-                count_label.visibility = View.VISIBLE
-                ok_button.visibility = View.VISIBLE
-                borrow_button.visibility = View.INVISIBLE
-                return_button.visibility = View.INVISIBLE
-            }
-            borrow_button.isEnabled = !basketItem.product.borrowed
+            count_input.visibility = if (countVisible) View.VISIBLE else View.INVISIBLE
+            count_units.visibility = if (countVisible) View.VISIBLE else View.INVISIBLE
+            count_label.visibility = if (countVisible) View.VISIBLE else View.INVISIBLE
+            ok_button.visibility = if (okButtonVisible) View.VISIBLE else View.INVISIBLE
+            borrow_button.visibility = if (borrowButtonVisible) View.VISIBLE else View.INVISIBLE
+            return_button.visibility = if (returnButtonVisible) View.VISIBLE else View.INVISIBLE
             lockModel.isLineCalibrated(product.line) { calibrated ->
-                runOnUiThread {
-                    if (calibrated) {
-                        not_calibrated_warning.visibility = View.GONE
-                    } else {
-                        not_calibrated_warning.visibility = View.VISIBLE
-                        ok_button.isEnabled = false
+                basketModel.currentProductBorrowed {  borrowed ->
+                    runOnUiThread {
+                        lineCalibrated = calibrated
+                        productBorrowed = borrowed
+                        if (calibrated) {
+                            not_calibrated_warning.visibility = View.GONE
+                        } else {
+                            not_calibrated_warning.visibility = View.VISIBLE
+                        }
+                        ok_button.isEnabled = okButtonEnabled
+                        borrow_button.isEnabled = borrowButtonEnabled
+                        return_button.isEnabled = returnButtonEnabled
                     }
                 }
             }
         }
-        if (!loginModel.loggedIn) {
-            ok_button.isEnabled = false
-        }
+        ok_button.isEnabled = okButtonEnabled
+        ok_button.visibility = if (okButtonVisible) View.VISIBLE else View.INVISIBLE
     }
 
     override fun onDestroy() {

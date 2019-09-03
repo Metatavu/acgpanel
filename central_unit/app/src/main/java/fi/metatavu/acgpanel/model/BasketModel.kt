@@ -50,7 +50,8 @@ data class ProductTransactionItemCondition(
 data class ProductTransaction(
     @PrimaryKey var id: Long?,
     var userId: Long,
-    var uploaded: Boolean = false
+    var uploaded: Boolean = false,
+    var timestamp: Instant? = null
 )
 
 @Entity(
@@ -165,6 +166,7 @@ class GiptoolProductTransaction {
     var transactionNumber: Long? = null
     var userId: Long? = null
     var vendingMachineId: String? = null
+    var timestamp: String? = null
     val items: MutableList<GiptoolProductTransactionItem> = mutableListOf()
 
     override fun toString(): String {
@@ -347,7 +349,9 @@ abstract class BasketModel {
                     )
                     val tx = ProductTransaction(
                         null,
-                        user.id!!
+                        user.id!!,
+                        false,
+                        Instant.now()
                     )
                     val id = productTransactionDao.insertProductTransaction(tx)
                     Log.d(javaClass.name, "ProductTransaction: $tx")
@@ -483,6 +487,18 @@ abstract class BasketModel {
         }
     }
 
+    fun currentProductBorrowed(callback: (Boolean) -> Unit) {
+        thread(start = true) {
+            val product = currentBasketItem?.product
+            if (product != null) {
+                val borrower = userBorrowingProduct(product)
+                schedule(Runnable {callback(borrower != null)}, 0)
+            } else {
+                schedule(Runnable {callback(false)}, 0)
+            }
+        }
+    }
+
     protected open fun syncProductTransactions() {
         if (demoMode) {
             return
@@ -494,6 +510,7 @@ abstract class BasketModel {
                 giptoolTx.transactionNumber = tx.id
                 giptoolTx.vendingMachineId = vendingMachineId
                 giptoolTx.userId = tx.userId
+                giptoolTx.timestamp = tx.timestamp?.toString()
                 val items = productTransactionDao.listItemsByTransaction(tx.id!!)
                 for (item in items) {
                     val product = productDao.findProductById(item.productId)

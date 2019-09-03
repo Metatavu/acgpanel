@@ -2,7 +2,6 @@ package fi.metatavu.acgpanel
 
 import android.app.Activity
 import android.app.Dialog
-import android.opengl.Visibility
 import android.os.Bundle
 import android.view.View
 import android.view.Window
@@ -14,11 +13,11 @@ class ReturnDialog(activity: Activity) : Dialog(activity) {
 
     private var badConditionListener : ((String) -> Unit)? = null
 
-    public fun setGoodConditionListener(listener: () -> Unit) {
+    fun setGoodConditionListener(listener: () -> Unit) {
         goodConditionListener = listener
     }
 
-    public fun setBadConditionListener(listener: (String) -> Unit) {
+    fun setBadConditionListener(listener: (String) -> Unit) {
         badConditionListener = listener
     }
 
@@ -35,12 +34,18 @@ class ReturnDialog(activity: Activity) : Dialog(activity) {
             good_condition_button.visibility = View.INVISIBLE
             bad_condition_button.visibility = View.INVISIBLE
             details_prompt.visibility = View.VISIBLE
-            details_input.visibility = View.VISIBLE
-            save_button.visibility = View.VISIBLE
+            maintenance_button.visibility = View.VISIBLE
+            broken_button.visibility = View.VISIBLE
+            unknown_button.visibility = View.VISIBLE
         }
-        save_button.setOnClickListener {
-            badConditionListener?.invoke(details_input.text.toString())
-            dismiss()
+        maintenance_button.setOnClickListener {
+            badConditionListener?.invoke("Vaatii huoltoa")
+        }
+        broken_button.setOnClickListener {
+            badConditionListener?.invoke("Fyysisesti rikki")
+        }
+        unknown_button.setOnClickListener {
+            badConditionListener?.invoke("Ei tietoa")
         }
     }
 }

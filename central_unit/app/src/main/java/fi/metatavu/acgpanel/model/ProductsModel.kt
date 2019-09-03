@@ -155,6 +155,7 @@ abstract class ProductsModel {
     var searchTerm = ""
     var productPages: List<ProductPage> = listOf()
         private set
+    abstract val stocksVisible: Boolean
 
     protected open fun syncProducts() {
         if (demoMode) {

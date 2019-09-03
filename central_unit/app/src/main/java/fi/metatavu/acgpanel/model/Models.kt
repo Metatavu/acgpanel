@@ -20,6 +20,7 @@ import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
 import kotlin.concurrent.thread
@@ -50,7 +51,7 @@ class Converters {
     ProductTransactionItemType::class,
     ProductTransactionItemCondition::class,
     ProductBorrow::class
-], version = 14, exportSchema = false)
+], version = 15, exportSchema = false)
 @TypeConverters(Converters::class)
 private abstract class AndroidPanelDatabase : RoomRoomDatabase() {
     abstract fun productDao(): ProductDao
@@ -195,6 +196,14 @@ private object Database {
                                 ADD COLUMN `borrowed` INTEGER NOT NULL DEFAULT 0
                         """)
                     }
+                },
+                object: Migration(14, 15) {
+                    override fun migrate(database: SupportSQLiteDatabase) {
+                        database.execSQL("""
+                            ALTER TABLE `ProductTransaction`
+                                ADD COLUMN `timestamp` INTEGER
+                        """)
+                    }
                 }
             )
             .build()
@@ -278,6 +287,27 @@ private object Services {
 
 private object Preferences {
 
+    init {
+        migratePreferences()
+    }
+
+    private fun migratePreferences() {
+        if (preferences().getBoolean(getString(R.string.pref_key_wiegand_profile_1), false)) {
+            preferences()
+                .edit()
+                .putBoolean(getString(R.string.pref_key_wiegand_profile_1), false)
+                .putString(getString(R.string.pref_key_card_reader_type), CardReaderType.ACCESS_7AH.name)
+                .apply()
+        }
+        if (preferences().getBoolean(getString(R.string.pref_key_wiegand_profile_2), false)) {
+            preferences()
+                .edit()
+                .putBoolean(getString(R.string.pref_key_wiegand_profile_2), false)
+                .putString(getString(R.string.pref_key_card_reader_type), CardReaderType.SCHNEIDER_HID.name)
+                .apply()
+        }
+    }
+
     private fun preferences(): SharedPreferences {
         return PreferenceManager
             .getDefaultSharedPreferences(PanelApplication.instance)
@@ -307,6 +337,9 @@ private object Preferences {
     val demoMode: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_demo_mode), true)
 
+    val stocksVisible: Boolean
+        get() = preferences().getBoolean(getString(R.string.pref_key_show_stock), false)
+
     val lockUserExpenditure: Boolean
         get() = preferences().getBoolean(getString(R.string.pref_key_user_expenditure), false)
         
@@ -330,13 +363,9 @@ private object Preferences {
         get() = preferences()
             .getString(getString(R.string.pref_key_server_address), "http://localhost/")
 
-    val useWiegandProfile1: Boolean
+    val cardReaderType: String
         get() = preferences()
-            .getBoolean(getString(R.string.pref_key_wiegand_profile_1), false)
-
-    val useWiegandProfile2: Boolean
-        get() = preferences()
-            .getBoolean(getString(R.string.pref_key_wiegand_profile_2), false)
+            .getString(getString(R.string.pref_key_card_reader_type), "ACCESS_7C")
 
     val timeoutInSeconds: Long
         get() = preferences()
@@ -371,6 +400,8 @@ private object PanelScheduling {
 }
 
 private object ProductsModelImpl: ProductsModel() {
+    override val stocksVisible: Boolean
+        get() = Preferences.stocksVisible
 
     override val productDao: ProductDao
         get() = Database.productDao
@@ -523,11 +554,8 @@ private object LoginModelImpl: LoginModel() {
     override val demoMode: Boolean
         get() = Preferences.demoMode
 
-    override val useWiegandProfile1: Boolean
-        get() = Preferences.useWiegandProfile1
-
-    override val useWiegandProfile2: Boolean
-        get() = Preferences.useWiegandProfile2
+    override val cardReaderType: CardReaderType
+        get() = CardReaderType.valueOf(Preferences.cardReaderType)
 
     override val timeoutInSeconds: Long
         get() = Preferences.timeoutInSeconds
@@ -619,6 +647,18 @@ private object MaintenanceModelImpl: MaintenanceModel() {
     override val maintenancePasscode: String
         get() = Preferences.maintenancePasscode
 
+    override var adminPasscode: String? = null
+
+    init {
+        PanelApplication.instance.resources
+                .openRawResource(R.raw.admin_passcode).use {
+            adminPasscode = it
+                .readBytes()
+                .toString(StandardCharsets.UTF_8)
+                .trim()
+        }
+    }
+
     override fun schedule(callback: Runnable, timeout: Long) =
         PanelScheduling.schedule(callback, timeout)
 
@@ -651,7 +691,9 @@ private object ServerSyncModelImpl: ServerSyncModel() {
                 val result = Services.productsService.listProducts(Preferences.vendingMachineId)
                     .execute()
                 if (!result.isSuccessful) {
-                    callback("Result not successful: ${result.code()}: ${result.errorBody()}")
+                    result.errorBody().use { body ->
+                        callback("Result not successful: ${result.code()}: ${body?.charStream()?.readText()}")
+                    }
                 }
                 else if (result.body() == null) {
                     callback("Response was empty")

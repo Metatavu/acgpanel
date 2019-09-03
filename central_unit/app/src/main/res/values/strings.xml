@@ -86,7 +86,9 @@
     <string name="safety_card_placeholder" tools:ignore="TypographyEllipsis">...</string>
     <string name="pref_key_carousel_slide_interval">carousel_slide_interval</string>
     <string name="pref_title_carousel_slide_interval">Sisällön vaihtoväli aloitusnäytössä</string>
+    <!-- {@deprecated use pref_key_card_reader_type instead} -->
     <string name="pref_key_wiegand_profile_1">use_wiegand</string>
+    <!-- {@deprecated use pref_key_card_reader_type instead} -->
     <string name="pref_key_wiegand_profile_2">wiegand_profile_1</string>
     <string name="pref_title_wiegand_profile_1">Käytä Wiegand-kortinlukijaa (profiili 1)</string>
     <string name="pref_title_wiegand_profile_2">Käytä Wiegand-kortinlukijaa (profiili 2)</string>
@@ -136,4 +138,15 @@
     <string name="line_borrowed">Lainassa</string>
     <string name="profile_borrows">Lainaukset</string>
     <string name="profile_no_borrows">Ei lainauksia</string>
+    <string name="pref_key_show_stock">show_stock</string>
+    <string name="pref_title_show_stock">Näytä saldot</string>
+    <string name="pref_key_card_reader_type">card_reader_type</string>
+    <string name="pref_title_card_reader_type">Kortinlukijan tyyppi</string>
+    <string name="return_product_is">Tuote on</string>
+    <string name="return_product_ok">Kunnossa</string>
+    <string name="return_product_broken">Rikki</string>
+    <string name="return_product_prompt">Mikä tuotteessa on vikana?</string>
+    <string name="return_requires_maintenance">Vaatii huoltoa</string>
+    <string name="return_physically_broken">Fyysisesti rikki</string>
+    <string name="return_product_unknown">Ei tietoa</string>
 </resources>

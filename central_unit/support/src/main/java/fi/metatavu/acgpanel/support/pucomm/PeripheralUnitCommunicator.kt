@@ -100,9 +100,6 @@ internal abstract class MessageReader {
         try {
             when (next()) {
                 0x00.toByte() -> {
-                    while (available()) {
-                        read()
-                    }
                     return Message.Pong
                 }
                 0x01.toByte() -> {
@@ -260,6 +257,7 @@ class PeripheralUnitCommunicator(
     private val messageReader = object : MessageReader() {
         override fun read(): Byte {
             val byte = inBuffer.poll(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            Log.d(javaClass.name, "Incoming byte: ${byte}")
             if (byte != null) {
                 readFailures = 0
                 return byte
@@ -407,7 +405,10 @@ class PeripheralUnitCommunicator(
             Log.i(javaClass.name, "Pinging device...")
             lastPing = Instant.now()
             messageWriter.writeMessage(Message.Ping)
-            if (messageReader.readMessage() !is Message.Pong) {
+            Thread.sleep(10)
+            val msg = messageReader.readMessage()
+            if (msg !is Message.Pong) {
+                Log.d(javaClass.name, "Got message ${msg}")
                 badPings++
                 if (badPings > MAX_BAD_PINGS) {
                     jobThread = null

@@ -61,11 +61,10 @@ void cuCommWrite(uint8_t c) {
   UDR2 = c;
 }
 
-#define BD_RING_BUFFER_LENGTH 256
-uint8_t bdRingBuffer[BD_RING_BUFFER_LENGTH];
-uint8_t *pBdRingBufferEnd;
-uint8_t *pBdRingBufferRead;
-uint8_t *pBdRingBufferWrite;
+#define BD_RING_BUFFER_LENGTH 40
+uint8_t bdRingBuffer[BD_RING_BUFFER_LENGTH] = {0};
+int16_t bdRingBufferReadPos = 0;
+int16_t bdRingBufferWritePos = 0;
 volatile int16_t rs485_enable_timer;
 
 void bdCommInit(void) {
@@ -78,19 +77,11 @@ void bdCommInit(void) {
   UCSR1B = (1<<RXEN1) | (1<<TXEN1) | (1<<RXCIE1); // enable RX and TX
   UCSR1C = (1<<UCSZ10) | (1<<UCSZ11); // 8 data bits
   DDRC |= 1 << PC0;
-  pBdRingBufferEnd = bdRingBuffer + BD_RING_BUFFER_LENGTH;
-  pBdRingBufferRead = bdRingBuffer;
-  pBdRingBufferWrite = bdRingBuffer;
 }
 
 void bdCommWrite(uint8_t c) {
-  *pBdRingBufferWrite++ = c;
-  if (pBdRingBufferWrite == pBdRingBufferRead) {
-    pBdRingBufferWrite--;
-  }
-  if (pBdRingBufferWrite > pBdRingBufferEnd) {
-    pBdRingBufferWrite = bdRingBuffer;
-  }
+  bdRingBuffer[bdRingBufferWritePos] = c;
+  bdRingBufferWritePos = (bdRingBufferWritePos + 1) % BD_RING_BUFFER_LENGTH;
 }
 
 void bdCommWriteUnbuffered(uint8_t c) {
@@ -101,14 +92,12 @@ void bdCommWriteUnbuffered(uint8_t c) {
 }
 
 void bdCommUnBuffer() {
-  if (pBdRingBufferRead == pBdRingBufferWrite) {
+  if (bdRingBufferReadPos == bdRingBufferWritePos) {
     return;
   }
-  bdCommWriteUnbuffered(*pBdRingBufferRead++);
+  bdCommWriteUnbuffered(bdRingBuffer[bdRingBufferReadPos]);
+  bdRingBufferReadPos = (bdRingBufferReadPos + 1) % BD_RING_BUFFER_LENGTH;
   rs485_enable_timer = 10*MS;
-  if (pBdRingBufferRead > pBdRingBufferEnd) {
-    pBdRingBufferRead = bdRingBuffer;
-  }
 }
 
 void bdCommFlush(void) {

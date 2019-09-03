@@ -8,7 +8,7 @@ import android.text.TextWatcher
 import android.view.Window
 import kotlinx.android.synthetic.main.dialog_unlock.*
 
-class UnlockDialog(activity: Activity, val code: String) : Dialog(activity) {
+class UnlockDialog(activity: Activity, val isValidCode: (String) -> Boolean) : Dialog(activity) {
 
     private var finishListener : (() -> Unit)? = null
 
@@ -23,7 +23,7 @@ class UnlockDialog(activity: Activity, val code: String) : Dialog(activity) {
 
         input.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                ok_button.isEnabled = s?.toString() == code
+                ok_button.isEnabled = isValidCode(s?.toString() ?: "")
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {

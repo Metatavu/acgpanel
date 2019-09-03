@@ -10,6 +10,7 @@ import android.graphics.drawable.Icon
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import com.felhr.usbserial.UsbSerialDevice
 import fi.metatavu.acgpanel.R
@@ -26,6 +27,7 @@ sealed class Message
 
 object Ping : Message()
 object Pong : Message()
+object PollCardReader: Message()
 data class OpenLock(val shelf: Int, val compartment: Int): Message()
 data class OpenLockConfirmation(val shelf: Int): Message()
 data class ReadCard(val cardId: String): Message()
@@ -44,6 +46,7 @@ private const val RESTART_MAX_TRIES = 10
 private const val READ_TIMEOUT_MS = 5000L
 private const val READ_TIMEOUT_MAX_FAILURES = 5
 private const val PING_INTERVAL_MS = 15L*1000L
+private const val POLL_CARD_INTERVAL_MS = 250L
 private const val MAX_BAD_PINGS = 2
 
 abstract class MessageReader {
@@ -100,12 +103,11 @@ abstract class MessageReader {
                     }
                 }
                 0x02.toByte() -> {
-                    next() // skip first 'B'
+                    Thread.sleep(100)
                     val bytes = mutableListOf<Byte>()
-                    while (next() != '='.toByte()) {
-                        bytes.add(lastByte)
+                    while (available()) {
+                        bytes.add(next())
                     }
-                    chomp()
                     return ReadCard(String(bytes.toByteArray(), StandardCharsets.US_ASCII))
                 }
                 0x03.toByte() -> {
@@ -183,6 +185,13 @@ abstract class MessageWriter {
             is SetLightsIntensity -> {
                 write(0x04)
                 write(msg.intensity.toByte())
+                flush()
+            }
+            is PollCardReader -> {
+                write(0x02)
+                for (byte in "A00A1\r\n".toByteArray(StandardCharsets.US_ASCII)) {
+                    write(byte)
+                }
                 flush()
             }
         }
@@ -272,9 +281,8 @@ class McuCommunicationService : Service() {
         }
     }
 
-    private var lastPing = Instant.now()
+    private var lastPoll = 0L
     private var badPings = 0
-    private var serviceRunning = false
 
     private fun process() {
         while (jobThread != null) {
@@ -334,25 +342,39 @@ class McuCommunicationService : Service() {
                         }
                     }
                 }
+                val pollInterval =
+                    if (loginModel.shouldPollCardReader)
+                        POLL_CARD_INTERVAL_MS else
+                        PING_INTERVAL_MS
+                val now = SystemClock.elapsedRealtime()
                 if (!lockModel.locksOpen &&
                     !lockModel.isShelvingMode &&
                     !lockModel.isCalibrationMode &&
-                    lastPing.isBefore(Instant.now().minusMillis(PING_INTERVAL_MS))) {
-                    Log.i(javaClass.name, "Pinging device...")
-                    lastPing = Instant.now()
-                    messageWriter.writeMessage(Ping)
-                    if (messageReader.readMessage() !is Pong) {
-                        badPings++
-                        if (badPings > MAX_BAD_PINGS) {
-                            jobThread = null
-                            serial!!.close()
-                            return
+                    now > lastPoll + pollInterval) {
+                    lastPoll = now
+                    if (loginModel.shouldPollCardReader) {
+                        messageWriter.writeMessage(PollCardReader)
+                        val msg = messageReader.readMessage()
+                        if (msg is ReadCard && msg.cardId != "A02A3\r\n") {
+                            Handler(mainLooper).post {
+                                loginModel.logIn(msg.cardId)
+                            }
                         }
                     } else {
-                        badPings = 0
+                        messageWriter.writeMessage(Ping)
+                        if (messageReader.readMessage() !is Pong) {
+                            badPings++
+                            if (badPings > MAX_BAD_PINGS) {
+                                jobThread = null
+                                serial!!.close()
+                                return
+                            }
+                        } else {
+                            badPings = 0
+                        }
                     }
                 }
-                Thread.sleep(1)
+                Thread.sleep(0, 1)
             } catch (ex: TimeoutException) {
                 Log.d(javaClass.name, "Timeout: $ex")
             } catch (ex: Exception) {
@@ -380,7 +402,10 @@ class McuCommunicationService : Service() {
                 Log.d(javaClass.name, "Incoming: " +
                         it.toString(StandardCharsets.ISO_8859_1))
             }
-            jobThread = thread(start = true) { process() }
+            jobThread = thread(
+                start = true,
+                priority = Thread.MAX_PRIORITY
+            ) { process() }
             return true
         } else {
             return false
@@ -400,7 +425,7 @@ class McuCommunicationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return Service.START_STICKY
+        return START_STICKY
     }
 
     override fun onCreate() {

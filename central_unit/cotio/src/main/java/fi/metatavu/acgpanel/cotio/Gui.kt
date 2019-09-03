@@ -7,10 +7,7 @@ import android.app.Activity
 import android.app.Application
 import android.app.admin.DevicePolicyManager
 import android.app.admin.SystemUpdatePolicy
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
@@ -41,7 +38,6 @@ import kotlinx.android.synthetic.main.activity_fill.*
 import kotlinx.android.synthetic.main.activity_open_lockers.*
 import android.app.admin.DeviceAdminReceiver as AndroidDeviceAdminReceiver
 import kotlinx.android.synthetic.main.activity_read_code.*
-import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
 import kotlinx.android.synthetic.main.activity_default.unlock_button

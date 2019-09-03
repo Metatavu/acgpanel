@@ -4,6 +4,7 @@ abstract class MaintenanceModel {
 
     protected abstract fun schedule(callback: Runnable, timeout: Long)
     abstract val maintenancePasscode: String
+    abstract val adminPasscode: String?
     var isMaintenanceMode = false
     private var isDeviceErrorMode = false
 

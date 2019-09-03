@@ -12,7 +12,7 @@
         android:layout_gravity="center"
         android:layout_marginBottom="80dp"
         android:textSize="40sp"
-        android:text="Tuote on"
+        android:text="@string/return_product_is"
         />
 
     <Button
@@ -23,7 +23,7 @@
         android:layout_marginTop="50dp"
         android:layout_marginRight="150dp"
         android:textSize="40sp"
-        android:text="Kunnossa"
+        android:text="@string/return_product_ok"
         android:background="@color/colorPrimaryDark"
         android:textColor="@color/colorPrimaryLight"
         />
@@ -36,7 +36,7 @@
         android:layout_marginTop="50dp"
         android:layout_marginLeft="150dp"
         android:textSize="40sp"
-        android:text="Rikki"
+        android:text="@string/return_product_broken"
         android:background="@color/error"
         android:textColor="@color/colorPrimaryLight"
         />
@@ -46,38 +46,47 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:layout_marginLeft="20dp"
         android:textSize="40sp"
-        android:text="Mikä tuotteessa on vikana?"
+        android:text="@string/return_product_prompt"
         android:visibility="invisible"
-        />
-
-    <EditText
-        android:id="@+id/details_input"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="100dp"
-        android:layout_marginBottom="90dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
-        android:lines="4"
-        android:background="@drawable/border"
-        android:gravity="top|left"
-        android:textSize="30sp"
-        android:visibility="invisible"
-        android:padding="10dp"
         />
 
     <Button
-        android:id="@+id/save_button"
-        android:layout_width="250dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="20dp"
-        android:layout_marginRight="20dp"
-        android:textSize="30sp"
-        android:text="Tallenna"
+        android:id="@+id/maintenance_button"
+        android:layout_width="500dp"
+        android:layout_height="70dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="50dp"
+        android:textSize="40sp"
+        android:text="@string/return_requires_maintenance"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@color/colorPrimaryLight"
+        android:visibility="invisible"
+        />
+
+    <Button
+        android:id="@+id/broken_button"
+        android:layout_width="500dp"
+        android:layout_height="70dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="30dp"
+        android:textSize="40sp"
+        android:text="@string/return_physically_broken"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@color/colorPrimaryLight"
+        android:visibility="invisible"
+        />
+
+    <Button
+        android:id="@+id/unknown_button"
+        android:layout_width="500dp"
+        android:layout_height="70dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="110dp"
+        android:textSize="40sp"
+        android:text="@string/return_product_unknown"
         android:background="@color/colorPrimaryDark"
         android:textColor="@color/colorPrimaryLight"
         android:visibility="invisible"

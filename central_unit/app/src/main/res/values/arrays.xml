@@ -22,4 +22,16 @@
         <item>Lainaus</item>
         <item>Palautus</item>
     </string-array>
+    <string-array name="card_reader_type_entries">
+        <item>Access 7C</item>
+        <item>Access 7AH</item>
+        <item>Schneider HID</item>
+        <item>IR6090B</item>
+    </string-array>
+    <string-array name="card_reader_type_values">
+        <item>ACCESS_7C</item>
+        <item>ACCESS_7AH</item>
+        <item>SCHNEIDER_HID</item>
+        <item>IR6090B</item>
+    </string-array>
 </resources>

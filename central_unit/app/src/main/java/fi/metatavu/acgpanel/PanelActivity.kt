@@ -31,7 +31,10 @@ abstract class PanelActivity(private val lockAtStart: Boolean = false)
     private val lightsModel = getLightsModel()
 
     private val unlockTickCounter = TimedTickCounter(10, Duration.ofSeconds(1)) {
-        val dialog = UnlockDialog(this, maintenanceModel.maintenancePasscode)
+        val dialog = UnlockDialog(this) {
+            it == maintenanceModel.maintenancePasscode ||
+            it == maintenanceModel.adminPasscode
+        }
         dialog.setFinishListener {
             maintenanceModel.isMaintenanceMode = true
             @Suppress("DEPRECATION")

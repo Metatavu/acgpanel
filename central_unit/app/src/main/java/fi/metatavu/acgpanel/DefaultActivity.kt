@@ -23,14 +23,12 @@ import fi.metatavu.acgpanel.model.getNotificationModel
 import kotlinx.android.synthetic.main.activity_default.*
 import java.io.File
 import java.time.Duration
-import kotlin.concurrent.thread
 
 class DefaultActivity : PanelActivity(lockAtStart = false) {
 
     private val loginModel = getLoginModel()
     private val notificationModel = getNotificationModel()
-    private var carouselWidth = 1
-    private var carouselHeight = 1
+    private lateinit var unauthorizedDialog: UnauthorizedDialog
 
     private val preferences: SharedPreferences
         get() = PreferenceManager.getDefaultSharedPreferences(this)
@@ -45,7 +43,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
     }
 
     private val failedLoginListener = {
-        UnauthorizedDialog(this).show()
+        unauthorizedDialog.show()
     }
 
     private val powerManager: PowerManager
@@ -89,7 +87,7 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
             val serviceManagerClass = Class.forName("android.os.ServiceManager")
             val getServiceMethod = serviceManagerClass.getDeclaredMethod("getService", String::class.java)
             getServiceMethod.isAccessible = true
-            val binder = getServiceMethod.invoke(null, Context.USB_SERVICE) as android.os.IBinder
+            val binder = getServiceMethod.invoke(null, Context.USB_SERVICE) as IBinder
             val iUsbManagerClass = Class.forName("android.hardware.usb.IUsbManager")
             val stubClass = Class.forName("android.hardware.usb.IUsbManager\$Stub")
             val asInterfaceMethod = stubClass.getDeclaredMethod("asInterface", android.os.IBinder::class.java)
@@ -112,9 +110,10 @@ class DefaultActivity : PanelActivity(lockAtStart = false) {
     private val usbManager: UsbManager
         get() = getSystemService(Context.USB_SERVICE) as UsbManager
 
-    @SuppressLint("WakelockTimeout")
+    @SuppressLint("WakelockTimeout", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        unauthorizedDialog = UnauthorizedDialog(this)
         setContentView(R.layout.activity_default)
         cosuLockDown()
         val version = packageManager.getPackageInfo(packageName, 0)!!.versionName
