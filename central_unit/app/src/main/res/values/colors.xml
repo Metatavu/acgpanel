@@ -6,6 +6,9 @@
     <color name="colorPrimaryDarkDim">#aacee4</color>
     <color name="colorAccent">#0064A1</color>
     <color name="colorPrimaryLight">#DDF1FE</color>
+    <color name="colorReturn">#ff2f24</color>
+    <color name="colorBorrow">#03fc03</color>
+    <color name="colorPurchase">#ffed24</color>
 
     <color name="lightZebraStripe1">#DDF1FE</color>
     <color name="lightZebraStripe2">#FFFFFF</color>

@@ -6,8 +6,10 @@ import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.Handler
+import android.support.v4.content.ContextCompat
 import android.support.v7.recyclerview.extensions.ListAdapter
 import android.support.v7.util.DiffUtil
+import android.support.v7.view.menu.MenuView
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.View
@@ -18,6 +20,10 @@ import fi.metatavu.acgpanel.model.getBasketModel
 import fi.metatavu.acgpanel.model.getLockModel
 import kotlinx.android.synthetic.main.activity_basket.*
 import kotlinx.android.synthetic.main.view_basket_item.view.*
+import kotlinx.android.synthetic.main.view_basket_item.view.product_description
+import kotlinx.android.synthetic.main.view_basket_item.view.product_image
+import kotlinx.android.synthetic.main.view_basket_item.view.product_name
+import kotlinx.android.synthetic.main.view_take_item.view.*
 
 private fun basketItemView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density
@@ -56,7 +62,7 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.expenditure,
                             item.reference
                         )
-                }
+                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorPurchase))                }
                 BasketItemType.Borrow -> {
                     product_description.text =
                         context.getString(
@@ -64,7 +70,7 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.expenditure,
                             item.reference
                         )
-                }
+                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorBorrow))                }
                 BasketItemType.Return -> {
                     product_description.text =
                         context.getString(
@@ -72,6 +78,7 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.expenditure,
                             item.reference
                         )
+                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorReturn))
                 }
             }
             if (item.enabled) {

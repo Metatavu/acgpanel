@@ -10,8 +10,8 @@ android {
         minSdkVersion 27
         //noinspection OldTargetApi
         targetSdkVersion 27
-        versionCode 24
-        versionName "1.0.23-testi"
+        versionCode 25
+        versionName "1.0.24-testi"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
