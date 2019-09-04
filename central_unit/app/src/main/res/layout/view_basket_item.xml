@@ -38,6 +38,7 @@
         />
 
     <TextView
+        android:id="@+id/product_modify_button_decal"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_gravity="end|center_vertical"

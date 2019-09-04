@@ -23,7 +23,6 @@ import kotlinx.android.synthetic.main.view_basket_item.view.*
 import kotlinx.android.synthetic.main.view_basket_item.view.product_description
 import kotlinx.android.synthetic.main.view_basket_item.view.product_image
 import kotlinx.android.synthetic.main.view_basket_item.view.product_name
-import kotlinx.android.synthetic.main.view_take_item.view.*
 
 private fun basketItemView(context: Context): View {
     val dp = Resources.getSystem().displayMetrics.density
@@ -62,7 +61,8 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.expenditure,
                             item.reference
                         )
-                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorPurchase))                }
+                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorPurchase))
+                }
                 BasketItemType.Borrow -> {
                     product_description.text =
                         context.getString(
@@ -70,7 +70,10 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.expenditure,
                             item.reference
                         )
-                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorBorrow))                }
+                    product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorBorrow))
+                    product_modify_button.visibility = View.GONE
+                    product_modify_button_decal.visibility = View.GONE
+                }
                 BasketItemType.Return -> {
                     product_description.text =
                         context.getString(
@@ -79,6 +82,8 @@ private class BasketItemViewHolder(context: Context) : RecyclerView.ViewHolder(b
                             item.reference
                         )
                     product_name.setTextColor(ContextCompat.getColor(itemView.context, R.color.colorReturn))
+                    product_modify_button.visibility = View.GONE
+                    product_modify_button_decal.visibility = View.GONE
                 }
             }
             if (item.enabled) {
